@@ -1,0 +1,35 @@
+# 本机工具与编辑器状态
+.claude/
+.codex/
+.idea/
+.vscode/
+.DS_Store
+
+# 依赖和运行缓存
+node_modules
+.expo/
+.cache/
+.metro-cache/
+*.tsbuildinfo
+
+# 原生生成目录及构建产物
+/android/
+/ios/
+dist/
+build/
+coverage/
+release/
+*.log
+*.apk
+*.aab
+*.ipa
+*.xcarchive/
+*.xcresult/
+
+# 环境配置和签名凭据
+.env*
+*.keystore
+*.jks
+*.p12
+*.p8
+*.mobileprovision
