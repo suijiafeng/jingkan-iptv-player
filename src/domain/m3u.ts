@@ -12,6 +12,8 @@ export const M3U_LIMITS = Object.freeze({
   maxEntries: 20_000,
   yieldEveryLines: 200,
 });
+const HLS_STRUCTURE_TAG =
+  /^#EXT-X-(?:TARGETDURATION|MEDIA-SEQUENCE|DISCONTINUITY-SEQUENCE|STREAM-INF|I-FRAME-STREAM-INF|MEDIA|KEY|MAP|BYTERANGE|PLAYLIST-TYPE|ENDLIST|PART-INF|PART|SERVER-CONTROL)(?=[:\s]|$)/i;
 export type M3UErrorCode =
   | "empty"
   | "missing_header"
@@ -189,7 +191,9 @@ export async function parseM3U(
       headerSeen = true;
       continue;
     }
-    if (/^#EXT-X-/i.test(line)) throw new M3UParseError("hls_playlist");
+    // 只有定义 HLS 媒体列表或主列表的标签才会使文件被拒绝；
+    // 手工编辑的频道目录中，零散的 #EXT-X-* 行会被忽略。
+    if (HLS_STRUCTURE_TAG.test(line)) throw new M3UParseError("hls_playlist");
     if (/^#EXTINF:/i.test(line)) {
       if (pending) addIssue(pending.line, "dangling_extinf");
       countEntry();
