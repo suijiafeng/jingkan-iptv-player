@@ -60,8 +60,19 @@ function unsafeIPv6(host: string): boolean {
   );
 }
 
+// 流媒体服务器常用非标准低端口（81、82、85、98 等），
+// 因此只拒绝已知的非 HTTP 服务端口：WHATWG Fetch 的
+// 包含“受限端口”列表及常见的局域网、数据库和管理服务端口。
 const BLOCKED_PORTS = new Set([
-  1900, 2049, 2375, 2376, 3306, 3389, 5432, 5353, 5900, 6379, 9200, 11211,
+  // WHATWG Fetch 禁用端口列表。
+  1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79,
+  87, 95, 101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137,
+  139, 143, 161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532,
+  540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723,
+  2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669,
+  6679, 6697, 10080,
+  // 额外的局域网、容器、数据库与远程桌面服务端口
+  445, 1900, 2375, 2376, 3306, 3389, 5353, 5432, 5900, 6379, 9200, 11211,
 ]);
 
 /** 仅校验输入，不检查 DNS 解析结果、重定向或原生 HLS 子请求。 */
@@ -102,8 +113,7 @@ export function normalizeRemoteUrl(input: string, baseUrl?: string): string {
   if (host.includes(":") && unsafeIPv6(host))
     throw new UrlValidationError("unsafe_url");
   const port = Number(url.port || (url.protocol === "http:" ? 80 : 443));
-  if ((port < 1024 && port !== 80 && port !== 443) || BLOCKED_PORTS.has(port))
-    throw new UrlValidationError("unsafe_url");
+  if (BLOCKED_PORTS.has(port)) throw new UrlValidationError("unsafe_url");
   // WHATWG URL 会保留查询参数顺序及令牌值；不要使用 URLSearchParams。
   return url.toString();
 }

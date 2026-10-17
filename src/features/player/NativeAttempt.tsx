@@ -7,6 +7,7 @@ import {
   type VideoSource,
 } from "expo-video";
 import { PlaybackController } from "./playbackController";
+import { resolveContentType } from "./streamFormat";
 
 interface Props {
   uri: string;
@@ -23,6 +24,7 @@ export function NativeAttempt({ uri, attemptId, controller }: Props) {
     alive.current = true;
     let live = true;
     let instance: VideoPlayer | undefined;
+    const sniff = new AbortController();
     const subscriptions: { remove: () => void }[] = [];
     const current = () =>
       live &&
@@ -64,17 +66,20 @@ export function NativeAttempt({ uri, attemptId, controller }: Props) {
       // 不能在渲染过程中创建；构造完成后再向 VideoView 提供句柄。
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPlayer(ownedPlayer);
-      const pathname = new URL(uri).pathname.toLowerCase();
-      const source: VideoSource = {
-        uri,
-        useCaching: false,
-        ...(pathname.endsWith(".m3u8") ? { contentType: "hls" as const } : {}),
-      };
       if (current()) {
-        void ownedPlayer
-          .replaceAsync(source)
-          .then(() => {
-            if (current()) ownedPlayer.play();
+        // 对没有后缀的地址，先做一次限制为 1 KiB 的格式探测；
+        // 否则 ExoPlayer 会把无扩展名的 HLS 当作普通文件打开。
+        void resolveContentType(uri, sniff.signal)
+          .then((contentType) => {
+            if (!current()) return;
+            const source: VideoSource = {
+              uri,
+              useCaching: false,
+              ...(contentType === "auto" ? {} : { contentType }),
+            };
+            return ownedPlayer.replaceAsync(source).then(() => {
+              if (current()) ownedPlayer.play();
+            });
           })
           .catch(() => {
             // Expo 58 只提供 PlayerError.message；不能据此声称已取得 HTTP 状态码、
@@ -88,6 +93,7 @@ export function NativeAttempt({ uri, attemptId, controller }: Props) {
     return () => {
       alive.current = false;
       live = false;
+      sniff.abort();
       currentInstance.current = null;
       subscriptions.forEach((subscription) => subscription.remove());
       if (instance) {
