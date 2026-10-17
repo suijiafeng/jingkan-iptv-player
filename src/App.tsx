@@ -1,15 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, FlatList, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, AppState, Alert, FlatList, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
 import { Button, Card, Heading, Notice } from "./components/ui";
 import { openRepository, type Repository } from "./data/repository";
-import { readPickedFile, ImportIOError } from "./data/importIO";
+import { readPickedFile, ImportIOError, downloadPlaylist } from "./data/importIO";
 import { parseM3U, M3UParseError } from "./domain/m3u";
 import type { Channel, ImportPreview, SourceKind } from "./domain/types";
 import { colors, styles } from "./theme";
+import * as Network from "expo-network";
 
 type Prepared = { kind: SourceKind; location: string; content?: string; preview: ImportPreview };
+const RISK = "本应用直接连接你选择的服务器，服务器会收到 IP 地址与访问请求。HTTP 内容可能被旁观或篡改；即使主链接为 HTTPS，直播子清单、分片、密钥或重定向也可能使用 HTTP。本版本没有完整的 DNS、重定向与内网隔离保护。仅使用你信任且有权观看的来源。允许后适用于所有联网导入和播放；可随时在设置撤销。";
+const confirm = (title: string, message: string, action = "确认"): Promise<boolean> =>
+  new Promise((resolve) => Alert.alert(title, message, [
+    { text: "取消", style: "cancel", onPress: () => resolve(false) },
+    { text: action, onPress: () => resolve(true) },
+  ], { cancelable: true, onDismiss: () => resolve(false) }));
 
 export default function App() {
   const [repo, setRepo] = useState<Repository | null>(null);
@@ -24,6 +31,10 @@ export default function App() {
   const mounted = useRef(true);
   const operation = useRef(false);
   const controller = useRef<AbortController | null>(null);
+  const [url, setUrl] = useState("");
+  const [remoteAllowed, setRemoteAllowed] = useState(false);
+  const [mobileWarning, setMobileWarning] = useState(true);
+  const remoteRef = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
@@ -36,6 +47,9 @@ export default function App() {
     let active = true;
     setLoading(true); setError("");
     void openRepository().then(async (database) => {
+      const allowed = await database.getSetting("remoteAllowed", false);
+      const warning = await database.getSetting("mobileWarning", true);
+      if (active) { remoteRef.current = allowed; setRemoteAllowed(allowed); setMobileWarning(warning); }
       if (active) setRepo(database);
     }).catch(() => { if (active) setError("本地资料打开失败，请重试"); })
       .finally(() => { if (active) setLoading(false); });
@@ -77,6 +91,41 @@ export default function App() {
     }
   };
 
+  const guardRemote = async () => {
+    if (remoteRef.current) return true;
+    if (!repo || !await confirm("允许访问节目来源？", RISK, "了解风险并允许") || !mounted.current) return false;
+    await repo.setSetting("remoteAllowed", true);
+    if (!mounted.current) return false;
+    remoteRef.current = true; setRemoteAllowed(true); return true;
+  };
+  const checkNetwork = async () => {
+    const network = await Network.getNetworkStateAsync();
+    if (network.isConnected === false || network.isInternetReachable === false)
+      throw new ImportIOError("当前没有可用网络，请连接后重试");
+    if (mobileWarning && network.type === Network.NetworkStateType.CELLULAR)
+      return confirm("使用移动数据？", "下载节目单或播放直播会消耗流量。此次是否继续？", "继续");
+    return true;
+  };
+  const previewUrl = async () => {
+    if (operation.current || !repo) return;
+    if (!url.trim()) { setError("请填写节目单链接"); return; }
+    operation.current = true; setBusy(true); setError("");
+    const request = new AbortController(); controller.current = request;
+    try {
+      if (!await guardRemote() || request.signal.aborted || !await checkNetwork()) return;
+      const downloaded = await downloadPlaylist(url.trim(), request.signal, remoteRef.current);
+      const preview = await parseM3U(downloaded.text, { baseUrl: downloaded.url, signal: request.signal });
+      if (mounted.current && !request.signal.aborted) setPrepared({ kind: "url", location: url.trim(), preview });
+    } catch (cause) {
+      if (mounted.current && !request.signal.aborted) setError(
+        cause instanceof M3UParseError || cause instanceof ImportIOError ? cause.message : "无法读取节目单，请检查来源或重试",
+      );
+    } finally {
+      if (controller.current === request) controller.current = null;
+      operation.current = false; if (mounted.current) setBusy(false);
+    }
+  };
+
   const save = async () => {
     if (!repo || !prepared || operation.current) return;
     operation.current = true; setBusy(true); setError("");
@@ -99,6 +148,10 @@ export default function App() {
   const header = <View style={{ gap: 12, marginBottom: 12 }}>
     <Heading title="静看" subtitle="导入自己的节目单" />
     {error ? <Notice title={error} error /> : null}
+    <TextInput accessibilityLabel="节目单链接" placeholder="https://example.com/channels.m3u"
+      placeholderTextColor={colors.muted} style={styles.input} autoCapitalize="none" autoCorrect={false}
+      keyboardType="url" value={url} editable={!busy} onChangeText={(value) => { setUrl(value); setPrepared(null); }} />
+    <Button label="读取链接并预览" disabled={busy} onPress={() => void previewUrl()} />
     <Button label={busy ? "正在处理…" : "从文件导入"} secondary disabled={busy} onPress={() => void chooseFile()} />
     {prepared && <Card>
       <TextInput accessibilityLabel="来源名称" placeholder="来源名称，可留空" placeholderTextColor={colors.muted}
