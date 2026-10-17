@@ -37,7 +37,7 @@ import {
 } from "../../domain/channelLabels";
 import { NativeAttempt } from "./NativeAttempt";
 import {
-  adjacentChannelIndex,
+  adjacentPlayableIndex,
   backDestination,
   PlaybackController,
   type PlaybackSnapshot,
@@ -58,6 +58,12 @@ export interface PlayerScreenProps {
   mobileWarning: boolean;
   /** 用户已选择在可能计费的网络上继续播放。 */
   onMobileAccepted?: () => void;
+  /** 全屏上滑默认切换下一台；true 则反转方向（“我的电视”的“换台反转”）。 */
+  swipeReverse?: boolean;
+  /** 上一台和下一台会跳过最近一次手动检测发现不可达的频道。 */
+  skipUnreachable?: boolean;
+  /** 当前频道之前观看的频道，供一键返回。 */
+  previousChannel?: Channel | null;
 }
 
 const descriptions: Record<
@@ -90,11 +96,20 @@ const descriptions: Record<
 };
 
 export const CONTROLS_HIDE_MS = 4000;
+/** 全屏切台后的频道名称和位置提示层。 */
+export const OSD_MS = 2500;
+/** 超过这段时间仍无画面时，建议换台（规范要求在 15 秒提示）。 */
+export const SLOW_START_SECONDS = 15;
+/** 全屏滑动换台所需的最小垂直距离，单位为 dp。 */
+export const SWIPE_MIN_DP = 60;
+const TAP_SLOP_DP = 12;
 
 /** 全屏和面板由页面持有，不属于可被替换的频道。 */
 export function PlayerScreen(props: PlayerScreenProps) {
   const [fullscreen, setFullscreen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  // 状态放在单频道会话之上，切台时不会让已经隐藏的控件重新出现。
+  const [controlsShown, setControlsShown] = useState(true);
   const [scope, setScope] = useState<"all" | "favorites" | "recent">("all");
   const [search, setSearch] = useState("");
   const [group, setGroup] = useState<string | null>(null);
@@ -270,8 +285,12 @@ export function PlayerScreen(props: PlayerScreenProps) {
         fullscreen={fullscreen}
         onToggleFullscreen={() => {
           setOrientationError(false);
+          // 进入或退出全屏时，先显示播放控件。
+          setControlsShown(true);
           setFullscreen((value) => !value);
         }}
+        controlsShown={controlsShown}
+        onControlsShownChange={setControlsShown}
         onOpenSheet={() => setSheetOpen(true)}
         orientationError={orientationError}
         sheetOpen={sheetOpen}
@@ -506,6 +525,8 @@ export function PlayerScreen(props: PlayerScreenProps) {
 interface SessionProps extends PlayerScreenProps {
   fullscreen: boolean;
   sheetOpen: boolean;
+  controlsShown: boolean;
+  onControlsShownChange: (shown: boolean) => void;
   onToggleFullscreen: () => void;
   onOpenSheet: () => void;
   orientationError: boolean;
@@ -552,7 +573,7 @@ function ChannelSession(props: SessionProps) {
 
   // 全屏控件：轻触画面切换显示；只有在
   // 仅在确实播放时自动隐藏，读屏用户始终保留控件。
-  const [controlsShown, setControlsShown] = useState(true);
+  const { controlsShown, onControlsShownChange: setControlsShown } = props;
   const [screenReader, setScreenReader] = useState(false);
   useEffect(() => {
     let live = true;
@@ -580,19 +601,16 @@ function ChannelSession(props: SessionProps) {
     if (!autoHide) return;
     const timer = setTimeout(() => setControlsShown(false), CONTROLS_HIDE_MS);
     return () => clearTimeout(timer);
-  }, [autoHide]);
+  }, [autoHide, setControlsShown]);
+  // 加载时保持画面简洁，方便换台；需要用户决定的状态
+  // 错误、超时、暂停、移动数据确认等状态总会重新显示控件。
+  const loading = ["checking", "connecting", "buffering"].includes(state.phase);
   const controlsVisible =
     !props.fullscreen ||
     controlsShown ||
     props.sheetOpen ||
     screenReader ||
-    state.phase !== "playing";
-  // 进入或退出全屏时，先显示播放控件。
-  const [lastFullscreen, setLastFullscreen] = useState(props.fullscreen);
-  if (lastFullscreen !== props.fullscreen) {
-    setLastFullscreen(props.fullscreen);
-    setControlsShown(true);
-  }
+    (state.phase !== "playing" && !loading);
 
   const busy = ["checking", "connecting", "playing", "buffering"].includes(
     state.phase,
@@ -609,8 +627,45 @@ function ChannelSession(props: SessionProps) {
   const index = props.channels.findIndex(
     (channel) => channel.id === props.channel.id,
   );
-  const previous = adjacentChannelIndex(props.channels.length, index, -1);
-  const next = adjacentChannelIndex(props.channels.length, index, 1);
+  const skip = (channel: Channel) =>
+    !!props.skipUnreachable && channel.checkStatus === "unreachable";
+  const previous = adjacentPlayableIndex(props.channels, index, -1, skip);
+  const next = adjacentPlayableIndex(props.channels, index, 1, skip);
+  const selectNext = () => {
+    if (next !== null) props.onSelect(props.channels[next]);
+  };
+  const title = channelTitle(props.channel.name).title;
+
+  // 短暂显示频道名称和位置；进入全屏或到达换台边界时出现。
+  const [osd, setOsd] = useState<string | null>(null);
+  const osdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showOsd = useCallback((text: string) => {
+    if (osdTimer.current !== null) clearTimeout(osdTimer.current);
+    setOsd(text);
+    osdTimer.current = setTimeout(() => {
+      osdTimer.current = null;
+      setOsd(null);
+    }, OSD_MS);
+  }, []);
+  const position =
+    index >= 0 ? `${index + 1}/${props.channels.length} · ${title}` : title;
+  const arrivedFullscreen = useRef(props.fullscreen);
+  useEffect(() => {
+    if (arrivedFullscreen.current) showOsd(position);
+    return () => {
+      if (osdTimer.current !== null) clearTimeout(osdTimer.current);
+    };
+    // 只在进入此频道会话时执行。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const zap = (direction: -1 | 1) => {
+    const step = props.swipeReverse ? (-direction as -1 | 1) : direction;
+    const target = step === 1 ? next : previous;
+    if (target !== null) props.onSelect(props.channels[target]);
+    else showOsd(step === 1 ? "已经是最后一个频道" : "已经是第一个频道");
+  };
+  const gesture = useRef<{ x: number; y: number } | null>(null);
+
   const description = descriptions[state.phase];
   const pausedBody =
     state.pauseReason === "background"
@@ -642,11 +697,15 @@ function ChannelSession(props: SessionProps) {
       label="下一台"
       secondary
       disabled={next === null}
-      onPress={() => {
-        if (next !== null) props.onSelect(props.channels[next]);
-      }}
+      onPress={selectNext}
     />
   );
+  const previousChannel =
+    props.previousChannel &&
+    props.previousChannel.active &&
+    props.previousChannel.id !== props.channel.id
+      ? props.previousChannel
+      : null;
 
   const favoriteButton = (
     <Pressable
@@ -709,29 +768,86 @@ function ChannelSession(props: SessionProps) {
           />
         )}
         {props.fullscreen && (
-          <Pressable
-            testID="fullscreen-toggle-controls"
+          <View
+            testID="fullscreen-gesture-layer"
             style={StyleSheet.absoluteFill}
-            accessibilityRole="button"
-            accessibilityLabel={
-              controlsVisible ? "隐藏播放控件" : "显示播放控件"
-            }
-            onPress={() => setControlsShown(!controlsVisible)}
+            accessible
+            accessibilityRole="adjustable"
+            accessibilityLabel={`${title}，轻触${controlsVisible ? "隐藏" : "显示"}播放控件，上下滑动换台`}
+            accessibilityActions={[
+              {
+                name: "activate",
+                label: controlsVisible ? "隐藏播放控件" : "显示播放控件",
+              },
+              { name: "increment", label: "下一台" },
+              { name: "decrement", label: "上一台" },
+            ]}
+            onAccessibilityAction={({ nativeEvent }) => {
+              if (nativeEvent.actionName === "activate")
+                setControlsShown(!controlsVisible);
+              else if (nativeEvent.actionName === "increment") zap(1);
+              else if (nativeEvent.actionName === "decrement") zap(-1);
+            }}
+            onStartShouldSetResponder={() => true}
+            onResponderGrant={({ nativeEvent }) => {
+              gesture.current = { x: nativeEvent.pageX, y: nativeEvent.pageY };
+            }}
+            onResponderTerminate={() => {
+              gesture.current = null;
+            }}
+            onResponderRelease={({ nativeEvent }) => {
+              const start = gesture.current;
+              gesture.current = null;
+              if (!start) return;
+              const dx = nativeEvent.pageX - start.x;
+              const dy = nativeEvent.pageY - start.y;
+              if (
+                Math.abs(dy) >= SWIPE_MIN_DP &&
+                Math.abs(dy) > Math.abs(dx) * 1.5
+              )
+                zap(dy < 0 ? 1 : -1);
+              else if (Math.abs(dx) < TAP_SLOP_DP && Math.abs(dy) < TAP_SLOP_DP)
+                setControlsShown(!controlsVisible);
+            }}
           />
         )}
-        {state.phase !== "playing" && (
-          <View style={s.videoNotice} accessibilityLiveRegion="polite">
-            {waiting && <ActivityIndicator color={colors.accent} />}
-            <Text style={s.noticeTitle}>{description.title}</Text>
-            <Text style={s.noticeBody}>
-              {state.phase === "paused" ? pausedBody : description.body}
+        {props.fullscreen && osd && !props.sheetOpen && (
+          <View style={s.osd} pointerEvents="none" testID="channel-osd">
+            <Text style={s.osdText} numberOfLines={1}>
+              {osd}
             </Text>
-            {(state.phase === "timeout" || state.phase === "error") &&
-              props.channel.checkStatus === "unreachable" && (
-                <Text style={s.noticeBody}>
-                  上次可用性检测时，这个地址也没有响应。
-                </Text>
-              )}
+          </View>
+        )}
+        {state.phase !== "playing" && (
+          // box-none：在遮暗区域滑动时，事件仍会传给手势层。
+          <View
+            style={s.videoNotice}
+            pointerEvents="box-none"
+            accessibilityLiveRegion="polite"
+          >
+            <View pointerEvents="none" style={s.noticeText}>
+              {waiting && <ActivityIndicator color={colors.accent} />}
+              <Text style={s.noticeTitle}>{description.title}</Text>
+              <Text style={s.noticeBody}>
+                {state.phase === "paused" ? pausedBody : description.body}
+              </Text>
+              {(state.phase === "timeout" || state.phase === "error") &&
+                props.channel.checkStatus === "unreachable" && (
+                  <Text style={s.noticeBody}>
+                    上次可用性检测时，这个地址也没有响应。
+                  </Text>
+                )}
+            </View>
+            {waiting && (
+              <WaitProgress
+                key={state.attemptId ?? "checking"}
+                onNext={
+                  next !== null && props.fullscreen && !controlsVisible
+                    ? selectNext
+                    : undefined
+                }
+              />
+            )}
             {state.phase === "cellular" && (
               <View style={s.row}>
                 <View style={s.flex}>
@@ -760,8 +876,16 @@ function ChannelSession(props: SessionProps) {
       >
         <Button label="退出全屏" secondary onPress={props.onToggleFullscreen} />
         <Text style={[theme.heading, s.flex]} numberOfLines={1}>
-          {channelTitle(props.channel.name).title}
+          {title}
         </Text>
+        {props.fullscreen && previousChannel && (
+          <Button
+            label="回上个台"
+            secondary
+            accessibilityLabel={`回到上一个频道 ${channelTitle(previousChannel.name).title}`}
+            onPress={() => props.onSelect(previousChannel)}
+          />
+        )}
         {props.fullscreen && favoriteButton}
       </View>
       <View style={props.fullscreen ? s.hidden : s.portraitControls}>
@@ -783,6 +907,18 @@ function ChannelSession(props: SessionProps) {
           <View style={s.flex}>{nextButton}</View>
         </View>
         <Button label="打开频道列表" secondary onPress={props.onOpenSheet} />
+        {previousChannel && (
+          <Pressable
+            style={s.quiet}
+            accessibilityRole="button"
+            accessibilityLabel={`回到上一个频道 ${channelTitle(previousChannel.name).title}`}
+            onPress={() => props.onSelect(previousChannel)}
+          >
+            <Text style={s.quietText} numberOfLines={1}>
+              ↩ 回到 {channelTitle(previousChannel.name).title}
+            </Text>
+          </Pressable>
+        )}
         {!props.fullscreen && favoriteButton}
         <Pressable
           style={s.quiet}
@@ -810,6 +946,35 @@ function ChannelSession(props: SessionProps) {
         </View>
       </View>
     </ScrollView>
+  );
+}
+
+/** 记录没有画面的等待秒数，避免失效来源让用户无提示地等上 30 秒。使用按尝试标识区分的独立组件，使每秒计时只重渲染自身。 */
+function WaitProgress({ onNext }: { onNext?: () => void }) {
+  const [started] = useState(() => Date.now());
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    // 以开始时刻为基准，对齐整秒连续设置超时，而不使用 setInterval。
+    const elapsed = Math.floor((Date.now() - started) / 1000);
+    const timer = setTimeout(
+      () => setSeconds(Math.floor((Date.now() - started) / 1000)),
+      (elapsed + 1) * 1000 - (Date.now() - started),
+    );
+    return () => clearTimeout(timer);
+  }, [started, seconds]);
+  const slow = seconds >= SLOW_START_SECONDS;
+  return (
+    <>
+      <View pointerEvents="none" style={s.noticeText}>
+        {seconds > 0 && <Text style={s.noticeBody}>已等待 {seconds} 秒</Text>}
+        {slow && (
+          <Text style={s.noticeBody}>
+            比平时慢，节目源可能已失效。可以继续等，或换下一台。
+          </Text>
+        )}
+      </View>
+      {slow && onNext && <Button label="换下一台" secondary onPress={onNext} />}
+    </>
   );
 }
 
@@ -862,6 +1027,23 @@ const s = StyleSheet.create({
     textAlign: "center",
   },
   portraitControls: { gap: 12 },
+  noticeText: { gap: 8 },
+  osd: {
+    position: "absolute",
+    top: 24,
+    alignSelf: "center",
+    maxWidth: "70%",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: "#0A1214D9",
+  },
+  osdText: {
+    color: colors.text,
+    fontSize: 18,
+    lineHeight: 27,
+    fontWeight: "600",
+  },
   quiet: {
     minHeight: 52,
     alignItems: "center",

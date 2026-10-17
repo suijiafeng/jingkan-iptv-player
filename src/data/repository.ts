@@ -257,6 +257,17 @@ export class Repository {
     }));
   }
 
+  /** 按 id 读取单个频道（任意状态），用于不加载整个目录就开始播放。 */
+  async getChannel(id: string): Promise<Channel | null> {
+    const row = await this.db.getFirstAsync<RawChannel>(
+      `${CHANNEL_SELECT} WHERE c.id = ?`,
+      [id],
+    );
+    return row
+      ? { ...row, active: row.active === 1, favorite: row.favorite === 1 }
+      : null;
+  }
+
   listFavorites(): Promise<Channel[]> {
     return this.listChannels({ mode: "favorites" });
   }

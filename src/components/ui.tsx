@@ -16,6 +16,7 @@ export function Button({
   danger = false,
   selected,
   accessibilityRole = "button",
+  accessibilityLabel,
   style,
 }: {
   label: string;
@@ -25,12 +26,14 @@ export function Button({
   danger?: boolean;
   selected?: boolean;
   accessibilityRole?: AccessibilityRole;
+  /** 可见文字缩写时使用的读屏标签，默认使用 label。 */
+  accessibilityLabel?: string;
   style?: ViewStyle;
 }) {
   return (
     <Pressable
       accessibilityRole={accessibilityRole}
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{
         disabled,
         ...(selected !== undefined ? { selected } : {}),

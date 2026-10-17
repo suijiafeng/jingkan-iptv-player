@@ -250,6 +250,26 @@ export function adjacentChannelIndex(
   return currentIndex < 0 || target < 0 || target >= length ? null : target;
 }
 
+/**
+ * 与 adjacentChannelIndex 相似，但会跨过调用方要求跳过的频道，
+ * 例如最近一次手动检测发现无法连接的频道。到达边界后不循环。
+ */
+export function adjacentPlayableIndex<T>(
+  items: readonly T[],
+  currentIndex: number,
+  direction: -1 | 1,
+  skip: (item: T) => boolean = () => false,
+): number | null {
+  if (currentIndex < 0) return null;
+  for (
+    let target = currentIndex + direction;
+    target >= 0 && target < items.length;
+    target += direction
+  )
+    if (!skip(items[target])) return target;
+  return null;
+}
+
 export function backDestination(
   sheetOpen: boolean,
   fullscreen: boolean,
