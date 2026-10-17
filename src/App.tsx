@@ -9,6 +9,8 @@ import { parseM3U, M3UParseError } from "./domain/m3u";
 import type { Channel, ImportPreview, SourceKind } from "./domain/types";
 import { colors, styles } from "./theme";
 import * as Network from "expo-network";
+import { ChannelRow } from "./components/ChannelRow";
+import { PlayerScreen } from "./features/player/PlayerScreen";
 
 type Prepared = { kind: SourceKind; location: string; content?: string; preview: ImportPreview };
 type Tab = "all" | "favorites" | "recent";
@@ -38,6 +40,10 @@ export default function App() {
   const remoteRef = useRef(false);
   const [tab, setTab] = useState<Tab>("all");
   const favoriteLocks = useRef(new Set<string>());
+  const [playing, setPlaying] = useState<Channel | null>(null);
+  const [playQueue, setPlayQueue] = useState<Channel[]>([]);
+  const playGeneration = useRef(0);
+  const playingRef = useRef(playing); playingRef.current = playing;
 
   useEffect(() => {
     mounted.current = true;
@@ -149,9 +155,27 @@ export default function App() {
     try {
       const selected = await repo.toggleFavorite(channel.id);
       if (!mounted.current) return;
+      setPlaying((current) => current?.id === channel.id ? { ...current, favorite: selected } : current);
+      setPlayQueue((queue) => queue.map((item) => item.id === channel.id ? { ...item, favorite: selected } : item));
       setRevision((value) => value + 1);
     } catch { if (mounted.current) setError("收藏未能保存，请重试"); }
     finally { favoriteLocks.current.delete(channel.id); }
+  };
+
+  const play = async (channel: Channel) => {
+    if (!channel.active || operation.current) return;
+    const generation = ++playGeneration.current;
+    try {
+      if (!await guardRemote() || !mounted.current || generation !== playGeneration.current) return;
+      setPlayQueue(channels.filter((item) => item.active)); setPlaying(channel);
+    } catch { if (mounted.current) setError("无法保存网络许可，请重试"); }
+  };
+  const closePlayer = () => { playGeneration.current++; setPlaying(null); };
+  const onStarted = (channel: Channel) => {
+    if (!repo || playingRef.current?.id !== channel.id) return;
+    void repo.recordRecent(channel.id)
+      .then(() => { if (mounted.current) setRevision((value) => value + 1); })
+      .catch(() => { if (mounted.current) setError("观看记录未能保存"); });
   };
 
   if (!repo) return <SafeAreaView style={styles.screen}><View style={styles.content}>
@@ -184,7 +208,11 @@ export default function App() {
     <FlatList data={channels} keyExtractor={(channel) => channel.id} ListHeaderComponent={header}
       contentContainerStyle={styles.content} ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       ListEmptyComponent={<Notice title="还没有频道" body="导入节目单后，频道资料会保存在本机。" />}
-      renderItem={({ item }) => <Card><Text style={styles.heading}>{item.name}</Text><Text style={styles.muted}>{item.groupName} · {item.sourceName}</Text>
-        <Button label={item.favorite ? "取消收藏" : "收藏"} secondary onPress={() => void favorite(item)} /></Card>} />
+      renderItem={({ item }) => <ChannelRow channel={item} onPlay={() => void play(item)} onFavorite={() => void favorite(item)} />} />
+    {playing && <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: colors.bg }}>
+      <PlayerScreen channel={playing} channels={playQueue} onSelect={setPlaying} onClose={closePlayer}
+        onFavorite={(channel) => void favorite(channel)} onStarted={onStarted}
+        remoteAllowed={remoteAllowed} mobileWarning={mobileWarning} />
+    </View>}
   </SafeAreaView>;
 }
