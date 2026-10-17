@@ -16,7 +16,7 @@ import { colors, styles } from "../../theme";
 export type Tab = "all" | "favorites" | "recent" | "settings";
 export type ListTab = Exclude<Tab, "settings">;
 
-interface HeaderProps {
+export interface HeaderProps {
   tab: ListTab;
   sources: Source[];
   channelCount: number;
@@ -35,93 +35,96 @@ interface HeaderProps {
   recentCount: number;
 }
 
-export function ChannelListHeader(props: HeaderProps) {
+/** 标题行包括标题、副标题和最近观看操作，随列表滚走；下面的筛选栏固定在顶部。 */
+export function ChannelListTitle(props: HeaderProps) {
+  const { tab } = props;
+  const clearRecentDisabled = props.recentBusy || props.recentCount === 0;
+  const toggleRecentDisabled =
+    props.recentBusy || (!props.recentEditing && props.recentCount === 0);
+  return (
+    <View style={s.topRow}>
+      <View style={{ flex: 1 }}>
+        <Heading
+          title={
+            tab === "all" ? "频道" : tab === "favorites" ? "收藏" : "最近观看"
+          }
+          subtitle={
+            tab === "favorites"
+              ? "随手打开，都是常看的"
+              : tab === "recent"
+                ? props.recentEditing
+                  ? "删除记录不会影响频道和收藏"
+                  : "按最近播放排序"
+                : `${props.sources.length} 份节目单 · 当前 ${props.channelCount} 个频道`
+          }
+        />
+      </View>
+      {tab === "recent" && (
+        <View style={s.headerActions}>
+          {props.recentEditing && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="清空最近观看"
+              accessibilityState={{ disabled: clearRecentDisabled }}
+              disabled={clearRecentDisabled}
+              onPress={props.onClearRecent}
+              style={({ pressed }) => [
+                s.headerAction,
+                {
+                  opacity: clearRecentDisabled ? 0.4 : pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Text style={s.dangerText}>清空</Text>
+            </Pressable>
+          )}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              props.recentEditing ? "完成历史管理" : "管理观看记录"
+            }
+            accessibilityState={{ disabled: toggleRecentDisabled }}
+            disabled={toggleRecentDisabled}
+            onPress={props.onToggleRecentEditing}
+            style={({ pressed }) => [
+              s.headerAction,
+              {
+                opacity: toggleRecentDisabled ? 0.4 : pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Text style={s.actionText}>
+              {props.recentEditing ? "完成" : "管理"}
+            </Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** 当前状态下，固定筛选栏是否有内容可显示。 */
+export function hasFilterBar(
+  props: Pick<HeaderProps, "tab" | "recentEditing">,
+) {
+  return !(props.tab === "recent" && props.recentEditing);
+}
+
+/**
+ * 搜索、来源选择、分组和范围：长列表滚动时固定在顶部，
+ * 无需滚回上方即可使用筛选条件。
+ */
+export function ChannelFilterBar(props: HeaderProps) {
   const { tab } = props;
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const selectedSource = props.sources.find(
     (source) => source.id === props.sourceId,
   );
-  const clearRecentDisabled = props.recentBusy || props.recentCount === 0;
-  const toggleRecentDisabled =
-    props.recentBusy || (!props.recentEditing && props.recentCount === 0);
+  if (!hasFilterBar(props)) return null;
   return (
-    <View style={s.header}>
-      <View style={s.topRow}>
-        <View style={{ flex: 1 }}>
-          <Heading
-            title={
-              tab === "all" ? "频道" : tab === "favorites" ? "收藏" : "最近观看"
-            }
-            subtitle={
-              tab === "favorites"
-                ? "随手打开，都是常看的"
-                : tab === "recent"
-                  ? props.recentEditing
-                    ? "删除记录不会影响频道和收藏"
-                    : "按最近播放排序"
-                  : `${props.sources.length} 份节目单 · 当前 ${props.channelCount} 个频道`
-            }
-          />
-        </View>
-        {tab === "all" && props.sources.length > 1 && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={sourcesOpen ? "收起来源筛选" : "展开来源筛选"}
-            accessibilityState={{ expanded: sourcesOpen }}
-            onPress={() => setSourcesOpen((value) => !value)}
-            style={({ pressed }) => [
-              s.sourceToggle,
-              pressed && { opacity: 0.7 },
-            ]}
-          >
-            <Text numberOfLines={1} style={s.sourceText}>
-              {selectedSource?.name || "来源"} {sourcesOpen ? "▴" : "▾"}
-            </Text>
-          </Pressable>
-        )}
-        {tab === "recent" && (
-          <View style={s.headerActions}>
-            {props.recentEditing && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="清空最近观看"
-                accessibilityState={{ disabled: clearRecentDisabled }}
-                disabled={clearRecentDisabled}
-                onPress={props.onClearRecent}
-                style={({ pressed }) => [
-                  s.headerAction,
-                  {
-                    opacity: clearRecentDisabled ? 0.4 : pressed ? 0.7 : 1,
-                  },
-                ]}
-              >
-                <Text style={s.dangerText}>清空</Text>
-              </Pressable>
-            )}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                props.recentEditing ? "完成历史管理" : "管理观看记录"
-              }
-              accessibilityState={{ disabled: toggleRecentDisabled }}
-              disabled={toggleRecentDisabled}
-              onPress={props.onToggleRecentEditing}
-              style={({ pressed }) => [
-                s.headerAction,
-                {
-                  opacity: toggleRecentDisabled ? 0.4 : pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <Text style={s.actionText}>
-                {props.recentEditing ? "完成" : "管理"}
-              </Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
-      {!(tab === "recent" && props.recentEditing) && (
-        <View style={s.searchRow}>
+    <View style={s.filterBar}>
+      <View style={s.searchLine}>
+        <View style={[s.searchRow, { flex: 1 }]}>
           <TextInput
             accessibilityLabel="搜索频道名称"
             style={s.searchInput}
@@ -143,7 +146,23 @@ export function ChannelListHeader(props: HeaderProps) {
             </Pressable>
           )}
         </View>
-      )}
+        {tab === "all" && props.sources.length > 1 && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={sourcesOpen ? "收起来源筛选" : "展开来源筛选"}
+            accessibilityState={{ expanded: sourcesOpen }}
+            onPress={() => setSourcesOpen((value) => !value)}
+            style={({ pressed }) => [
+              s.sourceToggle,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Text numberOfLines={1} style={s.sourceText}>
+              {selectedSource?.name || "来源"} {sourcesOpen ? "▴" : "▾"}
+            </Text>
+          </Pressable>
+        )}
+      </View>
       {tab === "all" && sourcesOpen && props.sources.length > 1 && (
         <View style={{ gap: 6 }}>
           <Text style={styles.muted}>选择节目来源</Text>
@@ -203,6 +222,16 @@ export function ChannelListHeader(props: HeaderProps) {
           </Pressable>
         </View>
       )}
+    </View>
+  );
+}
+
+/** 把标题和筛选放在一起，供非固定布局和测试使用。 */
+export function ChannelListHeader(props: HeaderProps) {
+  return (
+    <View style={s.header}>
+      <ChannelListTitle {...props} />
+      <ChannelFilterBar {...props} />
     </View>
   );
 }
@@ -318,6 +347,9 @@ export function BottomTabs({
 
 const s = StyleSheet.create({
   header: { gap: 10, marginBottom: 12 },
+  // 使用不透明背景，防止下方滚动的行透过固定栏显示。
+  filterBar: { gap: 10, paddingVertical: 8, backgroundColor: colors.bg },
+  searchLine: { flexDirection: "row", alignItems: "center", gap: 8 },
   topRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   sourceToggle: {
     minWidth: 48,
