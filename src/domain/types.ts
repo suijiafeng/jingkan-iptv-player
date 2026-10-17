@@ -33,6 +33,9 @@ export interface Channel extends ParsedChannel {
   lastSeenRevision: number;
   favorite: boolean;
   lastPlayedAt: number | null;
+  /** 手动可用性检测：地址曾响应，不代表能够播放。 */
+  checkStatus: "ok" | "unreachable" | null;
+  checkedAt: number | null;
 }
 
 export type ImportIssueReason =
