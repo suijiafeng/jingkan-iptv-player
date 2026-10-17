@@ -534,7 +534,11 @@ export class Repository {
         await tx.runAsync("DELETE FROM settings");
       });
       // 尽力截断 WAL；secure_delete 会擦除已释放的单元，但不保证物理介质已彻底清除。
-      await this.db.execAsync("PRAGMA wal_checkpoint(TRUNCATE);");
+      try {
+        await this.db.execAsync("PRAGMA wal_checkpoint(TRUNCATE);");
+      } catch {
+        // 删除已经提交；检查点失败时不能将删除报告为失败。
+      }
     });
   }
 }

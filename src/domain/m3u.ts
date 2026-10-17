@@ -219,11 +219,14 @@ export async function parseM3U(
     pending = null;
   }
   if (pending) addIssue(pending.line, "dangling_extinf");
-  const idCounts = new Map<string, number>();
+  const idUrls = new Map<string, Set<string>>();
   for (let i = 0; i < candidates.length; i += 1) {
     const candidate = candidates[i];
-    if (candidate.tvgId)
-      idCounts.set(candidate.tvgId, (idCounts.get(candidate.tvgId) ?? 0) + 1);
+    if (candidate.tvgId) {
+      const urls = idUrls.get(candidate.tvgId) ?? new Set<string>();
+      urls.add(candidate.streamUrl);
+      idUrls.set(candidate.tvgId, urls);
+    }
     if (i > 0 && i % M3U_LIMITS.yieldEveryLines === 0) {
       await yieldControl();
       checkCancelled();
@@ -235,7 +238,7 @@ export async function parseM3U(
     const candidate = candidates[i];
     // 使用完整的规范化 URL，避免哈希碰撞，并保留所有认证令牌。
     const identityKey =
-      candidate.tvgId && idCounts.get(candidate.tvgId) === 1
+      candidate.tvgId && idUrls.get(candidate.tvgId)?.size === 1
         ? `id:${candidate.tvgId}`
         : `url:${candidate.streamUrl}`;
     if (identities.has(identityKey)) addIssue(candidate.line, "duplicate");
