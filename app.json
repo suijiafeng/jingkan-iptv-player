@@ -28,6 +28,19 @@
       "expo-router",
       "expo-sqlite",
       [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": false,
+          "supportsPictureInPicture": false
+        }
+      ],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {
