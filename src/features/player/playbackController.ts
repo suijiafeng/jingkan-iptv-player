@@ -37,10 +37,13 @@ const activePhases: PlaybackPhase[] = [
   "playing",
   "buffering",
 ];
+/**
+ * 只有缺少网络连接才算离线。isInternetReachable 反映 Android 自身的
+ * 联通性探测结果（Google connectivitycheck）；在阻止该探测的网络中
+ * 可能失败，例如中国大陆，即使实际能够联网。因此应由真实请求判断。
+ */
 export const isOffline = (network: ConnectionState) =>
-  network.isConnected === false ||
-  network.isInternetReachable === false ||
-  network.type === "NONE";
+  network.isConnected === false || network.type === "NONE";
 /** VPN 或未知传输类型不能证明播放正在使用不计费的 Wi-Fi。 */
 export const mightUseMobileData = (network: ConnectionState) =>
   !["WIFI", "ETHERNET", "BLUETOOTH"].includes(network.type ?? "UNKNOWN");
@@ -224,7 +227,11 @@ export class PlaybackController {
     if (this.startedAttempt === id) this.pause("interrupted");
   }
   nativeEnded(id: number) {
-    if (this.isCurrentAttempt(id)) this.stop("ended");
+    // 未设置来源的空 ExoPlayer 会立即报告 ENDED。
+    // 只有真正播放过的流才能结束；更早的“结束”交给
+    // 等待首次连接超时或真实错误。
+    if (this.isCurrentAttempt(id) && this.startedAttempt === id)
+      this.stop("ended");
   }
   dispose() {
     this.disposed = true;
