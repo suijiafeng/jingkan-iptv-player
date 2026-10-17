@@ -11,6 +11,7 @@ import { colors, styles } from "./theme";
 import * as Network from "expo-network";
 
 type Prepared = { kind: SourceKind; location: string; content?: string; preview: ImportPreview };
+type Tab = "all" | "favorites" | "recent";
 const RISK = "本应用直接连接你选择的服务器，服务器会收到 IP 地址与访问请求。HTTP 内容可能被旁观或篡改；即使主链接为 HTTPS，直播子清单、分片、密钥或重定向也可能使用 HTTP。本版本没有完整的 DNS、重定向与内网隔离保护。仅使用你信任且有权观看的来源。允许后适用于所有联网导入和播放；可随时在设置撤销。";
 const confirm = (title: string, message: string, action = "确认"): Promise<boolean> =>
   new Promise((resolve) => Alert.alert(title, message, [
@@ -35,6 +36,8 @@ export default function App() {
   const [remoteAllowed, setRemoteAllowed] = useState(false);
   const [mobileWarning, setMobileWarning] = useState(true);
   const remoteRef = useRef(false);
+  const [tab, setTab] = useState<Tab>("all");
+  const favoriteLocks = useRef(new Set<string>());
 
   useEffect(() => {
     mounted.current = true;
@@ -58,11 +61,11 @@ export default function App() {
   useEffect(() => {
     if (!repo) return;
     let active = true;
-    void repo.listChannels()
+    void repo.listChannels({ mode: tab })
       .then((rows) => { if (active) setChannels(rows); })
       .catch(() => { if (active) setError("读取频道失败，请重试"); });
     return () => { active = false; };
-  }, [repo, revision]);
+  }, [repo, revision, tab]);
 
   const chooseFile = async () => {
     if (operation.current) return;
@@ -134,10 +137,21 @@ export default function App() {
       const sourceName = name.trim() || (snapshot.kind === "file" ? snapshot.location : new URL(snapshot.location).hostname);
       await repo.importSource({ ...snapshot, name: sourceName });
       if (!mounted.current) return;
-      setPrepared(null); setName("");
+      setPrepared(null); setName(""); setTab("all");
       setRevision((value) => value + 1);
     } catch { if (mounted.current) setError("保存失败，旧数据未改变，请重试"); }
     finally { operation.current = false; if (mounted.current) setBusy(false); }
+  };
+
+  const favorite = async (channel: Channel) => {
+    if (!repo || favoriteLocks.current.has(channel.id)) return;
+    favoriteLocks.current.add(channel.id);
+    try {
+      const selected = await repo.toggleFavorite(channel.id);
+      if (!mounted.current) return;
+      setRevision((value) => value + 1);
+    } catch { if (mounted.current) setError("收藏未能保存，请重试"); }
+    finally { favoriteLocks.current.delete(channel.id); }
   };
 
   if (!repo) return <SafeAreaView style={styles.screen}><View style={styles.content}>
@@ -163,11 +177,14 @@ export default function App() {
       <Button label="保存节目单" disabled={busy} onPress={() => void save()} />
       <Button label="放弃本次预览" secondary disabled={busy} onPress={() => setPrepared(null)} />
     </Card>}
+    <View style={styles.row}>{([['all', '频道'], ['favorites', '收藏'], ['recent', '最近']] as const).map(([key, label]) =>
+      <Button key={key} label={label} secondary={tab !== key} onPress={() => setTab(key)} style={{ flex: 1 }} />)}</View>
   </View>;
   return <SafeAreaView style={styles.screen}>
     <FlatList data={channels} keyExtractor={(channel) => channel.id} ListHeaderComponent={header}
       contentContainerStyle={styles.content} ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
       ListEmptyComponent={<Notice title="还没有频道" body="导入节目单后，频道资料会保存在本机。" />}
-      renderItem={({ item }) => <Card><Text style={styles.heading}>{item.name}</Text><Text style={styles.muted}>{item.groupName} · {item.sourceName}</Text></Card>} />
+      renderItem={({ item }) => <Card><Text style={styles.heading}>{item.name}</Text><Text style={styles.muted}>{item.groupName} · {item.sourceName}</Text>
+        <Button label={item.favorite ? "取消收藏" : "收藏"} secondary onPress={() => void favorite(item)} /></Card>} />
   </SafeAreaView>;
 }
