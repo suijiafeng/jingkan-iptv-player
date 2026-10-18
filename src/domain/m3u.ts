@@ -6,6 +6,7 @@ import type {
 } from "./types";
 import { normalizeRemoteUrl, UrlValidationError } from "./url";
 import { normalizeGroups } from "./channelLabels";
+import { normalizeCountries, normalizeLanguages } from "./channelFacets";
 
 // 8 MiB 足以容纳完整 iptv-org 索引（约 2.5 MiB、超过 1.1 万条），并留有余量；
 // 解析时文本保存在内存中，因此仍需限制大小。
@@ -80,6 +81,8 @@ interface PendingChannel {
   groupName: string;
   tvgId: string | null;
   logoUrl: string | null;
+  countries: string[];
+  languages: string[];
   line: number;
 }
 interface Candidate extends PendingChannel {
@@ -121,8 +124,14 @@ function parseExtinf(line: string, lineNumber: number): PendingChannel | null {
       line.slice(comma + 1).trim() || attributes["tvg-name"] || "未命名频道",
     groupName: normalizeGroups(attributes["group-title"]),
     tvgId: attributes["tvg-id"] || null,
-    // 远程台标只作为元数据，应用不会请求这些地址。
+    // 加载远程图片需要另行取得应用内知情许可。
     logoUrl: attributes["tvg-logo"] || null,
+    countries: normalizeCountries(
+      attributes["tvg-country"] || attributes.country,
+    ),
+    languages: normalizeLanguages(
+      attributes["tvg-language"] || attributes.language,
+    ),
     line: lineNumber,
   };
 }
@@ -254,6 +263,8 @@ export async function parseM3U(
         groupName: candidate.groupName,
         tvgId: candidate.tvgId,
         logoUrl: candidate.logoUrl,
+        countries: candidate.countries,
+        languages: candidate.languages,
         streamUrl: candidate.streamUrl,
         sortIndex: channels.length,
       });

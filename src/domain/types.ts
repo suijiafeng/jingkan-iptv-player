@@ -21,6 +21,9 @@ export interface ParsedChannel {
   groupName: string;
   tvgId: string | null;
   logoUrl: string | null;
+  /** 只使用节目单显式元数据；缺少元数据时保持未标注。 */
+  countries?: string[];
+  languages?: string[];
   streamUrl: string;
   sortIndex: number;
 }
@@ -92,6 +95,9 @@ export interface ImportSourceInput {
 export interface ChannelQuery {
   sourceId?: string;
   groupName?: string;
+  /** undefined 表示全部；空字符串选择未标注的频道。 */
+  country?: string;
+  language?: string;
   search?: string;
   mode?: "all" | "favorites" | "recent";
   includeInactive?: boolean;

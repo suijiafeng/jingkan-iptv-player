@@ -65,12 +65,27 @@ const withBackupRuleFiles = (config) =>
 module.exports = (config) =>
   withBackupRuleFiles(
     withAndroidManifest(config, (config) => {
-      const app = config.modResults.manifest.application[0].$;
+      const application = config.modResults.manifest.application[0];
+      const app = application.$;
       app["android:allowBackup"] = "false";
       app["android:dataExtractionRules"] = "@xml/jingkan_data_extraction_rules";
       app["android:fullBackupContent"] = "@xml/jingkan_backup_rules";
       // HTTP 是 v0.2 明确支持的能力，使用前必须取得应用内知情许可。
       app["android:usesCleartextTraffic"] = "true";
+      // expo-location 还包含前后台任务服务；本应用
+      // 只使用取得一次定位结果的前台监听，因此排除这些组件。
+      const locationServices = [
+        "expo.modules.location.services.LocationTaskService",
+        "expo.modules.location.next.locationForegroundService.LocationForegroundService",
+      ];
+      application.service = [
+        ...(application.service ?? []).filter(
+          (service) => !locationServices.includes(service.$?.["android:name"]),
+        ),
+        ...locationServices.map((name) => ({
+          $: { "android:name": name, "tools:node": "remove" },
+        })),
+      ];
       return config;
     }),
   );

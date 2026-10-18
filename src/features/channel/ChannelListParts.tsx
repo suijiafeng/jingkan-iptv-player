@@ -9,7 +9,12 @@ import {
   View,
 } from "react-native";
 import { Button, Heading, Notice } from "../../components/ui";
-import { GroupTabs } from "../../components/GroupTabs";
+import { FacetFilters } from "../../components/FacetFilters";
+import type {
+  ChannelFacetOptions,
+  ChannelFacetSelection,
+  FacetKind,
+} from "../../domain/channelFacets";
 import type { Source } from "../../domain/types";
 import { colors, styles } from "../../theme";
 
@@ -22,12 +27,15 @@ export interface HeaderProps {
   channelCount: number;
   search: string;
   sourceId: string;
-  group: string;
-  groups: string[];
+  facets: ChannelFacetOptions;
+  facetSelection: ChannelFacetSelection;
   onSearchChange: (text: string) => void;
   onClearSearch: () => void;
   onSourceChange: (sourceId: string) => void;
-  onGroupChange: (group: string) => void;
+  onFacetChange: (selection: ChannelFacetSelection, kind?: FacetKind) => void;
+  onAutoCountry?: () => void;
+  autoCountryBusy?: boolean;
+  countryHint?: string;
   onClearRecent: () => void;
   recentBusy: boolean;
   recentEditing: boolean;
@@ -110,10 +118,7 @@ export function hasFilterBar(
   return !(props.tab === "recent" && props.recentEditing);
 }
 
-/**
- * 搜索、来源选择、分组和范围：长列表滚动时固定在顶部，
- * 无需滚回上方即可使用筛选条件。
- */
+/** 搜索、来源选择、内容维度和范围标签始终固定在顶部，长列表滚动后也无需返回顶部才能筛选。 */
 export function ChannelFilterBar(props: HeaderProps) {
   const { tab } = props;
   const [sourcesOpen, setSourcesOpen] = useState(false);
@@ -196,29 +201,30 @@ export function ChannelFilterBar(props: HeaderProps) {
         </View>
       )}
       {tab === "all" && (
-        <GroupTabs
-          groups={props.groups}
-          selected={props.group || null}
-          onChange={(name) => props.onGroupChange(name ?? "")}
-          testID="channel-group-tabs"
+        <FacetFilters
+          options={props.facets}
+          selected={props.facetSelection}
+          onChange={props.onFacetChange}
+          onAutoCountry={props.onAutoCountry}
+          autoCountryBusy={props.autoCountryBusy}
+          countryHint={props.countryHint}
+          testID="channel-facet-filters"
         />
       )}
       {tab === "all" && !!props.sourceId && (
         <View style={s.scopeRow}>
           <Text style={[styles.muted, { flex: 1 }]}>
             范围：{selectedSource?.name || "所有来源"}
-            {props.group ? ` · ${props.group}` : ""}
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="清空来源和分组筛选"
+            accessibilityLabel="清除来源筛选"
             style={s.reset}
             onPress={() => {
               props.onSourceChange("");
-              props.onGroupChange("");
             }}
           >
-            <Text style={s.clearText}>重置筛选</Text>
+            <Text style={s.clearText}>所有来源</Text>
           </Pressable>
         </View>
       )}
