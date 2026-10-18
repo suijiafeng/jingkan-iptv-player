@@ -6,7 +6,11 @@ import type {
 } from "./types";
 import { normalizeRemoteUrl, UrlValidationError } from "./url";
 import { normalizeGroups } from "./channelLabels";
-import { normalizeCountries, normalizeLanguages } from "./channelFacets";
+import {
+  countryFromIptvOrgId,
+  normalizeCountries,
+  normalizeLanguages,
+} from "./channelFacets";
 
 // 8 MiB 足以容纳完整 iptv-org 索引（约 2.5 MiB、超过 1.1 万条），并留有余量；
 // 解析时文本保存在内存中，因此仍需限制大小。
@@ -126,8 +130,11 @@ function parseExtinf(line: string, lineNumber: number): PendingChannel | null {
     tvgId: attributes["tvg-id"] || null,
     // 加载远程图片需要另行取得应用内知情许可。
     logoUrl: attributes["tvg-logo"] || null,
-    countries: normalizeCountries(
-      attributes["tvg-country"] || attributes.country,
+    // 显式属性优先；否则只能使用符合 iptv-org 格式的 tvg-id
+    // 其列表已不再带有 tvg-country，因此由此提供国家。
+    countries: ((explicit) =>
+      explicit.length ? explicit : countryFromIptvOrgId(attributes["tvg-id"]))(
+      normalizeCountries(attributes["tvg-country"] || attributes.country),
     ),
     languages: normalizeLanguages(
       attributes["tvg-language"] || attributes.language,
