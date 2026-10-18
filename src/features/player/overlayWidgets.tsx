@@ -1,8 +1,64 @@
 import React, { useEffect, useState, useSyncExternalStore } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  AccessibilityInfo,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type TextStyle,
+} from "react-native";
 import { colors } from "../../theme";
 import { LIVE_EDGE_MARGIN_S, type MediaHandle } from "./mediaHandle";
 import { SLOW_START_SECONDS } from "./playerShared";
+
+/** 每 DOTS_CYCLE_MS 循环一次 ""、"."、".."、"..."。 */
+const DOTS_CYCLE_MS = 1200;
+const DOTS_FRAMES = ["", ".", "..", "..."];
+
+/** 用末尾逐步增加的圆点代替等待状态的旋转指示器；开启“减少动态效果”后固定显示省略号。圆点使用独立定宽区域，避免标题位置变化。 */
+export function LoadingTitle({
+  title,
+  style,
+}: {
+  title: string;
+  style?: StyleProp<TextStyle>;
+}) {
+  const [frame, setFrame] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    let live = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (live) setReduceMotion(enabled);
+      })
+      .catch(() => {});
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      setReduceMotion,
+    );
+    return () => {
+      live = false;
+      subscription.remove();
+    };
+  }, []);
+  useEffect(() => {
+    if (reduceMotion) return;
+    const timer = setTimeout(
+      () => setFrame((current) => (current + 1) % DOTS_FRAMES.length),
+      DOTS_CYCLE_MS / DOTS_FRAMES.length,
+    );
+    return () => clearTimeout(timer);
+  }, [frame, reduceMotion]);
+  return (
+    <View style={s.loadingTitle} pointerEvents="none">
+      <Text style={style}>{title}</Text>
+      <Text style={[style, s.loadingDots]} accessibilityElementsHidden>
+        {reduceMotion ? "…" : DOTS_FRAMES[frame]}
+      </Text>
+    </View>
+  );
+}
 
 /** 原型中的视觉角色：pill 为画面上的 38dp 文字按钮；
  * quiet 为 40dp 图标，按下前无底色；ring 为 44dp 换台键，
@@ -198,10 +254,11 @@ export function MediaStatus({
     duration > 0 ? Math.min(Math.max(shown / duration, 0), 1) : 0;
   const behind = duration - shown;
   const behindLive = info.isLive && behind > LIVE_EDGE_MARGIN_S + 5;
+  // 位于直播边缘时不显示差距，落后时显示距离；点播显示进度。
   const label = info.isLive
     ? behindLive
-      ? `-${clock(behind)}`
-      : `可回看 ${clock(duration)}`
+      ? `落后 ${clock(behind)}`
+      : ""
     : `${clock(shown)} / ${clock(duration)}`;
   const at = (x: number) =>
     width > 0 ? Math.min(Math.max(x / width, 0), 1) * duration : shown;
@@ -211,7 +268,7 @@ export function MediaStatus({
   };
   return (
     <View style={s.timelineRow} testID="media-timeline">
-      <Text style={s.timelineText}>{label}</Text>
+      {!!label && <Text style={s.timelineText}>{label}</Text>}
       <View
         style={s.timelineTrack}
         onLayout={({ nativeEvent }) => setWidth(nativeEvent.layout.width)}
@@ -260,7 +317,7 @@ export function MediaStatus({
 }
 
 /** 记录没有画面的等待秒数，避免失效来源让用户无提示地等上 30 秒。使用按尝试标识区分的独立组件，使每秒计时只重渲染自身。 */
-export function WaitProgress({ prefix = "" }: { prefix?: string }) {
+export function WaitProgress() {
   const [started] = useState(() => Date.now());
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
@@ -273,15 +330,11 @@ export function WaitProgress({ prefix = "" }: { prefix?: string }) {
     return () => clearTimeout(timer);
   }, [started, seconds]);
   const slow = seconds >= SLOW_START_SECONDS;
-  // 一行提示：“最多等 30 秒 · 已等 12 秒”，随后变为“已等 16 秒 · 比平时慢，可以换台”。
-  const line = [
-    slow ? "" : prefix,
-    seconds > 0 ? `已等 ${seconds} 秒` : "",
-    slow ? "比平时慢，可以换台" : "",
-  ]
-    .filter(Boolean)
-    .join(" · ");
-  if (!line) return null;
+  // 一个数字提示：“已等 12 秒（最多 30 秒）”，随后变为“已等 16 秒 · 比平时慢”。
+  if (seconds <= 0) return null;
+  const line = slow
+    ? `已等 ${seconds} 秒 · 比平时慢`
+    : `已等 ${seconds} 秒（最多 30 秒）`;
   return (
     <Text style={s.noticeBody} numberOfLines={1}>
       {line}
@@ -317,6 +370,8 @@ const s = StyleSheet.create({
     textAlign: "center",
   },
   noticeText: { gap: 8 },
+  loadingTitle: { flexDirection: "row", justifyContent: "center" },
+  loadingDots: { width: 22, textAlign: "left" },
   overlayButton: {
     height: 38,
     minWidth: 38,

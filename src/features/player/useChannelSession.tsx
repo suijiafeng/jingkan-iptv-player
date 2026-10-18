@@ -142,7 +142,7 @@ export function useChannelSession(props: SessionProps) {
         : busy
           ? "暂停"
           : canRetry
-            ? "重试播放"
+            ? "重试"
             : "播放";
   const primaryAction = () => {
     // 在可能计费的网络上，点击 ▶ 就是明确选择“继续”。
@@ -211,12 +211,10 @@ export function useChannelSession(props: SessionProps) {
   const description = descriptions[state.phase];
   const pausedBody =
     state.pauseReason === "background"
-      ? "离开应用后暂停"
+      ? "切到后台时暂停"
       : state.pauseReason === "interrupted"
-        ? "被系统暂停"
-        : state.pauseReason === "cellular-declined"
-          ? "已停止，可手动播放"
-          : "";
+        ? "被其他应用打断"
+        : "";
   // 每种状态的主要操作都用同一个圆形控件，因此取消、
   // 重试、暂停和恢复使用一致的视觉：连接中为 ■，失败后为 ↻，
   // 失败时使用重试图形，暂停或停止时使用 ▶，播放时使用 ❚❚。
@@ -278,8 +276,8 @@ export function useChannelSession(props: SessionProps) {
       count={props.sources.length}
       accessibilityLabel={
         props.sources.length > 1
-          ? `切换来源，当前${qualityName(props.channel)}，${props.channel.sourceName}，共 ${props.sources.length} 个`
-          : `来源：${qualityName(props.channel)}，${props.channel.sourceName}`
+          ? `来源：${qualityName(props.channel)} · ${props.channel.sourceName}，共 ${props.sources.length} 个，点击切换`
+          : `来源：${qualityName(props.channel)} · ${props.channel.sourceName}`
       }
       solid={!props.fullscreen}
       disabled={props.sources.length < 2}

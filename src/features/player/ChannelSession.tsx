@@ -1,9 +1,9 @@
 import React, { useRef } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { colors } from "../../theme";
@@ -12,6 +12,7 @@ import { channelTitle, displayGroups } from "../../domain/channelLabels";
 import { NativeAttempt } from "./NativeAttempt";
 import { FullscreenBars } from "./FullscreenBars";
 import {
+  LoadingTitle,
   MediaStatus,
   OverlayButton,
   Shade,
@@ -45,6 +46,11 @@ export function ChannelSession(props: SessionProps) {
   const view = useChannelSession(props);
   // 本次画面拖动的起点（全屏换台）。
   const gesture = useRef<{ x: number; y: number } | null>(null);
+  // 提前根据窗口计算竖屏画面的尺寸，使页面
+  // 原生播放器尚在创建或尚未开始播放时，页面也不会
+  // 即使尚未播放也保持尺寸稳定；仅设置 aspectRatio 会等待布局。
+  const { width: windowWidth } = useWindowDimensions();
+  const portraitStageHeight = Math.round((windowWidth * 9) / 16);
   const {
     insets,
     sourcesOpen,
@@ -76,7 +82,7 @@ export function ChannelSession(props: SessionProps) {
     state.phase === "paused" ? pausedBody : description.body,
     (state.phase === "timeout" || state.phase === "error") &&
     props.channel.checkStatus === "unreachable"
-      ? "上次检测也没有响应"
+      ? "上次检测也打不开"
       : "",
   ]
     .filter(Boolean)
@@ -93,6 +99,7 @@ export function ChannelSession(props: SessionProps) {
         testID="video-stage"
         style={[
           s.videoStage,
+          !props.fullscreen && !props.mini && { height: portraitStageHeight },
           props.fullscreen && s.fullscreenVideo,
           props.mini && s.miniVideo,
         ]}
@@ -118,7 +125,7 @@ export function ChannelSession(props: SessionProps) {
             accessibilityRole={props.fullscreen ? "adjustable" : "button"}
             accessibilityLabel={
               props.fullscreen
-                ? `${title}，上下滑动换台，轻触显示或隐藏播放操作`
+                ? `${title}，轻触显示操作`
                 : controlsVisible
                   ? "隐藏播放操作"
                   : "显示播放操作"
@@ -201,17 +208,18 @@ export function ChannelSession(props: SessionProps) {
               accessibilityLiveRegion="polite"
             >
               <View pointerEvents="none" style={s.noticeText}>
-                {waiting && (
-                  <ActivityIndicator size="large" color={colors.accent} />
-                )}
-                {!(state.phase === "paused" && !pausedBody) && (
-                  <Text style={s.noticeTitle}>{description.title}</Text>
+                {waiting ? (
+                  <LoadingTitle
+                    title={description.title}
+                    style={s.noticeTitle}
+                  />
+                ) : (
+                  !(state.phase === "paused" && !pausedBody) && (
+                    <Text style={s.noticeTitle}>{description.title}</Text>
+                  )
                 )}
                 {waiting ? (
-                  <WaitProgress
-                    key={state.attemptId ?? "checking"}
-                    prefix={description.body}
-                  />
+                  <WaitProgress key={state.attemptId ?? "checking"} />
                 ) : (
                   !!noticeLine && (
                     <Text style={s.noticeBody} numberOfLines={1}>
@@ -259,10 +267,10 @@ export function ChannelSession(props: SessionProps) {
             </View>
             <View style={s.portraitTopLeft}>
               <OverlayButton
-                label="返回频道"
+                label="收起播放器"
                 icon={<ChevronLeftIcon size={20} />}
                 variant="quiet"
-                accessibilityLabel="返回频道"
+                accessibilityLabel="收起播放器"
                 onPress={props.onClose}
               />
             </View>
@@ -382,7 +390,6 @@ const s = StyleSheet.create({
     bottom: 0,
     left: 0,
     width: undefined,
-    aspectRatio: undefined,
   },
   miniBar: {
     flexDirection: "row",
@@ -399,7 +406,7 @@ const s = StyleSheet.create({
     lineHeight: 21,
     fontWeight: "600",
   },
-  miniVideo: { width: 100, height: 64, aspectRatio: undefined },
+  miniVideo: { width: 100, height: 64 },
   noticeBody: {
     color: colors.muted,
     fontSize: 12,
@@ -500,7 +507,6 @@ const s = StyleSheet.create({
   videoNoticeSoft: { backgroundColor: "#060A0C8C" },
   videoStage: {
     width: "100%",
-    aspectRatio: 16 / 9,
     backgroundColor: "#000000",
     overflow: "hidden",
   },
