@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useSyncExternalStore } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Button } from "../../components/ui";
 import { colors } from "../../theme";
 import { LIVE_EDGE_MARGIN_S, type MediaHandle } from "./mediaHandle";
 import { SLOW_START_SECONDS } from "./playerShared";
@@ -171,7 +170,7 @@ export function MediaStatus({
 }
 
 /** 记录没有画面的等待秒数，避免失效来源让用户无提示地等上 30 秒。使用按尝试标识区分的独立组件，使每秒计时只重渲染自身。 */
-export function WaitProgress({ onNext }: { onNext?: () => void }) {
+export function WaitProgress() {
   const [started] = useState(() => Date.now());
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
@@ -187,14 +186,9 @@ export function WaitProgress({ onNext }: { onNext?: () => void }) {
   return (
     <>
       <View pointerEvents="none" style={s.noticeText}>
-        {seconds > 0 && <Text style={s.noticeBody}>已等待 {seconds} 秒</Text>}
-        {slow && (
-          <Text style={s.noticeBody}>
-            比平时慢，节目源可能已失效。可以继续等，或换下一台。
-          </Text>
-        )}
+        {seconds > 0 && <Text style={s.noticeBody}>已等 {seconds} 秒</Text>}
+        {slow && <Text style={s.noticeBody}>比平时慢，可以换台</Text>}
       </View>
-      {slow && onNext && <Button label="换下一台" secondary onPress={onNext} />}
     </>
   );
 }

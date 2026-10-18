@@ -134,14 +134,23 @@ export function useChannelSession(props: SessionProps) {
   );
   // 原位暂停：尝试和对应的原生播放器仍然存活。
   const retained = state.phase === "paused" && state.attemptId !== null;
-  const primaryLabel = starting
-    ? "取消"
-    : busy
-      ? "暂停"
-      : canRetry
-        ? "重试播放"
-        : "播放";
+  const primaryLabel =
+    state.phase === "cellular"
+      ? "继续播放"
+      : starting
+        ? "取消"
+        : busy
+          ? "暂停"
+          : canRetry
+            ? "重试播放"
+            : "播放";
   const primaryAction = () => {
+    // 在可能计费的网络上，点击 ▶ 就是明确选择“继续”。
+    if (state.phase === "cellular") {
+      props.onMobileAccepted?.();
+      void controller.requestPlay(true);
+      return;
+    }
     const id = state.attemptId;
     // 可回看的媒体流原地暂停，以保留播放位置；普通直播
     // 会停止并释放解码器；继续时重新连接到直播边缘。
@@ -202,18 +211,18 @@ export function useChannelSession(props: SessionProps) {
   const description = descriptions[state.phase];
   const pausedBody =
     state.pauseReason === "background"
-      ? "离开应用后已暂停。点击播放继续收看"
+      ? "离开应用后暂停"
       : state.pauseReason === "interrupted"
-        ? "播放已被系统暂停。点击播放继续收看"
+        ? "被系统暂停"
         : state.pauseReason === "cellular-declined"
-          ? "已停止播放。准备好后可手动播放"
+          ? "已停止，可手动播放"
           : description.body;
   // 每种状态的主要操作都用同一个圆形控件，因此取消、
   // 重试、暂停和恢复使用一致的视觉：连接中为 ■，失败后为 ↻，
   // 失败时使用重试图形，暂停或停止时使用 ▶，播放时使用 ❚❚。
   const showsPlay = retained || !busy;
   const primaryIcon = starting ? "■" : canRetry ? "↻" : showsPlay ? "▶" : "❚❚";
-  const primaryDisabled = !props.remoteAllowed || state.phase === "cellular";
+  const primaryDisabled = !props.remoteAllowed;
   // 覆盖层只有一个视觉焦点：上一台、播放/暂停、下一台组成的
   // 统一为一行，竖屏时更紧凑、全屏时较宽；同样显示在
   // 状态提示，因此停止与暂停状态保留同一组控件。
