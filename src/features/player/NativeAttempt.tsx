@@ -6,6 +6,7 @@ import {
   type VideoPlayer,
   type VideoSource,
 } from "expo-video";
+import type { MediaHandle } from "./mediaHandle";
 import { PlaybackController } from "./playbackController";
 import { resolveContentType } from "./streamFormat";
 
@@ -13,10 +14,12 @@ interface Props {
   uri: string;
   attemptId: number;
   controller: PlaybackController;
+  /** 应用自己的覆盖控件通过此句柄驱动播放、暂停和跳转。 */
+  media?: MediaHandle;
 }
 
 /** 一次尝试只持有一个播放器实例，绝不替换上一频道的实例。 */
-export function NativeAttempt({ uri, attemptId, controller }: Props) {
+export function NativeAttempt({ uri, attemptId, controller, media }: Props) {
   const [player, setPlayer] = useState<VideoPlayer | null>(null);
   const alive = useRef(false);
   const currentInstance = useRef<VideoPlayer | null>(null);
@@ -41,9 +44,17 @@ export function NativeAttempt({ uri, attemptId, controller }: Props) {
       ownedPlayer.allowsExternalPlayback = false;
       ownedPlayer.keepScreenOnWhilePlaying = true;
       ownedPlayer.loop = false;
+      // 每秒采样一次，驱动覆盖层时间轴（只用于支持回看的流）。
+      ownedPlayer.timeUpdateEventInterval = 1;
+      media?.attach(ownedPlayer);
       subscriptions.push(
         ownedPlayer.addListener("statusChange", ({ status }) => {
-          if (current()) controller.nativeStatus(attemptId, status);
+          if (!current()) return;
+          media?.sample(ownedPlayer);
+          controller.nativeStatus(attemptId, status);
+        }),
+        ownedPlayer.addListener("timeUpdate", () => {
+          if (current()) media?.sample(ownedPlayer);
         }),
         ownedPlayer.addListener("playingChange", ({ isPlaying }) => {
           if (!current()) return;
@@ -97,6 +108,7 @@ export function NativeAttempt({ uri, attemptId, controller }: Props) {
       currentInstance.current = null;
       subscriptions.forEach((subscription) => subscription.remove());
       if (instance) {
+        media?.detach(instance);
         try {
           instance.pause();
         } catch {
@@ -109,7 +121,7 @@ export function NativeAttempt({ uri, attemptId, controller }: Props) {
         }
       }
     };
-  }, [uri, attemptId, controller]);
+  }, [uri, attemptId, controller, media]);
 
   if (!player) return null;
   return (
@@ -119,19 +131,9 @@ export function NativeAttempt({ uri, attemptId, controller }: Props) {
       style={StyleSheet.absoluteFill}
       contentFit="contain"
       surfaceType="textureView"
-      nativeControls
-      buttonOptions={{
-        showNext: false,
-        showPrevious: false,
-        showSeekForward: false,
-        showSeekBackward: false,
-        // 直播没有有意义的倍速控制。让原生
-        // 播放、暂停和时间轴（用于回看或 DVR 流），但
-        // 隐藏 ExoPlayer 通用的设置菜单。
-        showSettings: false,
-        showPlayPause: true,
-      }}
-      controllerAutoShow
+      // 应用为两种模式绘制同一层覆盖控件；原生控件会额外添加一层
+      // 否则会出现第二层不同步的控件，并拦截换台手势。
+      nativeControls={false}
       fullscreenOptions={{ enable: false }}
       allowsPictureInPicture={false}
       startsPictureInPictureAutomatically={false}

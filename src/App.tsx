@@ -71,6 +71,8 @@ import {
 
 // 用哨兵行表示空状态，使它出现在标题覆盖层下方。
 const EMPTY_ROW = { kind: "empty" } as const;
+/** 小窗停靠时，列表下方预留停靠栏高度及其边距。 */
+const MINI_BAR_SPACE = 88;
 type ListItem = Channel | typeof EMPTY_ROW;
 // 先显示一屏；一万行列表的其余内容随后在第二次
 // 读取，让切换标签或筛选不必等待整张表。
@@ -135,6 +137,10 @@ export default function App() {
   const [headerHeight, setHeaderHeight] = useState(0),
     [titleSpace, setTitleSpace] = useState(0);
   const [playing, setPlaying] = useState<Channel | null>(null),
+    // 停靠在频道页上的小条；流继续播放（仅前台，
+    // 仅限前台，离开应用仍会暂停；这里是其下方标签栏的高度。
+    [playerMini, setPlayerMini] = useState(false),
+    [tabsHeight, setTabsHeight] = useState(0),
     [playingSources, setPlayingSources] = useState<Channel[]>([]),
     // 用于“回到上一个频道”：当前频道之前观看的频道。
     [previousChannel, setPreviousChannel] = useState<Channel | null>(null),
@@ -494,7 +500,9 @@ export default function App() {
   };
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (playing) return false;
+      // 展开的播放器处理返回键；停靠栏则让页面的
+      // 先关闭自己的对话框，只有没有其他已打开的内容时才停止播放。
+      if (playing && !playerMini) return false;
       if (rename) {
         setRename(null);
         return true;
@@ -645,7 +653,9 @@ export default function App() {
           await reconcilePlayingSources();
         } catch {
           if (mounted.current)
-            setError("节目单已保存，但播放器来源列表更新失败，请重新打开频道。");
+            setError(
+              "节目单已保存，但播放器来源列表更新失败，请重新打开频道。",
+            );
         }
       } else {
         const name =
@@ -938,6 +948,8 @@ export default function App() {
       const from = playing ?? lastWatched.current;
       if (from && from.id !== playable.id) setPreviousChannel(from);
       setPlaying(playable);
+      // 从频道页或小窗自身列表选择频道时，打开完整播放器。
+      setPlayerMini(false);
     } catch {
       if (
         mounted.current &&
@@ -1213,11 +1225,13 @@ export default function App() {
       style={styles.screen}
       edges={["top", "bottom", "left", "right"]}
     >
-      {/* 播放器覆盖这部分内容，期间不向 TalkBack 暴露。 */}
+      {/* 展开的播放器覆盖这部分内容，期间需对 TalkBack 隐藏。播放器停靠后，页面仍可使用。 */}
       <View
         style={{ flex: 1 }}
-        importantForAccessibility={playing ? "no-hide-descendants" : "auto"}
-        accessibilityElementsHidden={!!playing}
+        importantForAccessibility={
+          playing && !playerMini ? "no-hide-descendants" : "auto"
+        }
+        accessibilityElementsHidden={!!playing && !playerMini}
       >
         {!!error && !manage && !rename && !form && (
           <View style={{ padding: 12 }}>
@@ -1306,6 +1320,8 @@ export default function App() {
               contentContainerStyle={[
                 styles.content,
                 { paddingTop: headerHeight + 12 },
+                // 列表底部保留空间，避免最后几行被停靠播放器遮住。
+                playing && playerMini && { paddingBottom: MINI_BAR_SPACE },
               ]}
               ItemSeparatorComponent={ListSeparator}
               renderItem={({ item }) => {
@@ -1372,7 +1388,9 @@ export default function App() {
             </Animated.View>
           </View>
         )}
-        <BottomTabs tab={tab} onChange={changeTab} />
+        <View onLayout={(e) => setTabsHeight(e.nativeEvent.layout.height)}>
+          <BottomTabs tab={tab} onChange={changeTab} />
+        </View>
       </View>
       <SourceManagerModal
         visible={manage}
@@ -1441,17 +1459,20 @@ export default function App() {
         onClose={() => void closeForm()}
       />
       {playing && (
+        // 两种尺寸共用同一个组件树位置，因此缩到小窗和
+        // 再次展开不会重新挂载会话或它的原生播放器。
         <View
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: colors.bg,
-          }}
+          testID="player-container"
+          style={
+            playerMini
+              ? [s.miniContainer, { bottom: tabsHeight + 8 }]
+              : s.playerOverlay
+          }
         >
           <PlayerScreen
+            mini={playerMini}
+            onMinimize={() => setPlayerMini(true)}
+            onExpand={() => setPlayerMini(false)}
             error={error}
             onDismissError={() => setError("")}
             channel={playing}
@@ -1485,7 +1506,10 @@ export default function App() {
             }}
             onSelect={(channel, queue) => void play(channel, queue)}
             onSelectSource={(source) => {
-              if ((source.groupKey ?? source.id) !== (playing.groupKey ?? playing.id))
+              if (
+                (source.groupKey ?? source.id) !==
+                (playing.groupKey ?? playing.id)
+              )
                 return;
               setPlaying(source);
             }}
@@ -1493,6 +1517,7 @@ export default function App() {
               lastWatched.current = playing;
               setPlaying(null);
               setPlayingSources([]);
+              setPlayerMini(false);
             }}
             onFavorite={(c) => void favorite(c)}
             onStarted={(c) => {
@@ -1527,6 +1552,23 @@ export default function App() {
 }
 
 const s = StyleSheet.create({
+  playerOverlay: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.bg,
+  },
+  miniContainer: {
+    position: "absolute",
+    left: 8,
+    right: 8,
+    borderRadius: 14,
+    backgroundColor: colors.raised,
+    // Android 的 elevation 让小条显示在列表行上方。
+    elevation: 6,
+  },
   headerOverlay: {
     position: "absolute",
     top: 0,

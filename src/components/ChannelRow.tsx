@@ -77,9 +77,11 @@ export const ChannelRow = memo(function ChannelRow({
               ))}
             </View>
           )}
+          {/* 不显示来源名称：这一行代表逻辑频道，
+              实际播放的来源会在开始播放时选择。 */}
           <Text numberOfLines={2} style={styles.muted}>
             {channel.active
-              ? `${displayGroups(channel.groupName)} · ${channel.sourceName}`
+              ? displayGroups(channel.groupName)
               : "来源已不再提供"}
           </Text>
         </View>

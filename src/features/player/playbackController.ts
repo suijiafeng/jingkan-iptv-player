@@ -231,11 +231,24 @@ export class PlaybackController {
     // 缓冲也会发出 isPlaying=false；只有就绪状态下真正暂停才算
     // 由原生适配层传入此处；绝不通过错误文本猜测音频焦点状态。
     if (this.startedAttempt === id) {
+      // 如果用户已经要求暂停，就保留原来的暂停原因。
+      if (this.snapshot.phase === "paused") return;
       this.clearTimer();
-      // 原生视图存在期间，由原生控件管理播放和暂停；保留此
-      // 保留播放尝试，让同一控件无需重新连接媒体流就能恢复播放。
-      this.publish({ phase: "paused", attemptId: id, pauseReason: "interrupted" });
+      // 保留本次尝试，让覆盖控件可以恢复同一个原生播放器
+      // 无需重新连接媒体流。
+      this.publish({
+        phase: "paused",
+        attemptId: id,
+        pauseReason: "interrupted",
+      });
     }
+  }
+  /** 覆盖控件就地暂停了已开始且可跳转的播放尝试。无法保留该尝试时返回 false，由调用方改为停止播放。 */
+  userPaused(id: number): boolean {
+    if (!this.isCurrentAttempt(id) || this.startedAttempt !== id) return false;
+    this.clearTimer();
+    this.publish({ phase: "paused", attemptId: id, pauseReason: "manual" });
+    return true;
   }
   nativeEnded(id: number) {
     // 未设置来源的空 ExoPlayer 会立即报告 ENDED。
