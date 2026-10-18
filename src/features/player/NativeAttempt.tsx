@@ -35,6 +35,7 @@ export function NativeAttempt({
   const view = useRef<VideoView>(null);
   const backgroundPolicy = useRef(backgroundAllowed);
   const pipActive = useRef(false);
+  const exitPictureInPicture = useRef<(() => void) | null>(null);
   const pendingPip = useRef<{
     resolve: () => void;
     reject: () => void;
@@ -47,13 +48,16 @@ export function NativeAttempt({
     if (currentInstance.current) {
       currentInstance.current.staysActiveInBackground =
         backgroundAllowed || pipActive.current || !!pendingPip.current;
-      currentInstance.current.showNowPlayingNotification = backgroundAllowed;
+      currentInstance.current.showNowPlayingNotification =
+        backgroundAllowed || pipActive.current || !!pendingPip.current;
     }
   }, [backgroundAllowed]);
   useEffect(() => {
     alive.current = true;
     let live = true;
     let instance: VideoPlayer | undefined;
+    let exitTimer: ReturnType<typeof setTimeout> | undefined;
+    let settleExit: (() => void) | undefined;
     const sniff = new AbortController();
     const subscriptions: { remove: () => void }[] = [];
     const current = () => live && controller.isCurrentAttempt(attemptId);
@@ -70,6 +74,23 @@ export function NativeAttempt({
       ownedPlayer.loop = false;
       // 每秒采样一次，驱动覆盖层时间轴（只用于支持回看的流）。
       ownedPlayer.timeUpdateEventInterval = 1;
+      settleExit = () => {
+        if (exitTimer !== undefined) clearTimeout(exitTimer);
+        exitTimer = undefined;
+        if (!live) return;
+        pipActive.current = false;
+        ownedPlayer.staysActiveInBackground = backgroundPolicy.current;
+        ownedPlayer.showNowPlayingNotification = backgroundPolicy.current;
+        controller.setPictureInPicture(attemptId, false);
+      };
+      exitPictureInPicture.current = () => {
+        if (exitTimer !== undefined) clearTimeout(exitTimer);
+        // Android 可能在 React Native 收到 onResume 之前报告退出画中画。
+        // 在这段有界的事件顺序差内保留同一次播放尝试；真正的
+        // 在关闭后台播放时，系统小窗被关闭后仍会延迟一秒暂停。
+        if (AppState.currentState === "active") settleExit?.();
+        else exitTimer = setTimeout(() => settleExit?.(), 1000);
+      };
       media?.attach(ownedPlayer);
       media?.attachPictureInPicture(ownedPlayer, async () => {
         if (!current() || !view.current || !isPictureInPictureSupported())
@@ -79,6 +100,7 @@ export function NativeAttempt({
         // 然后才向 JavaScript 发送 onPictureInPictureStart。
         controller.setPictureInPicture(attemptId, true);
         ownedPlayer.staysActiveInBackground = true;
+        ownedPlayer.showNowPlayingNotification = true;
         let entryTimer: ReturnType<typeof setTimeout> | undefined;
         try {
           await new Promise<void>((resolve, reject) => {
@@ -90,6 +112,7 @@ export function NativeAttempt({
         } catch {
           if (current()) {
             ownedPlayer.staysActiveInBackground = backgroundPolicy.current;
+            ownedPlayer.showNowPlayingNotification = backgroundPolicy.current;
             controller.setPictureInPicture(attemptId, false);
           }
           throw new Error("Picture in picture failed");
@@ -122,6 +145,7 @@ export function NativeAttempt({
           if (current()) controller.nativeEnded(attemptId);
         }),
         AppState.addEventListener("change", (state) => {
+          if (state === "active" && exitTimer !== undefined) settleExit?.();
           if (state !== "active" && !controller.canContinueOutsideApp()) {
             // 在 React 提交控制器卸载之前，先同步暂停。
             ownedPlayer.pause();
@@ -167,12 +191,15 @@ export function NativeAttempt({
     return () => {
       alive.current = false;
       live = false;
+      if (exitTimer !== undefined) clearTimeout(exitTimer);
+      exitPictureInPicture.current = null;
       if (pendingPip.current) {
         clearTimeout(pendingPip.current.timer);
         pendingPip.current.reject();
         pendingPip.current = null;
       }
       pipActive.current = false;
+      controller.setPictureInPicture(attemptId, false);
       sniff.abort();
       currentInstance.current = null;
       subscriptions.forEach((subscription) => subscription.remove());
@@ -220,10 +247,7 @@ export function NativeAttempt({
       }}
       onPictureInPictureStop={() => {
         if (currentInstance.current && player === currentInstance.current) {
-          pipActive.current = false;
-          currentInstance.current.staysActiveInBackground =
-            backgroundPolicy.current;
-          controller.setPictureInPicture(attemptId, false);
+          exitPictureInPicture.current?.();
         }
       }}
       useExoShutter
