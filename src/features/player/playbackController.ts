@@ -1,3 +1,5 @@
+import type { AttemptFailure } from "./sourceFailover";
+
 /** 不持有来源内容的状态机：播放 URL 和原生错误均不进入 UI 状态。 */
 export type PlaybackPhase =
   | "paused"
@@ -17,6 +19,8 @@ export interface PlaybackSnapshot {
   phase: PlaybackPhase;
   attemptId: number | null;
   pauseReason?: PauseReason;
+  /** 仅在 phase 为“error”时提供错误分类，绝不提供原生错误原文。 */
+  failure?: AttemptFailure;
 }
 export interface ConnectionState {
   type?: string;
@@ -96,6 +100,11 @@ export class PlaybackController {
       ...(pauseReason ? { pauseReason } : {}),
     });
   }
+  private fail(failure: AttemptFailure) {
+    ++this.generation;
+    this.clearTimer();
+    this.publish({ phase: "error", attemptId: null, failure });
+  }
   setOnStarted(onStarted: () => void) {
     this.options = { ...this.options, onStarted };
   }
@@ -136,7 +145,8 @@ export class PlaybackController {
     try {
       network = await this.options.checkNetwork();
     } catch {
-      if (token === this.generation && !this.disposed) this.stop("error");
+      // 不属于媒体流故障，因此不会尝试其他地址。
+      if (token === this.generation && !this.disposed) this.fail("unknown");
       return;
     }
     if (this.disposed || token !== this.generation) return;
@@ -216,9 +226,14 @@ export class PlaybackController {
       this.options.onStarted();
     }
   }
-  nativeStatus(id: number, status: string) {
+  /** 错误默认归类为 "unknown"，这种情况只允许手动重试。 */
+  nativeStatus(
+    id: number,
+    status: string,
+    failure: Exclude<AttemptFailure, "timeout"> = "unknown",
+  ) {
     if (!this.isCurrentAttempt(id)) return;
-    if (status === "error") this.stop("error");
+    if (status === "error") this.fail(failure);
     else if (status === "loading")
       this.publish({
         phase: this.startedAttempt === id ? "buffering" : "connecting",

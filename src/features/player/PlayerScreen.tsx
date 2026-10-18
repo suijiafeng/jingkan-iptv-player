@@ -30,6 +30,7 @@ import { ChannelSession } from "./ChannelSession";
 import { SourceList } from "./SourceList";
 import { backDestination } from "./playbackController";
 import type { PlayerScreenProps } from "./playerShared";
+import { useSourceFailover } from "./useSourceFailover";
 
 export type { ChannelSheetProps, PlayerScreenProps } from "./playerShared";
 
@@ -93,6 +94,12 @@ export function PlayerScreen(props: PlayerScreenProps) {
       });
   }, [fullscreen]);
 
+  // 地址改变导致会话重新挂载时，这个状态仍然保留。
+  const { onManualSelect, ...failover } = useSourceFailover(
+    props.channel,
+    props.sources,
+    props.onSelectSource,
+  );
   const { onClose, onMinimize } = props;
   const handleBack = useCallback(() => {
     if (sourcesOpen) {
@@ -151,6 +158,8 @@ export function PlayerScreen(props: PlayerScreenProps) {
         key={`${props.channel.id}:${props.channel.streamUrl}`}
         {...props}
         channels={activeChannels}
+        failover={failover}
+        onSelectSource={onManualSelect}
         fullscreen={fullscreen}
         onToggleFullscreen={() => {
           setOrientationError(false);
@@ -205,7 +214,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
               sources={props.sources}
               onSelect={(source) => {
                 setSourcesOpen(false);
-                props.onSelectSource(source);
+                onManualSelect(source);
               }}
             />
           </View>

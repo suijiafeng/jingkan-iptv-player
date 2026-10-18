@@ -82,6 +82,13 @@ export function useChannelSession(props: SessionProps) {
   useEffect(() => {
     controller.setPolicy(props.remoteAllowed, props.mobileWarning);
   }, [controller, props.remoteAllowed, props.mobileWarning]);
+  // 未能出画面的已结束尝试只报告一次；故障切换逻辑
+  // 由它决定当前频道是否还有值得尝试的其它地址。
+  const { onFailure, onUserPlay } = props.failover;
+  useEffect(() => {
+    if (state.phase === "timeout") onFailure("timeout");
+    else if (state.phase === "error") onFailure(state.failure ?? "unknown");
+  }, [state.phase, state.failure, onFailure]);
 
   // 两种模式的覆盖控件：轻触画面切换显示；控件会自动隐藏
   // 只有真正播放时才自动隐藏，启用读屏时绝不隐藏。
@@ -148,6 +155,7 @@ export function useChannelSession(props: SessionProps) {
     // 在可能计费的网络上，点击 ▶ 就是明确选择“继续”。
     if (state.phase === "cellular") {
       props.onMobileAccepted?.();
+      onUserPlay();
       void controller.requestPlay(true);
       return;
     }
@@ -165,7 +173,10 @@ export function useChannelSession(props: SessionProps) {
     }
     if (retained && media.play()) return;
     if (busy) controller.pause();
-    else void controller.requestPlay();
+    else {
+      onUserPlay();
+      void controller.requestPlay();
+    }
   };
   const index = props.channels.findIndex((channel) =>
     sameChannel(channel, props.channel),
@@ -208,7 +219,10 @@ export function useChannelSession(props: SessionProps) {
     else showOsd(step === 1 ? "已经是最后一个频道" : "已经是第一个频道");
   };
 
-  const description = descriptions[state.phase];
+  const description =
+    starting && props.failover.connectingTitle
+      ? { ...descriptions[state.phase], title: props.failover.connectingTitle }
+      : descriptions[state.phase];
   const pausedBody =
     state.pauseReason === "background"
       ? "切到后台时暂停"
