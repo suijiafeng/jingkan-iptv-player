@@ -139,7 +139,7 @@ export function ChannelFilterBar(
         <View style={[s.searchRow, { flex: 1 }]}>
           <TextInput
             accessibilityLabel="搜索频道名称"
-            style={s.searchInput}
+            style={[s.searchInput, props.compact && s.searchInputCompact]}
             placeholder="搜索频道名称…"
             placeholderTextColor={colors.muted}
             value={props.search}
@@ -214,6 +214,7 @@ export function ChannelFilterBar(
           onChange={props.onFacetChange}
           countryHint={props.countryHint}
           contentAsTabs
+          compact={props.compact}
           testID={`${idPrefix}-facet-filters`}
         />
       )}
@@ -407,6 +408,7 @@ const s = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
   },
+  searchInputCompact: { minHeight: 40, paddingVertical: 8, fontSize: 14 },
   clearSearch: {
     minWidth: 48,
     minHeight: 48,
