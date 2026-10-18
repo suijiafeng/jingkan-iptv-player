@@ -245,7 +245,7 @@ try {
       // 为所有已锁定的包收集其已安装的许可证，包括
       // 包括构建工具，避免无声地漏掉间接依赖组件。
       const notices = [
-        "静看开源组件发行说明\n",
+        "静看 TV 开源组件发行说明\n",
         "AndroidX / AndroidX Media3 / Kotlin / OkHttp / SQLite: see official project licenses; AndroidX and Media3 use Apache-2.0; SQLite is public domain.\n",
       ];
       const inventory = JSON.parse(
