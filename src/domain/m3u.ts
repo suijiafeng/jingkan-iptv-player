@@ -12,6 +12,7 @@ import {
   normalizeLanguages,
 } from "./channelFacets";
 import { parseDeclaredQuality, qualityFromIptvOrgId } from "./channelSources";
+import { looksLikeTxtPlaylist, parseTxtLine } from "./txtPlaylist";
 
 // 8 MiB 足以容纳完整 iptv-org 索引（约 2.5 MiB、超过 1.1 万条），并留有余量；
 // 解析时文本保存在内存中，因此仍需限制大小。
@@ -39,8 +40,9 @@ export class M3UParseError extends Error {
     super(
       {
         empty: "文件内容为空。",
-        missing_header: "这不是有效的 M3U 频道目录（缺少 #EXTM3U）。",
-        invalid_encoding: "文件不是有效的 UTF-8 文本，请重新导出为 UTF-8。",
+        missing_header:
+          "无法识别的节目单：需要 M3U（#EXTINF）或 TXT（频道名,地址）格式。",
+        invalid_encoding: "文件编码无法识别，请重新导出为 UTF-8。",
         too_large: `节目单超过 ${MAX_MIB} MiB 上限。`,
         line_too_long: "节目单有一行超过 64 KiB 上限。",
         too_many_entries: "节目单超过 20,000 条目上限。",
@@ -159,7 +161,24 @@ function parseExtinf(line: string, lineNumber: number): PendingChannel | null {
   };
 }
 
-/** 有大小限制的文本解析器，不负责流式下载，也不会发起网络请求。 */
+const M3U_HEADER = /^#EXTM3U(?:\s|$)/i;
+
+/**
+ * 解析带或不带 #EXTM3U 头的 M3U；只有 #EXTINF 行足以表明格式时，
+ * 才允许省略头部。其它情况按 TXT 频道列表解析。
+ */
+function detectFormat(text: string): "m3u" | "txt" {
+  const firstLine = text
+    .replace(/^\uFEFF/, "")
+    .trimStart()
+    .split("\n", 1)[0];
+  if (M3U_HEADER.test(firstLine.trim()) || /^\s*#EXTINF:/im.test(text))
+    return "m3u";
+  if (looksLikeTxtPlaylist(text)) return "txt";
+  throw new M3UParseError("missing_header");
+}
+
+/** 有长度上限的 M3U 和 TXT 频道目录文本解析器，不是流媒体下载器，不会发起网络请求。 */
 export async function parseM3U(
   text: string,
   options: ParseM3UOptions = {},
@@ -188,8 +207,11 @@ export async function parseM3U(
     bytes: 0,
     lines: 0,
   };
+  const format = detectFormat(text);
   let pending: PendingChannel | null = null;
   let headerSeen = false;
+  // TXT：最近一条“名称,#genre#”所指定的分组。
+  let txtGroup = normalizeGroups(undefined);
   const addIssue = (line: number, reason: ImportIssueReason) => {
     issueCounts[reason] = (issueCounts[reason] ?? 0) + 1;
     if (issues.length < 100) issues.push({ line, reason });
@@ -200,6 +222,53 @@ export async function parseM3U(
     stats.total += 1;
     if (stats.total > M3U_LIMITS.maxEntries)
       throw new M3UParseError("too_many_entries");
+  };
+  const addCandidate = (
+    channel: PendingChannel,
+    address: string,
+    lineNumber: number,
+  ) => {
+    try {
+      const streamUrl = normalizeRemoteUrl(address, baseUrl);
+      candidates.push({ ...channel, streamUrl });
+    } catch (error) {
+      addIssue(
+        lineNumber,
+        error instanceof UrlValidationError ? error.code : "invalid_url",
+      );
+    }
+  };
+  const readTxtLine = (line: string, lineNumber: number) => {
+    const parsed = parseTxtLine(line);
+    if (parsed.kind === "comment") return;
+    if (parsed.kind === "group") {
+      txtGroup = normalizeGroups(parsed.name);
+      return;
+    }
+    if (parsed.kind === "invalid") {
+      countEntry();
+      addIssue(lineNumber, "invalid_extinf");
+      return;
+    }
+    // TXT 不带 tvg-id 或元数据，所以每个地址都是独立条目。
+    for (const address of parsed.urls) {
+      countEntry();
+      addCandidate(
+        {
+          name: parsed.name,
+          groupName: txtGroup,
+          tvgId: null,
+          logoUrl: null,
+          countries: [],
+          languages: [],
+          qualityLabel: null,
+          qualityRank: null,
+          line: lineNumber,
+        },
+        address,
+        lineNumber,
+      );
+    }
   };
   let start = 0;
   while (start < text.length) {
@@ -221,12 +290,15 @@ export async function parseM3U(
       checkCancelled();
     }
     if (!line) continue;
-    if (!headerSeen) {
-      if (!/^#EXTM3U(?:\s|$)/i.test(line))
-        throw new M3UParseError("missing_header");
+    if (format === "txt") {
+      readTxtLine(line, lineNumber);
+      continue;
+    }
+    if (!headerSeen && M3U_HEADER.test(line)) {
       headerSeen = true;
       continue;
     }
+    headerSeen = true;
     // 只有定义 HLS 媒体列表或主列表的标签才会使文件被拒绝；
     // 手工编辑的频道目录中，零散的 #EXT-X-* 行会被忽略。
     if (HLS_STRUCTURE_TAG.test(line)) throw new M3UParseError("hls_playlist");
@@ -243,15 +315,7 @@ export async function parseM3U(
       addIssue(lineNumber, "missing_extinf");
       continue;
     }
-    try {
-      const streamUrl = normalizeRemoteUrl(line, baseUrl);
-      candidates.push({ ...pending, streamUrl });
-    } catch (error) {
-      addIssue(
-        lineNumber,
-        error instanceof UrlValidationError ? error.code : "invalid_url",
-      );
-    }
+    addCandidate(pending, line, lineNumber);
     pending = null;
   }
   if (pending) addIssue(pending.line, "dangling_extinf");
