@@ -371,7 +371,10 @@ export function facetLabel(kind: FacetKind, value: string | null): string {
       : value;
 }
 
-type FacetChannel = Pick<Channel, "countries" | "languages" | "groupName">;
+export type FacetChannel = Pick<
+  Channel,
+  "countries" | "languages" | "groupName"
+>;
 function contentValues(channel: FacetChannel): string[] {
   return splitGroups(channel.groupName).map((value) =>
     value === UNGROUPED ? "" : value,
@@ -402,12 +405,17 @@ function sortOptions(values: Set<string>, kind: FacetKind): string[] {
           facetOrder.compare(facetLabel(kind, a), facetLabel(kind, b)),
   );
 }
+/**
+ * 国家和语言菜单始终列出全部选项。有选择时，内容标签仅列出
+ * 当前国家和语言下存在频道的分类，同时保留已选分类，
+ * 确保用户仍能看到并清除该选择。
+ */
 export function buildFacetOptions(
   channels: readonly FacetChannel[],
+  selection?: ChannelFacetSelection,
 ): ChannelFacetOptions {
   const countries = new Set<string>();
   const languages = new Set<string>();
-  const contents = new Set<string>();
   for (const channel of channels) {
     const countryValues = normalizeCountries(channel.countries?.join(";"));
     const languageValues = normalizeLanguages(channel.languages?.join(";"));
@@ -415,13 +423,24 @@ export function buildFacetOptions(
       countries.add(value);
     for (const value of languageValues.length ? languageValues : [""])
       languages.add(value);
-    for (const value of contentValues(channel)) contents.add(value);
   }
   return {
     countries: sortOptions(countries, "country"),
     languages: sortOptions(languages, "language"),
-    contents: sortOptions(contents, "content"),
+    contents: contentOptions(channels, selection),
   };
+}
+export function contentOptions(
+  channels: readonly FacetChannel[],
+  selection?: ChannelFacetSelection,
+): string[] {
+  const contents = new Set<string>();
+  const scope = selection && { ...selection, content: null };
+  for (const channel of channels)
+    if (!scope || matchesChannelFacets(channel, scope))
+      for (const value of contentValues(channel)) contents.add(value);
+  if (selection?.content != null) contents.add(selection.content);
+  return sortOptions(contents, "content");
 }
 export function matchesChannelFacets(
   channel: FacetChannel,
