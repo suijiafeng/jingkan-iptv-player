@@ -74,6 +74,16 @@ type ListFilters = {
 const FILTER_ROW = { kind: "filters" } as const;
 const EMPTY_ROW = { kind: "empty" } as const;
 type ListItem = Channel | typeof FILTER_ROW | typeof EMPTY_ROW;
+// 先显示一屏；一万行列表的其余内容随后在第二次
+// 读取，让切换标签或筛选不必等待整张表。
+const FIRST_PAGE = 40;
+const ListSeparator = () => <View style={{ height: 12 }} />;
+const listKey = (item: ListItem) =>
+  item === FILTER_ROW
+    ? "__filters__"
+    : item === EMPTY_ROW
+      ? "__empty__"
+      : (item as Channel).id;
 
 export default function App() {
   const [repo, setRepo] = useState<Repository | null>(null),
@@ -90,6 +100,8 @@ export default function App() {
     [error, setError] = useState(""),
     [sources, setSources] = useState<Source[]>([]),
     [channels, setChannels] = useState<Channel[]>([]),
+    // 分页列表的剩余部分仍在加载时，匹配已经显示的行。
+    [channelTotal, setChannelTotal] = useState<number | null>(null),
     [recent, setRecent] = useState<Channel[]>([]);
   const [tab, setTab] = useState<Tab>("all"),
     [sourceId, setSourceId] = useState(""),
@@ -158,8 +170,31 @@ export default function App() {
   const listRef = useRef<FlatList<ListItem>>(null),
     tabOffsets = useRef<Partial<Record<Tab, number>>>({}),
     tabFilters = useRef<Partial<Record<ListTab, ListFilters>>>({}),
-    restoreTab = useRef<Tab | null>(null);
+    restoreTab = useRef<Tab | null>(null),
+    // 加载完毕后解析为完整的当前列表，也就是播放队列。
+    fullList = useRef<Promise<Channel[]>>(Promise.resolve([])),
+    listSettled = useRef(true);
+  // 异步处理函数读取此值，以完成时实际显示的标签为准。
+  const tabRef = useRef(tab);
+  useEffect(() => {
+    tabRef.current = tab;
+  }, [tab]);
   const changed = useCallback(() => setRevision((v) => v + 1), []);
+  // 行组件已记忆化；传入稳定的处理函数，再由它调用最新闭包。
+  const rowActions = useRef({
+    play: (_c: Channel) => {},
+    favorite: (_c: Channel) => {},
+    removeRecent: (_c: Channel) => {},
+  });
+  const onRowPlay = useCallback((c: Channel) => rowActions.current.play(c), []);
+  const onRowFavorite = useCallback(
+    (c: Channel) => rowActions.current.favorite(c),
+    [],
+  );
+  const onRowRemoveRecent = useCallback(
+    (c: Channel) => rowActions.current.removeRecent(c),
+    [],
+  );
   const loadRequest = useMemo(
     () => ({
       repo,
@@ -232,55 +267,80 @@ export default function App() {
     if (!repo || !region.ready) return;
     let active = true;
     const id = ++loadGeneration.current;
+    const current = () => active && id === loadGeneration.current;
+    const restoring = restoreTab.current === tab;
+    // 恢复滚动位置需要所有行完成布局，因此一次读完。
+    const paged = !(restoring && (tabOffsets.current[tab] ?? 0) > 0);
+    listSettled.current = false;
+    let settle!: (rows: Channel[]) => void;
+    const settled = new Promise<Channel[]>((resolve) => (settle = resolve));
+    fullList.current = settled;
     const load = async () => {
       const nextFacets =
         tab === "all"
           ? await repo.listFacets(sourceId || undefined)
           : EMPTY_FACET_OPTIONS;
+      if (!current()) return;
       const selectedCountry = effectiveCountry(
         region.preference,
         region.result,
         nextFacets.countries,
       );
+      const filter = {
+        mode: tab === "settings" ? ("all" as const) : tab,
+        sourceId: tab === "all" ? sourceId || undefined : undefined,
+        groupName: tab === "all" ? (group ?? undefined) : undefined,
+        country: tab === "all" ? (selectedCountry ?? undefined) : undefined,
+        language: tab === "all" ? (language ?? undefined) : undefined,
+        search: query,
+      };
       const [s, c, r] = await Promise.all([
         repo.listSources(),
-        repo.listChannels({
-          mode: tab === "settings" ? "all" : tab,
-          sourceId: tab === "all" ? sourceId || undefined : undefined,
-          groupName: tab === "all" ? (group ?? undefined) : undefined,
-          country: tab === "all" ? (selectedCountry ?? undefined) : undefined,
-          language: tab === "all" ? (language ?? undefined) : undefined,
-          search: query,
-        }),
+        repo.listChannels(paged ? { ...filter, limit: FIRST_PAGE } : filter),
         repo.listChannels({ mode: "recent" }),
       ]);
-      return { s, c, r, nextFacets };
+      if (!current()) return;
+      const partial = paged && c.length === FIRST_PAGE;
+      const total = partial ? await repo.countChannels(filter) : null;
+      if (!current()) return;
+      setListError("");
+      setSources(s);
+      setChannels(c);
+      setChannelTotal(total);
+      setFacets(nextFacets);
+      setRecent(r);
+      setLoadedRequest(loadRequest);
+      if (restoring) {
+        restoreTab.current = null;
+        const offset = tabOffsets.current[tab] ?? 0;
+        requestAnimationFrame(() => {
+          if (current())
+            listRef.current?.scrollToOffset({ offset, animated: false });
+        });
+      }
+      if (!partial) return c;
+      const rest = await repo.listChannels({
+        ...filter,
+        offset: FIRST_PAGE,
+      });
+      if (!current()) return c;
+      const all = [...c, ...rest];
+      setChannels((shown) =>
+        // 保留期间发生的本地修补（收藏、移除最近观看）。
+        shown.length === c.length ? [...shown, ...rest] : all,
+      );
+      setChannelTotal(null);
+      return all;
     };
     void load()
-      .then(({ s, c, r, nextFacets }) => {
-        if (active && id === loadGeneration.current) {
-          setListError("");
-          setSources(s);
-          setChannels(c);
-          setFacets(nextFacets);
-          setRecent(r);
-          if (restoreTab.current === tab) {
-            restoreTab.current = null;
-            const offset = tabOffsets.current[tab] ?? 0;
-            requestAnimationFrame(() => {
-              if (active && id === loadGeneration.current)
-                listRef.current?.scrollToOffset({ offset, animated: false });
-            });
-          }
-        }
-      })
       .catch(() => {
-        if (active && id === loadGeneration.current)
-          setListError("读取资料失败，你的频道与收藏仍保存在本机。");
+        if (!current()) return;
+        setListError("读取资料失败，你的频道与收藏仍保存在本机。");
+        setLoadedRequest(loadRequest);
       })
-      .finally(() => {
-        if (active && id === loadGeneration.current)
-          setLoadedRequest(loadRequest);
+      .then((rows) => {
+        if (current()) listSettled.current = true;
+        settle(rows ?? []);
       });
     return () => {
       active = false;
@@ -635,9 +695,20 @@ export default function App() {
       setAllChannels((q) => q.map(patch));
       setRecent((r) => r.map(patch));
       setChannels((list) => list.map(patch));
-      // 写入后重新读取当前视图：用户可能已切换标签，
-      // SQLite 保存期间标签可能已经切换；不要按发起操作时的标签过滤。
-      changed();
+      // 对于保留该行的列表，局部更新已经足够；只需重新读取
+      // 收藏列表（成员已变化），或读取可能早于
+      // 本次写入；绝不按发起时的标签过滤。
+      if (tabRef.current === "favorites" || !listSettled.current) changed();
+      else
+        void repo
+          .listSources()
+          .then((s) => {
+            if (mounted.current) setSources(s);
+          })
+          .catch(() => {
+            if (mounted.current)
+              setError("收藏已保存，但来源统计读取失败，请稍后重试。");
+          });
     } catch {
       setError("收藏未能保存，请重试");
     }
@@ -711,12 +782,15 @@ export default function App() {
     catalogLoad.current += 1;
     setAllChannels([]);
   };
-  const play = async (c: Channel, queue = channels) => {
+  const play = async (c: Channel, queueFrom?: Channel[]) => {
     if (!repo || !c.active) return;
     const task = ++playGeneration.current;
     const epoch = permissionEpoch.current;
+    // 渐进加载期间点击频道，仍应将完整列表作为队列。
+    const whole = listSettled.current ? null : fullList.current;
     try {
       if (!(await guardRemote()) || epoch !== permissionEpoch.current) return;
+      const queue = queueFrom ?? (whole ? await whole : channels);
       // 只读取当前频道，使播放器立即打开；加载一万条以上
       // 先加载整个频道目录，在模拟器上曾耗时约 5 秒。
       const fresh = await repo.getChannel(c.id);
@@ -920,6 +994,16 @@ export default function App() {
     restoreTab.current = key;
     setTab(key);
   };
+  useEffect(() => {
+    rowActions.current = {
+      play: (c) => void play(c),
+      favorite: (c) => void favorite(c),
+      removeRecent: (c) => {
+        setError("");
+        void removeRecent(c).catch(() => setError("删除观看记录失败，请重试"));
+      },
+    };
+  });
   if (!repo)
     return (
       <SafeAreaView style={styles.screen}>
@@ -946,7 +1030,7 @@ export default function App() {
   const listHeaderProps: HeaderProps = {
     tab: listTab,
     sources,
-    channelCount: channels.length,
+    channelCount: channelTotal ?? channels.length,
     search,
     sourceId,
     facets,
@@ -1094,16 +1178,16 @@ export default function App() {
                 tabOffsets.current[tab] = e.nativeEvent.contentOffset.y;
             }}
             scrollEventThrottle={100}
-            keyExtractor={(item) =>
-              item === FILTER_ROW
-                ? "__filters__"
-                : item === EMPTY_ROW
-                  ? "__empty__"
-                  : (item as Channel).id
-            }
+            keyExtractor={listKey}
+            // 行高会随标签、双行名称及字体缩放变化，因此不提供
+            // 使用 getItemLayout；更小的渲染窗口让一万行的列表也保持轻量。
+            initialNumToRender={10}
+            maxToRenderPerBatch={8}
+            windowSize={11}
+            removeClippedSubviews
             contentContainerStyle={styles.content}
             ListHeaderComponent={<ChannelListTitle {...listHeaderProps} />}
-            ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+            ItemSeparatorComponent={ListSeparator}
             renderItem={({ item }) => {
               if (item === FILTER_ROW)
                 return <ChannelFilterBar key={listTab} {...listHeaderProps} />;
@@ -1136,23 +1220,17 @@ export default function App() {
                     }}
                   />
                 );
-              const channel = item as Channel;
               return (
                 <ChannelRow
-                  channel={channel}
+                  channel={item as Channel}
                   artworkEnabled={
                     artworkAllowed && remoteAllowed && !revokePending
                   }
-                  onPlay={() => void play(channel)}
-                  onFavorite={() => void favorite(channel)}
+                  onPlay={onRowPlay}
+                  onFavorite={onRowFavorite}
                   onRemoveRecent={
                     tab === "recent" && recentEditing
-                      ? () => {
-                          setError("");
-                          void removeRecent(channel).catch(() =>
-                            setError("删除观看记录失败，请重试"),
-                          );
-                        }
+                      ? onRowRemoveRecent
                       : undefined
                   }
                   recentBusy={recentBusy}

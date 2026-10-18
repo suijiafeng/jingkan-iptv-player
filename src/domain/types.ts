@@ -101,6 +101,9 @@ export interface ChannelQuery {
   search?: string;
   mode?: "all" | "favorites" | "recent";
   includeInactive?: boolean;
+  /** 渐进展示所用的分页参数；各行保持查询定义的稳定顺序。 */
+  limit?: number;
+  offset?: number;
 }
 
 export interface RefreshToken {
