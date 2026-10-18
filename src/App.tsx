@@ -77,7 +77,7 @@ type ListItem = Channel | typeof EMPTY_ROW;
 // 先显示一屏；一万行列表的其余内容随后在第二次
 // 读取，让切换标签或筛选不必等待整张表。
 const FIRST_PAGE = 40;
-const ListSeparator = () => <View style={{ height: 12 }} />;
+const ListSeparator = () => <View style={{ height: 4 }} />;
 const listKey = (item: ListItem) =>
   item === EMPTY_ROW ? "__empty__" : (item as Channel).id;
 
@@ -1241,6 +1241,7 @@ export default function App() {
         )}
         {tab === "settings" ? (
           <SettingsScreen
+            sourceCount={sources.length}
             remoteAllowed={remoteAllowed}
             revokePending={revokePending}
             artworkAllowed={artworkAllowed}
