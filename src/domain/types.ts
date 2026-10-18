@@ -17,6 +17,8 @@ export interface Source {
 
 export interface ParsedChannel {
   identityKey: string;
+  /** 稳定的逻辑频道分组，由仓库层填充。 */
+  groupKey?: string;
   name: string;
   groupName: string;
   tvgId: string | null;
@@ -25,6 +27,9 @@ export interface ParsedChannel {
   countries?: string[];
   languages?: string[];
   streamUrl: string;
+  /** 只使用节目单显式清晰度，绝不根据显示名称推断。 */
+  qualityLabel?: string | null;
+  qualityRank?: number | null;
   sortIndex: number;
 }
 
@@ -101,6 +106,8 @@ export interface ChannelQuery {
   search?: string;
   mode?: "all" | "favorites" | "recent";
   includeInactive?: boolean;
+  /** 内部维护操作可能需要读取每一个真实播放地址。 */
+  includeVariants?: boolean;
   /** 渐进展示所用的分页参数；各行保持查询定义的稳定顺序。 */
   limit?: number;
   offset?: number;

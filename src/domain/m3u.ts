@@ -11,6 +11,10 @@ import {
   normalizeCountries,
   normalizeLanguages,
 } from "./channelFacets";
+import {
+  parseDeclaredQuality,
+  qualityFromIptvOrgId,
+} from "./channelSources";
 
 // 8 MiB 足以容纳完整 iptv-org 索引（约 2.5 MiB、超过 1.1 万条），并留有余量；
 // 解析时文本保存在内存中，因此仍需限制大小。
@@ -87,6 +91,8 @@ interface PendingChannel {
   logoUrl: string | null;
   countries: string[];
   languages: string[];
+  qualityLabel: string | null;
+  qualityRank: number | null;
   line: number;
 }
 interface Candidate extends PendingChannel {
@@ -123,11 +129,19 @@ function parseExtinf(line: string, lineNumber: number): PendingChannel | null {
       .replace(/\\(["'\\])/g, "$1")
       .trim();
   }
+  const tvgId = attributes["tvg-id"] || null;
+  const quality =
+    parseDeclaredQuality(
+      attributes["tvg-quality"] ||
+        attributes["video-quality"] ||
+        attributes.resolution ||
+        attributes.quality,
+    ) ?? qualityFromIptvOrgId(tvgId);
   return {
     name:
       line.slice(comma + 1).trim() || attributes["tvg-name"] || "未命名频道",
     groupName: normalizeGroups(attributes["group-title"]),
-    tvgId: attributes["tvg-id"] || null,
+    tvgId,
     // 加载远程图片需要另行取得应用内知情许可。
     logoUrl: attributes["tvg-logo"] || null,
     // 显式属性优先；否则只能使用符合 iptv-org 格式的 tvg-id
@@ -139,6 +153,8 @@ function parseExtinf(line: string, lineNumber: number): PendingChannel | null {
     languages: normalizeLanguages(
       attributes["tvg-language"] || attributes.language,
     ),
+    qualityLabel: quality?.label ?? null,
+    qualityRank: quality?.rank ?? null,
     line: lineNumber,
   };
 }
@@ -273,6 +289,8 @@ export async function parseM3U(
         countries: candidate.countries,
         languages: candidate.languages,
         streamUrl: candidate.streamUrl,
+        qualityLabel: candidate.qualityLabel,
+        qualityRank: candidate.qualityRank,
         sortIndex: channels.length,
       });
       if (candidate.streamUrl.startsWith("http:")) stats.http += 1;

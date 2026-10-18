@@ -8,7 +8,8 @@ import { colors, styles } from "../../theme";
 export interface CheckProgress {
   sourceId: string;
   done: number;
-  total: number;
+  /** 仓库正在加载完整且未分组的目标集合时为 null。 */
+  total: number | null;
 }
 export interface CheckSummary {
   ok: number;
@@ -87,7 +88,9 @@ export function SourceManagerModal(props: ManagerProps) {
                 )}
                 {running && (
                   <Text style={styles.body} accessibilityLiveRegion="polite">
-                    正在检测可用性 {check.done}/{check.total}
+                    {check.total === null
+                      ? "正在读取待检测频道…"
+                      : `正在检测可用性 ${check.done}/${check.total}`}
                   </Text>
                 )}
                 {!running && summary && (

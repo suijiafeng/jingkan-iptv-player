@@ -37,6 +37,7 @@ const activePhases: PlaybackPhase[] = [
   "playing",
   "buffering",
 ];
+const retainedAttemptPhases: PlaybackPhase[] = [...activePhases, "paused"];
 /**
  * 只有缺少网络连接才算离线。isInternetReachable 反映 Android 自身的
  * 联通性探测结果（Google connectivitycheck）；在阻止该探测的网络中
@@ -111,7 +112,8 @@ export class PlaybackController {
       newlyWarned &&
       this.latestNetwork &&
       mightUseMobileData(this.latestNetwork) &&
-      activePhases.includes(this.snapshot.phase)
+      (activePhases.includes(this.snapshot.phase) ||
+        this.snapshot.attemptId !== null)
     ) {
       this.stop("cellular");
     }
@@ -181,7 +183,11 @@ export class PlaybackController {
     const previous = this.latestNetwork;
     this.latestNetwork = network;
     ++this.networkVersion;
-    if (!activePhases.includes(this.snapshot.phase)) return;
+    if (
+      !activePhases.includes(this.snapshot.phase) &&
+      this.snapshot.attemptId === null
+    )
+      return;
     if (isOffline(network)) {
       this.stop("offline");
       return;
@@ -200,7 +206,7 @@ export class PlaybackController {
     this.options.remoteAllowed &&
     this.options.isAppActive() &&
     this.snapshot.attemptId === id &&
-    activePhases.includes(this.snapshot.phase);
+    retainedAttemptPhases.includes(this.snapshot.phase);
   nativeStarted(id: number) {
     if (!this.isCurrentAttempt(id)) return;
     this.clearTimer();
@@ -224,7 +230,12 @@ export class PlaybackController {
     if (!this.isCurrentAttempt(id)) return;
     // 缓冲也会发出 isPlaying=false；只有就绪状态下真正暂停才算
     // 由原生适配层传入此处；绝不通过错误文本猜测音频焦点状态。
-    if (this.startedAttempt === id) this.pause("interrupted");
+    if (this.startedAttempt === id) {
+      this.clearTimer();
+      // 原生视图存在期间，由原生控件管理播放和暂停；保留此
+      // 保留播放尝试，让同一控件无需重新连接媒体流就能恢复播放。
+      this.publish({ phase: "paused", attemptId: id, pauseReason: "interrupted" });
+    }
   }
   nativeEnded(id: number) {
     // 未设置来源的空 ExoPlayer 会立即报告 ENDED。

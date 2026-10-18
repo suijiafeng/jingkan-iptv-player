@@ -119,12 +119,23 @@ export function NativeAttempt({ uri, attemptId, controller }: Props) {
       style={StyleSheet.absoluteFill}
       contentFit="contain"
       surfaceType="textureView"
-      nativeControls={false}
+      nativeControls
+      buttonOptions={{
+        showNext: false,
+        showPrevious: false,
+        showSeekForward: false,
+        showSeekBackward: false,
+        // 直播没有有意义的倍速控制。让原生
+        // 播放、暂停和时间轴（用于回看或 DVR 流），但
+        // 隐藏 ExoPlayer 通用的设置菜单。
+        showSettings: false,
+        showPlayPause: true,
+      }}
+      controllerAutoShow
       fullscreenOptions={{ enable: false }}
       allowsPictureInPicture={false}
       startsPictureInPictureAutomatically={false}
       allowsVideoFrameAnalysis={false}
-      requiresLinearPlayback
       useExoShutter
       onFirstFrameRender={() => {
         if (alive.current && player === currentInstance.current)
