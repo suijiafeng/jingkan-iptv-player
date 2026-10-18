@@ -341,6 +341,8 @@ export default function App() {
         )}
         {tab === "settings" ? (
           <SettingsScreen
+            repo={repo}
+            onRestoreBackup={controls.restoreBackup}
             sourceCount={sources.length}
             remoteAllowed={settings.remoteAllowed}
             revokePending={settings.revokePending}

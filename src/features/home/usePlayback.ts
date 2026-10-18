@@ -39,14 +39,20 @@ export function usePlayback({
   /** 刷新或删除后，重新读取当前频道的来源。 */
   const reconcilePlayingSources = async (current = playing) => {
     if (!repo || !current) return;
+    const task = playGeneration.current;
+    const epoch = permissionEpoch.current;
     const fresh = await repo.getChannel(current.id);
     const groupKey =
       fresh?.active && fresh.groupKey
         ? fresh.groupKey
         : (current.groupKey ?? current.id);
     const alternatives = await repo.listChannelSources(groupKey);
-    if (!mounted.current) return;
-    ++playGeneration.current;
+    if (
+      !mounted.current ||
+      task !== playGeneration.current ||
+      epoch !== permissionEpoch.current
+    )
+      return;
     setPlayingSources(alternatives);
     if (!alternatives.length) {
       setPlaying(null);
@@ -99,6 +105,7 @@ export function usePlayback({
   };
 
   const stopPlayback = () => {
+    ++playGeneration.current;
     setPlaying(null);
     setPlayingSources([]);
   };
@@ -113,9 +120,16 @@ export function usePlayback({
   const selectSource = (source: Channel) => {
     if (
       !playing ||
+      !source.active ||
+      !playingSources.some(
+        (available) =>
+          available.id === source.id &&
+          available.streamUrl === source.streamUrl,
+      ) ||
       (source.groupKey ?? source.id) !== (playing.groupKey ?? playing.id)
     )
       return;
+    ++playGeneration.current;
     setPlaying(source);
   };
 

@@ -34,6 +34,7 @@ export function useAppSettings({
     // 一次确认覆盖当前可能计费的连接，重新连上 Wi-Fi 后重置。
     [mobileAccepted, setMobileAccepted] = useState(false);
   const mounted = useRef(true),
+    preserveTabOnReload = useRef(false),
     remoteRef = useRef(false),
     // 撤销许可时递增；基于旧许可世代启动的异步任务会停止。
     permissionEpoch = useRef(0),
@@ -57,7 +58,9 @@ export function useAppSettings({
           setSwipeReverse(reverse);
           setSkipUnreachable(skipDead);
           setArtworkAllowed(artwork);
-          setTab(favorites.length ? "favorites" : "all");
+          if (!preserveTabOnReload.current)
+            setTab(favorites.length ? "favorites" : "all");
+          preserveTabOnReload.current = false;
           setRepo(opened);
         }
       })
@@ -209,6 +212,10 @@ export function useAppSettings({
   return {
     repo,
     retryStartup: () => setStartupAttempt((attempt) => attempt + 1),
+    reloadSettings: () => {
+      preserveTabOnReload.current = true;
+      setStartupAttempt((attempt) => attempt + 1);
+    },
     mounted,
     remoteRef,
     permissionEpoch,

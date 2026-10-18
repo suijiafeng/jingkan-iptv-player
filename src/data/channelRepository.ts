@@ -7,6 +7,7 @@ import type {
   Source,
 } from "../domain/types";
 import { normalizeRemoteUrl } from "../domain/url";
+import { parseBackup, readBackup, writeBackup } from "./backup";
 import {
   buildFacetOptions,
   normalizeLanguages,
@@ -485,5 +486,25 @@ export class Repository {
         // 删除已经提交；检查点失败时不能将删除报告为失败。
       }
     });
+  }
+
+  /** 一致的离线快照，不包含观看历史和许可。 */
+  exportBackup(): Promise<string> {
+    return this.serialize(async () => {
+      let text = "";
+      await this.db.withExclusiveTransactionAsync(async (tx) => {
+        text = JSON.stringify(await readBackup(tx, this.now()));
+        parseBackup(text);
+      });
+      return text;
+    });
+  }
+
+  async restoreBackup(text: string): Promise<void> {
+    const backup = parseBackup(text);
+    for (const key of this.generations.keys()) this.cancelRefresh(key);
+    return this.serialize(() =>
+      this.db.withExclusiveTransactionAsync((tx) => writeBackup(tx, backup)),
+    );
   }
 }
