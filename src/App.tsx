@@ -1296,11 +1296,13 @@ export default function App() {
               scrollEventThrottle={16}
               keyExtractor={listKey}
               // 行高会随标签、双行名称及字体缩放变化，因此不提供
-              // 使用 getItemLayout；更小的渲染窗口让一万行的列表也保持轻量。
-              initialNumToRender={10}
-              maxToRenderPerBatch={8}
-              windowSize={11}
-              removeClippedSubviews
+              // getItemLayout。保留虚拟化，但提前渲染足够远的内容
+              // 提前准备下一屏内容，使 Android 快速惯性滚动时也来得及显示。
+              initialNumToRender={12}
+              maxToRenderPerBatch={16}
+              updateCellsBatchingPeriod={16}
+              windowSize={21}
+              removeClippedSubviews={false}
               contentContainerStyle={[
                 styles.content,
                 { paddingTop: headerHeight + 12 },
