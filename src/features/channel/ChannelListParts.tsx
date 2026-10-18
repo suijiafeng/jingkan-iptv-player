@@ -125,6 +125,10 @@ export function ChannelFilterBar(
     idPrefix?: string;
     /** 播放器面板内部不再自带背景或垂直留白。 */
     compact?: boolean;
+    /** 播放器中折叠搜索框，仅在已有搜索条件时显示。 */
+    foldSearch?: boolean;
+    /** 播放器：收起国家和语言触发器，选中任一条件时显示。 */
+    foldTriggers?: boolean;
   },
 ) {
   const { tab, idPrefix = "channel" } = props;
@@ -135,7 +139,7 @@ export function ChannelFilterBar(
   if (!hasFilterBar(props)) return null;
   return (
     <View style={[s.filterBar, props.compact && s.compactBar]}>
-      <View style={s.searchLine}>
+      <View style={[s.searchLine, props.foldSearch && s.hidden]}>
         <View style={[s.searchRow, { flex: 1 }]}>
           <TextInput
             accessibilityLabel="搜索频道名称"
@@ -215,6 +219,7 @@ export function ChannelFilterBar(
           countryHint={props.countryHint}
           contentAsTabs
           compact={props.compact}
+          tabsOnly={props.foldTriggers}
           testID={`${idPrefix}-facet-filters`}
         />
       )}
@@ -371,6 +376,7 @@ const s = StyleSheet.create({
   // 使用不透明背景，防止下方滚动的行透过固定栏显示。
   filterBar: { gap: 10, paddingVertical: 8, backgroundColor: colors.bg },
   compactBar: { gap: 8, paddingVertical: 0, backgroundColor: "transparent" },
+  hidden: { display: "none" },
   searchLine: { flexDirection: "row", alignItems: "center", gap: 8 },
   topRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   sourceToggle: {

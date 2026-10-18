@@ -9,12 +9,12 @@ import {
   View,
 } from "react-native";
 import { ChannelRow } from "../../components/ChannelRow";
-import { ChannelFilterBar, type ListTab } from "../channel/ChannelListParts";
+import { ChannelFilterBar } from "../channel/ChannelListParts";
 import { Button, Notice } from "../../components/ui";
-import { colors, styles as theme } from "../../theme";
+import { colors } from "../../theme";
 import type { Channel } from "../../domain/types";
-import { channelTitle } from "../../domain/channelLabels";
 import { sameChannel, type ChannelSheetProps } from "./playerShared";
+import { CloseIcon, LocateIcon } from "./playerIcons";
 
 /** 记录列表离开时的位置，重新打开后回到相同行。 */
 export interface SavedListPosition {
@@ -43,12 +43,6 @@ interface ChannelPanelProps {
   savedPosition: ListPositionStore;
 }
 
-const SCOPES = [
-  ["all", "频道"],
-  ["favorites", "收藏"],
-  ["recent", "最近"],
-] as const;
-
 /**
  * 范围标签、频道页筛选栏及频道列表。竖屏时放在画面下方，
  * 全屏时放在侧栏；只有可见时才挂载，因此挂载时会恢复位置
@@ -63,15 +57,14 @@ export function ChannelPanel(props: ChannelPanelProps) {
   const scrollRetry = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollTarget = useRef<{ index: number; retries: number } | null>(null);
   const [locateRequest, setLocateRequest] = useState(0);
+  // 只保留一行标签；国家和语言沿用页面的选择，并且
+  // 在这里保持折叠；已有搜索条件时显示搜索文本，以便
+  // 以便清除。
+  const searchActive = !!sheet.filters.search;
   const lastLocateRequest = useRef(0);
   const currentIndex = shownChannels.findIndex((row) =>
     sameChannel(row, channel),
   );
-  const changeScope = (next: ListTab) => {
-    if (next === scope) return;
-    Keyboard.dismiss();
-    sheet.onTabChange(next);
-  };
   const selectRow = (row: Channel) =>
     props.onSelect(
       row,
@@ -130,7 +123,7 @@ export function ChannelPanel(props: ChannelPanelProps) {
         setLocateRequest((value) => value + 1);
       }}
     >
-      <Text style={s.headingActionText}>定位</Text>
+      <LocateIcon color={colors.accent} />
     </Pressable>
   );
 
@@ -138,14 +131,10 @@ export function ChannelPanel(props: ChannelPanelProps) {
     <>
       {props.fullscreen && (
         <View style={s.heading}>
-          <View style={s.flex}>
-            <Text accessibilityRole="header" style={theme.heading}>
-              选择频道
-            </Text>
-            <Text numberOfLines={1} style={theme.muted}>
-              当前 · {channelTitle(channel.name).title}
-            </Text>
-          </View>
+          <Text accessibilityRole="header" style={s.headingTitle}>
+            频道列表
+          </Text>
+          <View style={s.flex} />
           {locateButton}
           <Pressable
             style={s.headingAction}
@@ -153,30 +142,18 @@ export function ChannelPanel(props: ChannelPanelProps) {
             accessibilityLabel="关闭频道列表"
             onPress={props.onClose}
           >
-            <Text style={s.headingActionText}>关闭</Text>
+            <CloseIcon />
           </Pressable>
         </View>
       )}
-      <View style={s.scopes} testID="player-scopes">
-        {SCOPES.map(([value, label]) => (
-          <View key={value} style={s.flex}>
-            <Button
-              label={label}
-              secondary={scope !== value}
-              selected={scope === value}
-              style={s.scopeButton}
-              compact
-              onPress={() => changeScope(value)}
-            />
-          </View>
-        ))}
-        {!props.fullscreen && locateButton}
-      </View>
+      {/* 两种布局均只显示一行内容标签。搜索、国家和语言入口只在对应条件已生效时出现，使列表变短的原因始终可见且可清除。 */}
       <ChannelFilterBar
         key={scope}
         {...sheet.filters}
         idPrefix="player"
         compact
+        foldSearch={!searchActive}
+        foldTriggers
       />
       {!!props.error && (
         <View>
@@ -267,16 +244,24 @@ export function ChannelPanel(props: ChannelPanelProps) {
 
 const s = StyleSheet.create({
   flex: { flex: 1 },
-  heading: { flexDirection: "row", alignItems: "center", gap: 4 },
+  heading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingLeft: 4,
+  },
+  headingTitle: {
+    color: colors.text,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
   headingAction: {
     minWidth: 48,
     minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
   },
-  headingActionText: { color: colors.accent, fontSize: 13, lineHeight: 20 },
-  scopes: { flexDirection: "row", alignItems: "center", gap: 8 },
-  scopeButton: { minHeight: 34, paddingVertical: 7, paddingHorizontal: 12 },
   list: { flex: 1 },
   listContent: { gap: 4 },
   empty: { color: colors.muted, paddingVertical: 24, textAlign: "center" },
