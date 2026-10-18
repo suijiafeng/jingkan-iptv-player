@@ -350,12 +350,14 @@ export class Repository {
 
   async listChannels(query: ChannelQuery = {}): Promise<Channel[]> {
     const { where, params } = channelFilter(query);
+    // 上次检测不可达的频道沉到列表末尾（最近观看保持
+    // 纯播放顺序）；其余情况保留节目单或收藏顺序。
     const order =
       query.mode === "recent"
         ? "r.lastPlayedAt DESC, c.id"
         : query.mode === "favorites"
-          ? "f.createdAt DESC, c.id"
-          : "s.createdAt, s.id, c.sortIndex, c.id";
+          ? "COALESCE(c.checkStatus = 'unreachable', 0), f.createdAt DESC, c.id"
+          : "COALESCE(c.checkStatus = 'unreachable', 0), s.createdAt, s.id, c.sortIndex, c.id";
     let page = "";
     if (query.limit !== undefined || query.offset) {
       page = " LIMIT ? OFFSET ?";
