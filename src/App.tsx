@@ -14,6 +14,8 @@ import {
   FlatList,
   View,
   Keyboard,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as DocumentPicker from "expo-document-picker";
@@ -59,6 +61,7 @@ import { useChannelFilters } from "./features/channel/useChannelFilters";
 import { lookupIptvOrgLanguages } from "./features/source/iptvOrgLanguages";
 import { isIptvOrgId } from "./domain/channelFacets";
 import { SettingsScreen } from "./features/settings/SettingsScreen";
+import { createScrollRestore } from "./features/channel/scrollRestore";
 import {
   BottomTabs,
   ChannelListEmpty,
@@ -177,7 +180,21 @@ export default function App() {
     restoreTab = useRef<Tab | null>(null),
     // 加载完毕后解析为完整的当前列表，也就是播放队列。
     fullList = useRef<Promise<Channel[]>>(Promise.resolve([])),
-    listSettled = useRef(true);
+    listSettled = useRef(true),
+    [scrollRestore] = useState(createScrollRestore);
+  // 每一帧都重新发送，直到列表报告目标偏移；参见 scrollRestore。
+  const restoreOffset = useCallback(
+    (target: number) => {
+      const send = (offset: number | null) => {
+        if (offset === null) return;
+        listRef.current?.scrollToOffset({ offset, animated: false });
+        if (scrollRestore.pending())
+          requestAnimationFrame(() => send(scrollRestore.retry()));
+      };
+      send(scrollRestore.request(target));
+    },
+    [scrollRestore],
+  );
   // 异步处理函数读取此值，以完成时实际显示的标签为准。
   const tabRef = useRef(tab);
   useEffect(() => {
@@ -230,8 +247,11 @@ export default function App() {
     () =>
       Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
         useNativeDriver: true,
+        // 这里只由滚动恢复逻辑观察偏移；保存位置要等用户开始拖动。
+        listener: (e: NativeSyntheticEvent<NativeScrollEvent>) =>
+          scrollRestore.scrolled(e.nativeEvent.contentOffset.y),
       }),
-    [scrollY],
+    [scrollY, scrollRestore],
   );
   const hasCurrentList =
     loadedRequest?.tab === tab &&
@@ -315,6 +335,7 @@ export default function App() {
     let active = true;
     const id = ++loadGeneration.current;
     const current = () => active && id === loadGeneration.current;
+    scrollRestore.cancel();
     const restoring = restoreTab.current === tab;
     // 恢复滚动位置需要所有行完成布局，因此一次读完。
     const paged = !(restoring && (tabOffsets.current[tab] ?? 0) > 0);
@@ -374,8 +395,7 @@ export default function App() {
         restoreTab.current = null;
         const offset = tabOffsets.current[tab] ?? 0;
         requestAnimationFrame(() => {
-          if (current())
-            listRef.current?.scrollToOffset({ offset, animated: false });
+          if (current()) restoreOffset(offset);
         });
       }
       if (!partial) return c;
@@ -418,6 +438,8 @@ export default function App() {
     region.ready,
     region.preference,
     region.result,
+    scrollRestore,
+    restoreOffset,
   ]);
   useEffect(() => {
     const sub = Network.addNetworkStateListener((net) => {
@@ -1299,14 +1321,17 @@ export default function App() {
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
               onScroll={onListScroll}
+              onScrollBeginDrag={scrollRestore.cancel}
               // 每个标签的滚动位置在拖动或惯性滚动结束时记录。
               onScrollEndDrag={(e) => {
-                if (!listLoading)
-                  tabOffsets.current[tab] = e.nativeEvent.contentOffset.y;
+                const y = e.nativeEvent.contentOffset.y;
+                if (!listLoading && scrollRestore.scrolled(y))
+                  tabOffsets.current[tab] = y;
               }}
               onMomentumScrollEnd={(e) => {
-                if (!listLoading)
-                  tabOffsets.current[tab] = e.nativeEvent.contentOffset.y;
+                const y = e.nativeEvent.contentOffset.y;
+                if (!listLoading && scrollRestore.scrolled(y))
+                  tabOffsets.current[tab] = y;
               }}
               scrollEventThrottle={16}
               keyExtractor={listKey}
