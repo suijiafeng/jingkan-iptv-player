@@ -119,15 +119,22 @@ export function hasFilterBar(
 }
 
 /** 搜索、来源选择、内容维度和范围标签始终固定在顶部，长列表滚动后也无需返回顶部才能筛选。 */
-export function ChannelFilterBar(props: HeaderProps) {
-  const { tab } = props;
+export function ChannelFilterBar(
+  props: HeaderProps & {
+    /** testID 前缀，用于区分频道页和播放器选台面板。 */
+    idPrefix?: string;
+    /** 播放器面板内部不再自带背景或垂直留白。 */
+    compact?: boolean;
+  },
+) {
+  const { tab, idPrefix = "channel" } = props;
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const selectedSource = props.sources.find(
     (source) => source.id === props.sourceId,
   );
   if (!hasFilterBar(props)) return null;
   return (
-    <View style={s.filterBar}>
+    <View style={[s.filterBar, props.compact && s.compactBar]}>
       <View style={s.searchLine}>
         <View style={[s.searchRow, { flex: 1 }]}>
           <TextInput
@@ -207,7 +214,7 @@ export function ChannelFilterBar(props: HeaderProps) {
           onChange={props.onFacetChange}
           countryHint={props.countryHint}
           contentAsTabs
-          testID="channel-facet-filters"
+          testID={`${idPrefix}-facet-filters`}
         />
       )}
       {tab === "all" && props.autoCheck && (
@@ -362,6 +369,7 @@ const s = StyleSheet.create({
   header: { gap: 10, marginBottom: 12 },
   // 使用不透明背景，防止下方滚动的行透过固定栏显示。
   filterBar: { gap: 10, paddingVertical: 8, backgroundColor: colors.bg },
+  compactBar: { gap: 8, paddingVertical: 0, backgroundColor: "transparent" },
   searchLine: { flexDirection: "row", alignItems: "center", gap: 8 },
   topRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   sourceToggle: {

@@ -16,6 +16,7 @@ export const ChannelRow = memo(function ChannelRow({
   onRemoveRecent,
   recentBusy = false,
   artworkEnabled = false,
+  flat = false,
 }: {
   channel: Channel;
   onPlay: (channel: Channel) => void;
@@ -24,6 +25,8 @@ export const ChannelRow = memo(function ChannelRow({
   onRemoveRecent?: (channel: Channel) => void;
   recentBusy?: boolean;
   artworkEnabled?: boolean;
+  /** 已位于某个容器上（播放器面板）时，不再绘制自己的背景。 */
+  flat?: boolean;
 }) {
   const { title, tags } = useMemo(
     () => channelTitle(channel.name),
@@ -35,7 +38,11 @@ export const ChannelRow = memo(function ChannelRow({
   const playbackDisabled = !channel.active || editingRecent;
   return (
     <View
-      style={[s.row, current && { borderColor: colors.accent, borderWidth: 1 }]}
+      style={[
+        s.row,
+        flat && s.flat,
+        current && { borderColor: colors.accent, borderWidth: 1 },
+      ]}
     >
       <Pressable
         accessibilityRole="button"
@@ -123,6 +130,7 @@ const s = StyleSheet.create({
     paddingLeft: 12,
     paddingRight: 4,
   },
+  flat: { backgroundColor: "transparent" },
   main: {
     flex: 1,
     flexDirection: "row",

@@ -17,7 +17,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -26,20 +25,16 @@ import { StatusBar } from "expo-status-bar";
 import { NavigationBar } from "expo-navigation-bar";
 import * as Network from "expo-network";
 import * as Orientation from "expo-screen-orientation";
-import { FacetFilters } from "../../components/FacetFilters";
-import { ChannelLogo } from "../../components/ChannelLogo";
+import { ChannelRow } from "../../components/ChannelRow";
 import {
-  buildFacetOptions,
-  matchesChannelFacets,
-} from "../../domain/channelFacets";
+  ChannelFilterBar,
+  type HeaderProps,
+  type ListTab,
+} from "../channel/ChannelListParts";
 import { Button, Heading, Notice } from "../../components/ui";
 import { colors, styles as theme } from "../../theme";
 import type { Channel } from "../../domain/types";
-import {
-  channelTitle,
-  displayGroups,
-  splitGroups,
-} from "../../domain/channelLabels";
+import { channelTitle, displayGroups } from "../../domain/channelLabels";
 import { NativeAttempt } from "./NativeAttempt";
 import {
   adjacentPlayableIndex,
@@ -48,36 +43,25 @@ import {
   type PlaybackSnapshot,
 } from "./playbackController";
 
-/**
- * 每个频道的搜索文本与分组列表只按频道对象计算一次。
- * 修改时替换行对象，而不是原地修改，因此 WeakMap 缓存始终有效；
- * 在面板输入搜索时，无须反复重建一万多个频道的字符串。
- */
-const sheetKeys = new WeakMap<
-  Channel,
-  { title: string; groups: string[]; text: string }
->();
-function sheetKey(channel: Channel) {
-  let key = sheetKeys.get(channel);
-  if (!key) {
-    const groups = splitGroups(channel.groupName);
-    key = {
-      title: channelTitle(channel.name).title,
-      groups,
-      text: `${channel.name} ${groups.join("、")} ${channel.sourceName}`.toLocaleLowerCase(),
-    };
-    sheetKeys.set(channel, key);
-  }
-  return key;
+/** 频道页的列表与筛选，在播放器选台面板中显示。 */
+export interface ChannelSheetProps {
+  /** 页面共享的唯一筛选状态，包括标签、搜索、来源和维度。 */
+  filters: HeaderProps;
+  onTabChange: (tab: ListTab) => void;
+  /** 页面当前结果及其顺序；不可用频道放在最后。 */
+  channels: Channel[];
+  /** 标识当前显示的结果；下一份结果加载期间为 null。 */
+  rangeKey: string | null;
+  loading: boolean;
+  /** 绕过国家限制显示所有频道，以便列出正在播放的频道。 */
+  onLocate: () => void;
 }
 
 export interface PlayerScreenProps {
   channel: Channel;
   channels: Channel[];
-  /** 选台面板使用完整目录；channels 仍是播放队列。 */
-  allChannels?: Channel[];
-  /** SQLite 中的观看历史，按最近观看在前排序，包含已停用频道。 */
-  recentChannels?: Channel[];
+  /** 频道页的列表与筛选状态；channels 仍然是播放队列。 */
+  sheet: ChannelSheetProps;
   onSelect: (channel: Channel, queue?: Channel[]) => void;
   onClose: () => void;
   onFavorite: (channel: Channel) => void;
@@ -93,10 +77,6 @@ export interface PlayerScreenProps {
   /** 当前频道之前观看的频道，供一键返回。 */
   previousChannel?: Channel | null;
   artworkEnabled?: boolean;
-  countryCode?: string | null;
-  countrySelectionKey?: string;
-  countryHint?: string;
-  onCountryChange?: (value: string | null) => void;
   error?: string;
   onDismissError?: () => void;
 }
@@ -145,19 +125,11 @@ export function PlayerScreen(props: PlayerScreenProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
   // 状态放在单频道会话之上，切台时不会让已经隐藏的控件重新出现。
   const [controlsShown, setControlsShown] = useState(true);
-  const [scope, setScope] = useState<"all" | "favorites" | "recent">("all");
-  const [search, setSearch] = useState("");
-  const [group, setGroup] = useState<string | null>(null);
-  const [language, setLanguage] = useState<string | null>(null);
-  const [countryBypassKey, setCountryBypassKey] = useState<string | null>(null);
-  const countrySelectionKey =
-    props.countrySelectionKey ?? JSON.stringify(props.countryCode ?? null);
-  const ignoreCountry = countryBypassKey === countrySelectionKey;
   const [locateRequest, setLocateRequest] = useState(0);
   const { width } = useWindowDimensions();
   const channelList = useRef<FlatList<Channel>>(null);
   const savedSheetPosition = useRef<{
-    range: string;
+    range: string | null;
     channelId: string;
     offset: number;
   } | null>(null);
@@ -220,62 +192,31 @@ export function PlayerScreen(props: PlayerScreenProps) {
     () => props.channels.filter((channel) => channel.active),
     [props.channels],
   );
-  const allActiveChannels = useMemo(
-    () =>
-      (props.allChannels ?? props.channels).filter((channel) => channel.active),
-    [props.allChannels, props.channels],
-  );
-  const scopeChannels = useMemo(
-    () =>
-      scope === "recent"
-        ? (props.recentChannels ?? [])
-        : scope === "favorites"
-          ? allActiveChannels.filter((channel) => channel.favorite)
-          : allActiveChannels,
-    [scope, props.recentChannels, allActiveChannels],
-  );
-  const country = ignoreCountry ? null : (props.countryCode ?? null);
-  const facets = useMemo(
-    () =>
-      buildFacetOptions(allActiveChannels, {
-        country,
-        language,
-        content: group,
-      }),
-    [allActiveChannels, country, language, group],
-  );
-  const query = search.trim().toLocaleLowerCase();
-  const shownChannels = useMemo(
-    () =>
-      scopeChannels.filter(
-        (channel) =>
-          (scope !== "all" ||
-            matchesChannelFacets(channel, {
-              country,
-              language,
-              content: group,
-            })) &&
-          (!query || sheetKey(channel).text.includes(query)),
-      ),
-    [scopeChannels, scope, query, group, country, language],
-  );
-  const range = JSON.stringify([scope, query, group, language, country]);
+  const sheet = props.sheet;
+  const scope = sheet.filters.tab;
+  const shownChannels = sheet.channels;
+  const range = sheet.rangeKey;
   const currentIndex = shownChannels.findIndex(
     (channel) => channel.id === props.channel.id,
   );
-  const currentInCatalog = allActiveChannels.some(
-    (channel) => channel.id === props.channel.id,
-  );
   const lastLocateRequest = useRef(0);
-  const changeScope = (next: typeof scope) => {
+  const changeScope = (next: ListTab) => {
     if (next === scope) return;
     Keyboard.dismiss();
-    setScope(next);
-    setSearch("");
-    setGroup(null);
-    setLanguage(null);
-    setCountryBypassKey(null);
+    sheet.onTabChange(next);
   };
+  const selectFromSheet = (item: Channel) => {
+    setSheetOpen(false);
+    props.onSelect(
+      item,
+      shownChannels.filter((channel) => channel.active),
+    );
+  };
+  const filtered =
+    !!sheet.filters.search ||
+    (scope === "all" &&
+      (!!sheet.filters.sourceId ||
+        Object.values(sheet.filters.facetSelection).some((v) => v !== null)));
   useEffect(() => {
     if (!sheetOpen) return;
     const previous = savedSheetPosition.current;
@@ -369,17 +310,11 @@ export function PlayerScreen(props: PlayerScreenProps) {
                 style={s.favoriteHit}
                 accessibilityRole="button"
                 accessibilityLabel="定位当前频道"
-                accessibilityState={{ disabled: !currentInCatalog }}
-                disabled={!currentInCatalog}
+                accessibilityState={{ disabled: !props.channel.active }}
+                disabled={!props.channel.active}
                 onPress={() => {
                   Keyboard.dismiss();
-                  if (currentIndex < 0) {
-                    setScope("all");
-                    setSearch("");
-                    setGroup(null);
-                    setLanguage(null);
-                    setCountryBypassKey(countrySelectionKey);
-                  }
+                  if (currentIndex < 0) sheet.onLocate();
                   setLocateRequest((value) => value + 1);
                 }}
               >
@@ -413,52 +348,12 @@ export function PlayerScreen(props: PlayerScreenProps) {
                 </View>
               ))}
             </View>
-            <View style={s.searchRow}>
-              <TextInput
-                style={s.searchInput}
-                accessibilityLabel="搜索选台频道"
-                placeholder="搜索频道、分组或来源"
-                placeholderTextColor={colors.muted}
-                value={search}
-                onChangeText={setSearch}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="search"
-                onSubmitEditing={Keyboard.dismiss}
-              />
-              {!!search && (
-                <Pressable
-                  style={s.favoriteHit}
-                  accessibilityRole="button"
-                  accessibilityLabel="清除选台搜索"
-                  onPress={() => setSearch("")}
-                >
-                  <Text style={s.sheetAction}>清除</Text>
-                </Pressable>
-              )}
-            </View>
-            {scope === "all" && (
-              <FacetFilters
-                options={facets}
-                selected={{ country, language, content: group }}
-                onChange={(selection, kind) => {
-                  Keyboard.dismiss();
-                  setGroup(selection.content);
-                  setLanguage(selection.language);
-                  if (kind === "country") {
-                    setCountryBypassKey(null);
-                    props.onCountryChange?.(selection.country);
-                  }
-                }}
-                countryHint={
-                  ignoreCountry
-                    ? "定位当前频道，暂时显示全部国家/地区"
-                    : props.countryHint
-                }
-                contentAsTabs
-                testID="player-facet-filters"
-              />
-            )}
+            <ChannelFilterBar
+              key={scope}
+              {...sheet.filters}
+              idPrefix="player"
+              compact
+            />
             {!!props.error && (
               <View>
                 <Notice title={props.error} error />
@@ -514,73 +409,32 @@ export function PlayerScreen(props: PlayerScreenProps) {
               style={s.channelList}
               contentContainerStyle={s.listContent}
               ListEmptyComponent={
-                <Text style={s.empty}>
-                  {query ||
-                  (scope === "all" &&
-                    (group !== null || country !== null || language !== null))
-                    ? `没有匹配频道，试试清除搜索${scope === "all" ? "或调整筛选" : ""}`
-                    : scope === "recent"
-                      ? "还没有最近观看记录"
-                      : scope === "favorites"
-                        ? "还没有收藏的可用频道"
-                        : "没有可用频道"}
-                </Text>
+                sheet.loading ? (
+                  <ActivityIndicator
+                    style={s.emptyLoading}
+                    color={colors.accent}
+                  />
+                ) : (
+                  <Text style={s.empty}>
+                    {filtered
+                      ? `没有匹配频道，试试清除搜索${scope === "all" ? "或调整筛选" : ""}`
+                      : scope === "recent"
+                        ? "还没有最近观看记录"
+                        : scope === "favorites"
+                          ? "还没有收藏的可用频道"
+                          : "没有可用频道"}
+                  </Text>
+                )
               }
               renderItem={({ item }) => (
-                <View
-                  style={[
-                    s.channelRow,
-                    item.id === props.channel.id && s.selectedRow,
-                  ]}
-                >
-                  <Pressable
-                    style={[s.channelSelect, !item.active && s.inactiveChannel]}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${sheetKey(item).title}，${item.sourceName}${item.id === props.channel.id ? "，当前频道" : ""}`}
-                    accessibilityState={{
-                      selected: item.id === props.channel.id,
-                      disabled: !item.active,
-                    }}
-                    disabled={!item.active}
-                    onPress={() => {
-                      setSheetOpen(false);
-                      props.onSelect(
-                        item,
-                        shownChannels.filter((channel) => channel.active),
-                      );
-                    }}
-                  >
-                    <ChannelLogo
-                      uri={item.logoUrl}
-                      title={sheetKey(item).title}
-                      enabled={!!props.artworkEnabled && props.remoteAllowed}
-                    />
-                    <View style={s.flex}>
-                      <Text numberOfLines={1} style={theme.heading}>
-                        {sheetKey(item).title}
-                      </Text>
-                      <Text numberOfLines={1} style={theme.muted}>
-                        {!item.active
-                          ? "已失效"
-                          : item.id === props.channel.id
-                            ? "当前频道"
-                            : sheetKey(item).groups.join("、")}{" "}
-                        · {item.sourceName}
-                      </Text>
-                    </View>
-                  </Pressable>
-                  <Pressable
-                    style={s.favoriteHit}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${item.favorite ? "取消收藏" : "收藏"}${sheetKey(item).title}`}
-                    accessibilityState={{ selected: item.favorite }}
-                    onPress={() => props.onFavorite(item)}
-                  >
-                    <Text style={[s.star, item.favorite && s.accent]}>
-                      {item.favorite ? "★" : "☆"}
-                    </Text>
-                  </Pressable>
-                </View>
+                <ChannelRow
+                  channel={item}
+                  current={item.id === props.channel.id}
+                  onPlay={selectFromSheet}
+                  onFavorite={props.onFavorite}
+                  artworkEnabled={!!props.artworkEnabled && props.remoteAllowed}
+                  flat
+                />
               )}
             />
           </View>
@@ -1183,41 +1037,8 @@ const s = StyleSheet.create({
   sheetAction: { color: colors.accent, fontSize: 13, lineHeight: 20 },
   sheetScopes: { flexDirection: "row", alignItems: "center", gap: 8 },
   sheetButton: { minHeight: 48, paddingVertical: 8, paddingHorizontal: 12 },
-  searchRow: {
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 12,
-    backgroundColor: colors.raised,
-  },
-  searchInput: {
-    flex: 1,
-    minHeight: 48,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    color: colors.text,
-    fontSize: 14,
-  },
   channelList: { flex: 1 },
   listContent: { gap: 4 },
-  channelRow: {
-    minHeight: 66,
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 16,
-    paddingLeft: 12,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  selectedRow: { borderColor: colors.line },
-  inactiveChannel: { opacity: 0.5 },
-  channelSelect: {
-    flex: 1,
-    minHeight: 64,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
   favoriteHit: {
     minWidth: 48,
     minHeight: 48,
@@ -1227,5 +1048,6 @@ const s = StyleSheet.create({
   star: { color: colors.muted, fontSize: 24 },
   accent: { color: colors.accent },
   empty: { color: colors.muted, paddingVertical: 24, textAlign: "center" },
+  emptyLoading: { paddingVertical: 24 },
   warning: { color: colors.warn, fontSize: 12, lineHeight: 18 },
 });
