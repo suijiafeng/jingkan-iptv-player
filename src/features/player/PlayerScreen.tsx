@@ -47,6 +47,8 @@ export function PlayerScreen(props: PlayerScreenProps) {
   const [sourcesOpen, setSourcesOpen] = useState(false);
   // 状态放在单频道会话之上，切台时不会让已经隐藏的控件重新出现。
   const [controlsShown, setControlsShown] = useState(true);
+  // 跨频道及同频道的不同来源保留音频播放意图。
+  const [muted, setMuted] = useState(false);
   // 面板被隐藏（全屏、小窗）后再次显示时仍保留。
   const savedListPosition = useRef<SavedListPosition | null>(null);
   const [listPositionStore] = useState<ListPositionStore>(() => ({
@@ -157,6 +159,8 @@ export function PlayerScreen(props: PlayerScreenProps) {
       <ChannelSession
         key={`${props.channel.id}:${props.channel.streamUrl}`}
         {...props}
+        muted={muted}
+        onMutedChange={setMuted}
         channels={activeChannels}
         failover={failover}
         onSelectSource={onManualSelect}

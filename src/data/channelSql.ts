@@ -1,4 +1,5 @@
 import { M3U_LIMITS, utf8ByteLength } from "../domain/m3u";
+import { synchronizeChecks } from "./availability";
 import type {
   Channel,
   ChannelQuery,
@@ -240,6 +241,7 @@ export async function upsertChannels(
       params,
     );
   }
+  await synchronizeChecks(tx, sourceId);
   // 收藏和最近观看按 groupKey 保存，因此新导入的
   // 备用线路继承该状态，无需复制每条播放地址的数据行。
 }

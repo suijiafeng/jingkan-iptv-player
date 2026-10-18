@@ -16,6 +16,7 @@ import {
 } from "../domain/channelFacets";
 import { RepositoryError, type SqlDatabase } from "./sql";
 import { migrateSchema } from "./schema";
+import { readChecks, writeChecks } from "./availability";
 import {
   assertContent,
   assertPreview,
@@ -298,29 +299,20 @@ export class Repository {
     return changed;
   }
 
-  /**
-   * 保存手动可用性检测结果。只有频道仍保留被检测的 URL 时结果才有效
-   * （刷新可能会替换地址）。
-   */
+  /** 结果属于完整的特定 URL；所有相同地址的记录共享状态，刷新后地址已变化的行不受影响。 */
   async saveCheckResults(
     results: { channelId: string; streamUrl: string; ok: boolean }[],
   ): Promise<void> {
     if (!results.length) return;
     await this.serialize(async () => {
       await this.db.withExclusiveTransactionAsync(async (tx) => {
-        const now = this.now();
-        for (const result of results)
-          await tx.runAsync(
-            "UPDATE channels SET checkStatus = ?, checkedAt = ? WHERE id = ? AND streamUrl = ?",
-            [
-              result.ok ? "ok" : "unreachable",
-              now,
-              result.channelId,
-              result.streamUrl,
-            ],
-          );
+        await writeChecks(tx, results, this.now());
       });
     });
+  }
+
+  getCheckResults(urls: readonly string[]) {
+    return readChecks(this.db, urls);
   }
 
   async renameSource(sourceId: string, name: string): Promise<void> {

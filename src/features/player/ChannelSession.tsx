@@ -29,6 +29,8 @@ import type { FailoverView } from "./useSourceFailover";
 import { sessionStyles } from "./channelSessionStyles";
 
 export interface SessionProps extends PlayerScreenProps {
+  muted: boolean;
+  onMutedChange: (muted: boolean) => void;
   /** 一次播放失败后，自动切换当前频道的其它播放地址。 */
   failover: FailoverView;
   fullscreen: boolean;
@@ -123,6 +125,7 @@ export function ChannelSession(props: SessionProps) {
             media={media}
             backgroundAllowed={props.backgroundAllowed}
             title={title}
+            muted={props.muted}
           />
         )}
         {/* 整个画面：轻触切换控件显示；全屏时
@@ -301,6 +304,7 @@ export function ChannelSession(props: SessionProps) {
               />
             </View>
             <View style={sessionStyles.portraitTopRight}>
+              {view.muteButton}
               {view.pictureInPictureButton}
             </View>
           </>
@@ -330,6 +334,7 @@ export function ChannelSession(props: SessionProps) {
             disabled={primaryDisabled}
             onPress={primaryAction}
           />
+          {view.muteButton}
           <OverlayButton
             label="✕"
             accessibilityLabel="停止播放"

@@ -73,6 +73,7 @@ export function OverlayButton({
   disabled = false,
   variant = "pill",
   compact = false,
+  selected,
 }: {
   label: string;
   /** 用图形代替标签文字；无障碍标签仍保留按钮名称。 */
@@ -83,13 +84,17 @@ export function OverlayButton({
   variant?: OverlayVariant;
   /** 竖屏画面：环形按钮从 44dp 缩小到 40dp。 */
   compact?: boolean;
+  selected?: boolean;
 }) {
   const round = variant === "quiet" || variant === "ring";
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ disabled }}
+      accessibilityState={{
+        disabled,
+        ...(selected === undefined ? {} : { selected }),
+      }}
       disabled={disabled}
       hitSlop={round ? 4 : 6}
       style={({ pressed }) => [
