@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import {
   AccessibilityInfo,
+  Alert,
   AppState,
   Pressable,
   StyleSheet,
@@ -41,6 +42,7 @@ export function useChannelSession(props: SessionProps) {
     () =>
       new PlaybackController({
         remoteAllowed: props.remoteAllowed,
+        backgroundAllowed: props.backgroundAllowed,
         mobileWarning: props.mobileWarning,
         checkNetwork: Network.getNetworkStateAsync,
         isAppActive: () => AppState.currentState === "active",
@@ -82,6 +84,9 @@ export function useChannelSession(props: SessionProps) {
   useEffect(() => {
     controller.setPolicy(props.remoteAllowed, props.mobileWarning);
   }, [controller, props.remoteAllowed, props.mobileWarning]);
+  useEffect(() => {
+    controller.setBackgroundAllowed(!!props.backgroundAllowed);
+  }, [controller, props.backgroundAllowed]);
   // 未能出画面的已结束尝试只报告一次；故障切换逻辑
   // 由它决定当前频道是否还有值得尝试的其它地址。
   const { onFailure, onUserPlay } = props.failover;
@@ -328,6 +333,23 @@ export function useChannelSession(props: SessionProps) {
     </Pressable>
   );
 
+  const pictureInPictureButton = state.attemptId !== null && (
+    <OverlayButton
+      label="画中画"
+      accessibilityLabel="进入画中画"
+      variant="quiet"
+      onPress={() => {
+        void media.startPictureInPicture().then((success) => {
+          if (!success)
+            Alert.alert(
+              "未能进入画中画",
+              "请确认系统允许静看使用画中画，并在视频开始播放后重试。",
+            );
+        });
+      }}
+    />
+  );
+
   return {
     insets,
     sourcesOpen,
@@ -361,6 +383,7 @@ export function useChannelSession(props: SessionProps) {
     zapCluster,
     sourceButton,
     favoriteButton,
+    pictureInPictureButton,
   };
 }
 

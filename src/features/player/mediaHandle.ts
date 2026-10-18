@@ -31,6 +31,21 @@ const NO_INFO: MediaInfo = { isLive: false, seekable: false };
 /** UI 操作当前原生播放尝试的窄接口：无需重连即可播放、暂停和跳转，并提供采样时间轴；它从不暴露流地址。基本信息与时间轴使用独立快照，使每秒只重渲染时间轴视图。 */
 export class MediaHandle {
   private player: VideoPlayer | null = null;
+  private enterPictureInPicture: (() => Promise<void>) | null = null;
+
+  attachPictureInPicture(player: VideoPlayer, enter: () => Promise<void>) {
+    if (this.player === player) this.enterPictureInPicture = enter;
+  }
+
+  async startPictureInPicture(): Promise<boolean> {
+    try {
+      if (!this.enterPictureInPicture) return false;
+      await this.enterPictureInPicture();
+      return true;
+    } catch {
+      return false;
+    }
+  }
   private info: MediaInfo = NO_INFO;
   private timeline: MediaTimeline | null = null;
   private infoListeners = new Set<() => void>();
@@ -38,12 +53,14 @@ export class MediaHandle {
 
   attach(player: VideoPlayer) {
     this.player = player;
+    this.enterPictureInPicture = null;
     this.publish(NO_INFO, null);
   }
   /** 只有附加此实例的播放器可以解除绑定，新尝试可能已经接管。 */
   detach(player: VideoPlayer) {
     if (this.player !== player) return;
     this.player = null;
+    this.enterPictureInPicture = null;
     this.publish(NO_INFO, null);
   }
   /** 采样已连接的播放器；释放之后读取原生属性可能抛错。 */

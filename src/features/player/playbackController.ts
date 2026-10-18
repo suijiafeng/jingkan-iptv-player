@@ -28,6 +28,7 @@ export interface ConnectionState {
   isInternetReachable?: boolean;
 }
 interface ControllerOptions {
+  backgroundAllowed?: boolean;
   remoteAllowed: boolean;
   mobileWarning: boolean;
   checkNetwork: () => Promise<ConnectionState>;
@@ -63,6 +64,27 @@ export class PlaybackController {
   private timeout: ReturnType<typeof setTimeout> | undefined;
   private startedAttempt: number | null = null;
   private disposed = false;
+  private pictureInPicture = false;
+
+  canContinueOutsideApp = () =>
+    !!this.options.backgroundAllowed || this.pictureInPicture;
+
+  setBackgroundAllowed(allowed: boolean) {
+    this.options = { ...this.options, backgroundAllowed: allowed };
+    if (!this.options.isAppActive() && !this.canContinueOutsideApp())
+      this.pause("background");
+  }
+
+  setPictureInPicture(id: number, enabled: boolean) {
+    if (this.disposed || this.snapshot.attemptId !== id) return;
+    this.pictureInPicture = enabled;
+    if (
+      !enabled &&
+      !this.options.isAppActive() &&
+      !this.options.backgroundAllowed
+    )
+      this.pause("background");
+  }
 
   constructor(options: ControllerOptions) {
     this.options = options;
@@ -92,6 +114,7 @@ export class PlaybackController {
     this.timeout = undefined;
   }
   private stop(phase: PlaybackPhase, pauseReason?: PauseReason) {
+    this.pictureInPicture = false;
     ++this.generation;
     this.clearTimer();
     this.publish({
@@ -101,6 +124,7 @@ export class PlaybackController {
     });
   }
   private fail(failure: AttemptFailure) {
+    this.pictureInPicture = false;
     ++this.generation;
     this.clearTimer();
     this.publish({ phase: "error", attemptId: null, failure });
@@ -133,7 +157,7 @@ export class PlaybackController {
       this.stop("blocked");
       return;
     }
-    if (!this.options.isAppActive()) {
+    if (!this.options.isAppActive() && !this.canContinueOutsideApp()) {
       this.stop("paused", "background");
       return;
     }
@@ -158,7 +182,7 @@ export class PlaybackController {
       this.stop("blocked");
       return;
     }
-    if (!this.options.isAppActive()) {
+    if (!this.options.isAppActive() && !this.canContinueOutsideApp()) {
       this.stop("paused", "background");
       return;
     }
@@ -185,7 +209,8 @@ export class PlaybackController {
     this.stop(this.options.remoteAllowed ? "paused" : "blocked", reason);
   }
   appStateChanged(state: string) {
-    if (state !== "active") this.pause("background");
+    if (state !== "active" && !this.canContinueOutsideApp())
+      this.pause("background");
     // 回到前台时刻意不自动恢复播放。
   }
   networkChanged(network: ConnectionState) {
@@ -214,7 +239,7 @@ export class PlaybackController {
   isCurrentAttempt = (id: number) =>
     !this.disposed &&
     this.options.remoteAllowed &&
-    this.options.isAppActive() &&
+    (this.options.isAppActive() || this.canContinueOutsideApp()) &&
     this.snapshot.attemptId === id &&
     retainedAttemptPhases.includes(this.snapshot.phase);
   nativeStarted(id: number) {

@@ -121,6 +121,8 @@ export function ChannelSession(props: SessionProps) {
             attemptId={state.attemptId}
             controller={controller}
             media={media}
+            backgroundAllowed={props.backgroundAllowed}
+            title={title}
           />
         )}
         {/* 整个画面：轻触切换控件显示；全屏时
@@ -297,6 +299,9 @@ export function ChannelSession(props: SessionProps) {
                 accessibilityLabel="横屏全屏"
                 onPress={props.onToggleFullscreen}
               />
+            </View>
+            <View style={sessionStyles.portraitTopRight}>
+              {view.pictureInPictureButton}
             </View>
           </>
         )}

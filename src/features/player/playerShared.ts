@@ -30,6 +30,7 @@ export interface PlayerScreenProps {
   onStarted: (channel: Channel) => void;
   remoteAllowed: boolean;
   mobileWarning: boolean;
+  backgroundAllowed?: boolean;
   /** 用户已选择在可能计费的网络上继续播放。 */
   onMobileAccepted?: () => void;
   /** 全屏上滑默认切换下一台；true 则反转方向（“我的电视”的“换台反转”）。 */
@@ -41,10 +42,7 @@ export interface PlayerScreenProps {
   artworkEnabled?: boolean;
   error?: string;
   onDismissError?: () => void;
-  /**
-   * 停靠为频道页上的小条，同时继续播放（仅限前台，离开应用仍会暂停）。
-   * 外层调整容器尺寸，会话、播放器实例和媒体流始终保持挂载。
-   */
+  /** 以小栏形式停靠在频道页上方，继续保持播放；后台行为遵循播放设置。外层只切换容器尺寸，会话、播放器和流均保持挂载。 */
   mini?: boolean;
   /** 竖屏返回键：缩到小窗，而不是停止播放。 */
   onMinimize?: () => void;
