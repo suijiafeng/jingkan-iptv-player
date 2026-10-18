@@ -5,6 +5,8 @@ export interface Source {
   id: string;
   name: string;
   kind: SourceKind;
+  /** 停用的来源仍保存在本地，但不会提供可播放频道。 */
+  enabled: boolean;
   /** 远程 URL 或原始文件名，不保存可公开访问的文件副本。 */
   location: string;
   createdAt: number;
