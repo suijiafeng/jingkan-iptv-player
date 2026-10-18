@@ -11,10 +11,7 @@ import {
   normalizeCountries,
   normalizeLanguages,
 } from "./channelFacets";
-import {
-  parseDeclaredQuality,
-  qualityFromIptvOrgId,
-} from "./channelSources";
+import { parseDeclaredQuality, qualityFromIptvOrgId } from "./channelSources";
 
 // 8 MiB 足以容纳完整 iptv-org 索引（约 2.5 MiB、超过 1.1 万条），并留有余量；
 // 解析时文本保存在内存中，因此仍需限制大小。
@@ -67,13 +64,13 @@ export interface ParseM3UOptions {
 /** 同时校验代理对；有损解码后出现 U+FFFD 时，保守地拒绝该文本。 */
 export function utf8ByteLength(value: string): number {
   let length = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    const code = value.charCodeAt(i);
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
     if (code === 0xfffd) throw new M3UParseError("invalid_encoding");
     if (code < 0x80) length += 1;
     else if (code < 0x800) length += 2;
     else if (code >= 0xd800 && code <= 0xdbff) {
-      const low = value.charCodeAt(++i);
+      const low = value.charCodeAt(++index);
       if (!(low >= 0xdc00 && low <= 0xdfff))
         throw new M3UParseError("invalid_encoding");
       length += 4;
@@ -102,14 +99,17 @@ interface Candidate extends PendingChannel {
 function parseExtinf(line: string, lineNumber: number): PendingChannel | null {
   let quote = "";
   let comma = -1;
-  for (let i = 8; i < line.length; i += 1) {
-    const char = line[i];
-    if ((char === '"' || char === "'") && (i === 0 || line[i - 1] !== "\\")) {
+  for (let position = 8; position < line.length; position += 1) {
+    const char = line[position];
+    if (
+      (char === '"' || char === "'") &&
+      (position === 0 || line[position - 1] !== "\\")
+    ) {
       if (!quote) quote = char;
       else if (quote === char) quote = "";
     }
     if (char === "," && !quote) {
-      comma = i;
+      comma = position;
       break;
     }
   }
@@ -256,22 +256,22 @@ export async function parseM3U(
   }
   if (pending) addIssue(pending.line, "dangling_extinf");
   const idUrls = new Map<string, Set<string>>();
-  for (let i = 0; i < candidates.length; i += 1) {
-    const candidate = candidates[i];
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index];
     if (candidate.tvgId) {
       const urls = idUrls.get(candidate.tvgId) ?? new Set<string>();
       urls.add(candidate.streamUrl);
       idUrls.set(candidate.tvgId, urls);
     }
-    if (i > 0 && i % M3U_LIMITS.yieldEveryLines === 0) {
+    if (index > 0 && index % M3U_LIMITS.yieldEveryLines === 0) {
       await yieldControl();
       checkCancelled();
     }
   }
   const identities = new Set<string>();
   const channels: ParsedChannel[] = [];
-  for (let i = 0; i < candidates.length; i += 1) {
-    const candidate = candidates[i];
+  for (let index = 0; index < candidates.length; index += 1) {
+    const candidate = candidates[index];
     // 使用完整的规范化 URL，避免哈希碰撞，并保留所有认证令牌。
     const identityKey =
       candidate.tvgId && idUrls.get(candidate.tvgId)?.size === 1
@@ -295,7 +295,7 @@ export async function parseM3U(
       });
       if (candidate.streamUrl.startsWith("http:")) stats.http += 1;
     }
-    if (i > 0 && i % M3U_LIMITS.yieldEveryLines === 0) {
+    if (index > 0 && index % M3U_LIMITS.yieldEveryLines === 0) {
       await yieldControl();
       checkCancelled();
     }

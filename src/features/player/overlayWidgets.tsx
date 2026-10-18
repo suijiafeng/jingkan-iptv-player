@@ -51,9 +51,9 @@ export function LoadingTitle({
     return () => clearTimeout(timer);
   }, [frame, reduceMotion]);
   return (
-    <View style={s.loadingTitle} pointerEvents="none">
+    <View style={styles.loadingTitle} pointerEvents="none">
       <Text style={style}>{title}</Text>
-      <Text style={[style, s.loadingDots]} accessibilityElementsHidden>
+      <Text style={[style, styles.loadingDots]} accessibilityElementsHidden>
         {reduceMotion ? "…" : DOTS_FRAMES[frame]}
       </Text>
     </View>
@@ -93,24 +93,26 @@ export function OverlayButton({
       disabled={disabled}
       hitSlop={round ? 4 : 6}
       style={({ pressed }) => [
-        s.overlayButton,
-        variant === "quiet" && s.overlayButtonQuiet,
-        variant === "ring" && s.overlayButtonRing,
-        variant === "ring" && compact && s.overlayButtonRingCompact,
-        variant === "solid" && s.overlayButtonSolid,
-        pressed && s.pressed,
-        pressed && variant === "quiet" && s.overlayButtonQuietPressed,
-        disabled && s.overlayButtonDisabled,
+        styles.overlayButton,
+        variant === "quiet" && styles.overlayButtonQuiet,
+        variant === "ring" && styles.overlayButtonRing,
+        variant === "ring" && compact && styles.overlayButtonRingCompact,
+        variant === "solid" && styles.overlayButtonSolid,
+        pressed && styles.pressed,
+        pressed && variant === "quiet" && styles.overlayButtonQuietPressed,
+        disabled && styles.overlayButtonDisabled,
       ]}
       onPress={onPress}
     >
       {icon ?? (
         <Text
           style={[
-            s.overlayButtonText,
-            variant === "ring" && s.overlayButtonRingText,
-            variant === "ring" && compact && s.overlayButtonRingTextCompact,
-            variant === "quiet" && s.overlayButtonQuietText,
+            styles.overlayButtonText,
+            variant === "ring" && styles.overlayButtonRingText,
+            variant === "ring" &&
+              compact &&
+              styles.overlayButtonRingTextCompact,
+            variant === "quiet" && styles.overlayButtonQuietText,
           ]}
           numberOfLines={1}
         >
@@ -148,15 +150,15 @@ export function SourceChip({
       disabled={disabled}
       hitSlop={6}
       style={({ pressed }) => [
-        s.chip,
-        solid && s.chipSolid,
-        pressed && s.pressed,
-        disabled && s.chipDisabled,
+        styles.chip,
+        solid && styles.chipSolid,
+        pressed && styles.pressed,
+        disabled && styles.chipDisabled,
       ]}
       onPress={onPress}
     >
-      <Text style={s.chipText} numberOfLines={1}>
-        <Text style={s.chipQuality}>{quality}</Text>
+      <Text style={styles.chipText} numberOfLines={1}>
+        <Text style={styles.chipQuality}>{quality}</Text>
         {` ${sourceName}`}
         {count > 1 ? ` · ${count} 个 ▾` : ""}
       </Text>
@@ -178,19 +180,19 @@ export function Shade({
     <View
       pointerEvents="none"
       style={[
-        s.shade,
-        edge === "top" ? s.shadeTop : s.shadeBottom,
+        styles.shade,
+        edge === "top" ? styles.shadeTop : styles.shadeBottom,
         { height: `${Math.round(heightRatio * 100)}%` },
       ]}
     >
-      {Array.from({ length: SHADE_STEPS }, (_, step) => {
+      {Array.from({ length: SHADE_STEPS }, (_unused, step) => {
         // 最靠近边缘的条带最暗，透明度向中心逐渐降低。
         const alpha = 0.74 * (1 - step / SHADE_STEPS);
         return (
           <View
             key={step}
             style={[
-              s.shadeStrip,
+              styles.shadeStrip,
               { backgroundColor: `rgba(4, 8, 10, ${alpha.toFixed(3)})` },
             ]}
           />
@@ -203,22 +205,24 @@ export function Shade({
 export function LiveBadge({ catchup = false }: { catchup?: boolean }) {
   return (
     <View
-      style={s.liveBadge}
+      style={styles.liveBadge}
       accessible
       accessibilityLabel={catchup ? "正在看直播" : "直播，不可回看"}
     >
-      <View style={s.liveDot} />
-      <Text style={s.liveText}>直播</Text>
+      <View style={styles.liveDot} />
+      <Text style={styles.liveText}>直播</Text>
     </View>
   );
 }
 
 export function clock(seconds: number): string {
   const total = Math.max(0, Math.round(seconds));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
   const sec = String(total % 60).padStart(2, "0");
-  return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
+  return hours
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${sec}`
+    : `${minutes}:${sec}`;
 }
 
 /** 跳转范围由媒体流决定；读屏操作每次移动 30 秒。 */
@@ -260,17 +264,17 @@ export function MediaStatus({
       ? `落后 ${clock(behind)}`
       : ""
     : `${clock(shown)} / ${clock(duration)}`;
-  const at = (x: number) =>
-    width > 0 ? Math.min(Math.max(x / width, 0), 1) * duration : shown;
+  const at = (offsetX: number) =>
+    width > 0 ? Math.min(Math.max(offsetX / width, 0), 1) * duration : shown;
   const scrub = (value: number | null) => {
     setPreview(value);
     onScrubbingChange(value !== null);
   };
   return (
-    <View style={s.timelineRow} testID="media-timeline">
-      {!!label && <Text style={s.timelineText}>{label}</Text>}
+    <View style={styles.timelineRow} testID="media-timeline">
+      {!!label && <Text style={styles.timelineText}>{label}</Text>}
       <View
-        style={s.timelineTrack}
+        style={styles.timelineTrack}
         onLayout={({ nativeEvent }) => setWidth(nativeEvent.layout.width)}
         accessible
         accessibilityRole="adjustable"
@@ -298,12 +302,14 @@ export function MediaStatus({
         }}
         onResponderTerminate={() => scrub(null)}
       >
-        <View style={s.timelineBar} pointerEvents="none">
-          <View style={[s.timelineFill, { width: `${fraction * 100}%` }]} />
+        <View style={styles.timelineBar} pointerEvents="none">
+          <View
+            style={[styles.timelineFill, { width: `${fraction * 100}%` }]}
+          />
         </View>
         <View
           pointerEvents="none"
-          style={[s.timelineThumb, { left: `${fraction * 100}%` }]}
+          style={[styles.timelineThumb, { left: `${fraction * 100}%` }]}
         />
       </View>
       {info.isLive &&
@@ -336,13 +342,13 @@ export function WaitProgress() {
     ? `已等 ${seconds} 秒 · 比平时慢`
     : `已等 ${seconds} 秒（最多 30 秒）`;
   return (
-    <Text style={s.noticeBody} numberOfLines={1}>
+    <Text style={styles.noticeBody} numberOfLines={1}>
       {line}
     </Text>
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   liveBadge: {
     flexDirection: "row",
     alignItems: "center",

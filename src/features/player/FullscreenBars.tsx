@@ -37,14 +37,14 @@ export function FullscreenBars({
         style={
           props.fullscreen && controlsVisible
             ? [
-                s.fullscreenTop,
+                styles.fullscreenTop,
                 {
                   top: insets.top,
                   left: insets.left,
                   right: insets.right,
                 },
               ]
-            : s.hidden
+            : styles.hidden
         }
       >
         <OverlayButton
@@ -54,11 +54,11 @@ export function FullscreenBars({
           variant="quiet"
           onPress={props.onToggleFullscreen}
         />
-        <View style={s.flex}>
-          <Text style={s.title} numberOfLines={1}>
+        <View style={styles.flex}>
+          <Text style={styles.title} numberOfLines={1}>
             {title}
           </Text>
-          <Text style={s.subtitle} numberOfLines={1}>
+          <Text style={styles.subtitle} numberOfLines={1}>
             {[
               index >= 0
                 ? `第 ${index + 1} / ${props.channels.length} 台`
@@ -75,7 +75,7 @@ export function FullscreenBars({
         <View
           testID="fullscreen-bottom-controls"
           style={[
-            s.fullscreenBottom,
+            styles.fullscreenBottom,
             {
               bottom: insets.bottom,
               left: insets.left,
@@ -86,9 +86,9 @@ export function FullscreenBars({
           {mediaInfo.seekable && (
             <MediaStatus media={media} onScrubbingChange={setScrubbing} />
           )}
-          <View style={s.row}>
+          <View style={styles.row}>
             {!mediaInfo.seekable && mediaInfo.isLive && <LiveBadge />}
-            <View style={s.flex} />
+            <View style={styles.flex} />
             {sourceButton}
             <OverlayButton
               label="频道列表"
@@ -104,7 +104,7 @@ export function FullscreenBars({
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   flex: { flex: 1 },
   row: { flexDirection: "row", alignItems: "center", gap: 10 },
   hidden: { display: "none" },

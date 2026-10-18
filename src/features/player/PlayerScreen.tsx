@@ -145,7 +145,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
   return (
     <SafeAreaView
       testID="player-screen"
-      style={mini ? s.miniScreen : s.screen}
+      style={mini ? screenStyles.miniScreen : screenStyles.screen}
       // 全屏媒体延伸到屏幕边缘，交互覆盖层分别应用
       // 在下面分别应用实际屏幕的安全区边距，避免刘海缩小
       // 视频本身。停靠栏已经位于外层的安全区内部。
@@ -177,22 +177,22 @@ export function PlayerScreen(props: PlayerScreenProps) {
         mini={mini}
       />
       {!fullscreen && !mini && (
-        <View style={s.inlineList} testID="player-channel-sheet">
+        <View style={screenStyles.inlineList} testID="player-channel-sheet">
           {channelPanel}
         </View>
       )}
       {!fullscreen && !mini && sourcesOpen && (
-        <View style={s.overlay} accessibilityViewIsModal>
+        <View style={screenStyles.overlay} accessibilityViewIsModal>
           <Pressable
             style={StyleSheet.absoluteFill}
             accessible={false}
             importantForAccessibility="no"
             onPress={() => setSourcesOpen(false)}
           />
-          <View style={s.sourceSheet} testID="source-sheet">
-            <View style={s.sheetGrab} />
-            <View style={s.sheetHeading}>
-              <View style={s.flex}>
+          <View style={screenStyles.sourceSheet} testID="source-sheet">
+            <View style={screenStyles.sheetGrab} />
+            <View style={screenStyles.sheetHeading}>
+              <View style={screenStyles.flex}>
                 <Text accessibilityRole="header" style={theme.heading}>
                   播放来源
                 </Text>
@@ -201,12 +201,12 @@ export function PlayerScreen(props: PlayerScreenProps) {
                 </Text>
               </View>
               <Pressable
-                style={s.sheetAction}
+                style={screenStyles.sheetAction}
                 accessibilityRole="button"
                 accessibilityLabel="关闭播放来源"
                 onPress={() => setSourcesOpen(false)}
               >
-                <Text style={s.sheetActionText}>关闭</Text>
+                <Text style={screenStyles.sheetActionText}>关闭</Text>
               </Pressable>
             </View>
             <SourceList
@@ -221,7 +221,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
         </View>
       )}
       {fullscreen && sheetOpen && (
-        <View style={s.overlay} accessibilityViewIsModal>
+        <View style={screenStyles.overlay} accessibilityViewIsModal>
           <Pressable
             style={StyleSheet.absoluteFill}
             accessible={false}
@@ -231,7 +231,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
           <View
             testID="player-channel-sheet"
             style={[
-              s.landscapePanel,
+              screenStyles.landscapePanel,
               {
                 width: Math.min(width, Math.max(280, width * 0.4), 300),
                 marginTop: insets.top,
@@ -248,7 +248,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
   );
 }
 
-const s = StyleSheet.create({
+const screenStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   miniScreen: {
     borderRadius: 14,

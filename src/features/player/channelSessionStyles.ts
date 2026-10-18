@@ -2,7 +2,7 @@ import { StyleSheet } from "react-native";
 import { colors } from "../../theme";
 
 /** ChannelSession 的样式：竖屏、全屏及停靠小窗布局。 */
-export const s = StyleSheet.create({
+export const sessionStyles = StyleSheet.create({
   flex: { flex: 1 },
   fullscreenSources: {
     position: "absolute",

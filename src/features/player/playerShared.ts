@@ -79,7 +79,7 @@ export const SLOW_START_SECONDS = 15;
 /** 全屏滑动换台所需的最小垂直距离，单位为 dp。 */
 export const SWIPE_MIN_DP = 60;
 export const TAP_SLOP_DP = 12;
-export const sameChannel = (a: Channel, b: Channel) =>
-  (a.groupKey ?? a.id) === (b.groupKey ?? b.id);
+export const sameChannel = (left: Channel, right: Channel) =>
+  (left.groupKey ?? left.id) === (right.groupKey ?? right.id);
 
 /** 全屏和面板由页面持有，不属于可被替换的频道。 */
