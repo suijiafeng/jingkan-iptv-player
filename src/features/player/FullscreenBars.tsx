@@ -1,12 +1,12 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { colors } from "../../theme";
-import { LiveBadge, MediaStatus, OverlayButton } from "./overlayWidgets";
+import { MediaStatus, OverlayButton } from "./overlayWidgets";
 import { ChevronLeftIcon, ExitFullscreenIcon, MenuIcon } from "./playerIcons";
 import type { SessionProps } from "./ChannelSession";
 import type { SessionView } from "./useChannelSession";
 
-/** 仅用于全屏。顶部栏依次放返回、标题，右侧按钮组先放线路标签（位于它打开的浮层上方），再放收藏。底部栏依次放回看时间轴、直播标识，右侧按钮组先放音量，再放退出横屏和频道列表。换台按钮位于两种布局共用的居中按钮组中。 */
+/** 仅用于全屏。顶部依次放返回、标题，右侧按钮组先放线路标签（位于其弹出面板上方），再放收藏。底部依次放时间轴或直播标识，右侧按钮组先放音量，再放音频模式、退出横屏和频道列表。播放/暂停位于画面中央，上下滑动用于换台。 */
 export function FullscreenBars({
   view,
   session: props,
@@ -17,12 +17,9 @@ export function FullscreenBars({
   const {
     insets,
     media,
-    mediaInfo,
     setScrubbing,
     controlsVisible,
-    index,
     title,
-    description,
     sourceButton,
     favoriteButton,
   } = view;
@@ -54,16 +51,6 @@ export function FullscreenBars({
           <Text style={styles.title} numberOfLines={1}>
             {title}
           </Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {[
-              index >= 0
-                ? `第 ${index + 1} / ${props.channels.length} 台`
-                : null,
-              description.title,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </Text>
         </View>
         {/* 来源放在右侧控件组的最前面。 */}
         {props.fullscreen && sourceButton}
@@ -81,12 +68,10 @@ export function FullscreenBars({
             },
           ]}
         >
-          {mediaInfo.seekable && (
-            <MediaStatus media={media} onScrubbingChange={setScrubbing} />
-          )}
           <View style={styles.row}>
-            {!mediaInfo.seekable && mediaInfo.isLive && <LiveBadge />}
-            <View style={styles.flex} />
+            <View style={styles.flex}>
+              <MediaStatus media={media} onScrubbingChange={setScrubbing} />
+            </View>
             {/* 音量放在右侧控件组的最前面。 */}
             {view.muteButton}
             <OverlayButton
@@ -141,5 +126,4 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: "600",
   },
-  subtitle: { color: "#FFFFFFB3", fontSize: 11, lineHeight: 16 },
 });

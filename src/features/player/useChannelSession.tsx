@@ -12,7 +12,6 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Network from "expo-network";
@@ -21,8 +20,21 @@ import type { Channel } from "../../domain/types";
 import { qualityName } from "../../domain/channelSources";
 import { channelTitle } from "../../domain/channelLabels";
 import { MediaHandle } from "./mediaHandle";
-import { PictureInPictureIcon, VolumeIcon } from "./playerIcons";
+import {
+  PauseIcon,
+  PictureInPictureIcon,
+  PlayIcon,
+  RefreshIcon,
+  VolumeIcon,
+} from "./playerIcons";
 import { OverlayButton, SourceChip } from "./overlayWidgets";
+import {
+  CenterChip,
+  LoadingDots,
+  playerNotice,
+  usePlayerNotices,
+  useSlowStart,
+} from "./playerStatus";
 import {
   adjacentPlayableIndex,
   PlaybackController,
@@ -254,57 +266,68 @@ export function useChannelSession(props: SessionProps) {
       : state.pauseReason === "interrupted"
         ? "被其他应用打断"
         : "";
-  // 每种状态的主要操作都用同一个圆形控件，因此取消、
-  // 重试、暂停和恢复使用一致的视觉：连接中为 ■，失败后为 ↻，
-  // 失败时使用重试图形，暂停或停止时使用 ▶，播放时使用 ❚❚。
+  // 主按钮图形：暂停或停止时显示 ▶，播放时显示 ❚❚。
+  // 位于画面中央；加载时此处显示圆点，而
+  // 失败和移动数据确认也把各自的唯一操作放在那里。
   const showsPlay = retained || !busy;
   const primaryIcon = starting ? "■" : canRetry ? "↻" : showsPlay ? "▶" : "❚❚";
   const primaryDisabled = !props.remoteAllowed;
-  // 覆盖层只有一个视觉焦点：上一台、播放/暂停、下一台组成的
-  // 统一为一行，竖屏时更紧凑、全屏时较宽；同样显示在
-  // 状态提示，因此停止与暂停状态保留同一组控件。
-  const compactCluster = !props.fullscreen;
-  const zapCluster = (absolute: boolean) => (
-    <View
-      testID="zap-cluster"
-      style={[styles.zapRow, absolute && styles.zapRowAbsolute]}
-      pointerEvents="box-none"
+  const playPauseButton = (
+    <Pressable
+      testID="primary-play-pause"
+      accessibilityRole="button"
+      accessibilityLabel={primaryLabel}
+      accessibilityState={{ disabled: primaryDisabled }}
+      disabled={primaryDisabled}
+      hitSlop={4}
+      onPress={primaryAction}
+      style={({ pressed }) => [
+        styles.centerButton,
+        !props.fullscreen && styles.centerButtonCompact,
+        pressed && styles.pressed,
+        primaryDisabled && styles.disabled,
+      ]}
     >
-      <OverlayButton
-        label="⏮"
-        accessibilityLabel="上一台"
-        variant="ring"
-        compact={compactCluster}
-        disabled={previous === null}
-        onPress={() => {
-          if (previous !== null) props.onSelect(props.channels[previous]);
-        }}
-      />
-      <Pressable
-        testID="center-play-pause"
-        style={({ pressed }) => [
-          styles.centerButton,
-          compactCluster && styles.centerButtonCompact,
-          pressed && styles.pressed,
-          primaryDisabled && styles.overlayButtonDisabled,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={primaryLabel}
-        accessibilityState={{ disabled: primaryDisabled }}
-        onPress={primaryAction}
-        disabled={primaryDisabled}
-      >
-        <Text style={styles.centerIcon}>{primaryIcon}</Text>
-      </Pressable>
-      <OverlayButton
-        label="⏭"
-        accessibilityLabel="下一台"
-        variant="ring"
-        compact={compactCluster}
-        disabled={next === null}
-        onPress={selectNext}
-      />
-    </View>
+      {showsPlay ? (
+        <PlayIcon size={props.fullscreen ? 28 : 24} />
+      ) : (
+        <PauseIcon size={props.fullscreen ? 28 : 24} />
+      )}
+    </Pressable>
+  );
+  // 故障、慢启动、移动数据等提示交给全局提示条；
+  // 画面本身只显示加载圆点或唯一的操作按钮。
+  const slow = useSlowStart(waiting, state.attemptId);
+  usePlayerNotices(
+    playerNotice({
+      phase: state.phase,
+      connectingTitle: props.failover.connectingTitle,
+      failedBody: props.failover.failedBody,
+      pausedBody,
+      unreachable: props.channel.checkStatus === "unreachable",
+      slow,
+    }),
+    state.attemptId,
+  );
+  const centerStatus = waiting ? (
+    <LoadingDots slow={slow} />
+  ) : canRetry ? (
+    <CenterChip
+      label="重试"
+      icon={<RefreshIcon size={15} />}
+      disabled={primaryDisabled}
+      onPress={primaryAction}
+    />
+  ) : state.phase === "cellular" ? (
+    <CenterChip
+      label="继续播放"
+      accessibilityLabel="使用移动数据继续播放"
+      icon={<PlayIcon size={13} />}
+      disabled={primaryDisabled}
+      onPress={primaryAction}
+    />
+  ) : state.phase === "blocked" ? null : (
+    playPauseButton
   );
   // 显示实际播放地址的清晰度和来源，点击按钮打开
   // 备用来源列表中；全屏使用浮层，竖屏使用底部面板。
@@ -399,7 +422,7 @@ export function useChannelSession(props: SessionProps) {
     showsPlay,
     primaryIcon,
     primaryDisabled,
-    zapCluster,
+    centerStatus,
     sourceButton,
     favoriteButton,
     pictureInPictureButton,
@@ -411,31 +434,18 @@ export type SessionView = ReturnType<typeof useChannelSession>;
 
 const styles = StyleSheet.create({
   centerButton: {
-    alignSelf: "center",
     width: 64,
     height: 64,
     borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#00000073",
+    backgroundColor: "#04080A73",
     borderWidth: 1,
-    borderColor: "#FFFFFF40",
+    borderColor: "#FFFFFF33",
   },
   centerButtonCompact: { width: 56, height: 56, borderRadius: 28 },
-  zapRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 22,
-  },
-  zapRowAbsolute: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-  },
-  centerIcon: { color: colors.text, fontSize: 24, lineHeight: 30 },
+  pressed: { opacity: 0.7 },
+  disabled: { opacity: 0.4 },
   favoriteHit: {
     width: 40,
     height: 40,
@@ -444,8 +454,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   favoriteSolid: { borderRadius: 12, backgroundColor: colors.raised },
-  overlayButtonDisabled: { opacity: 0.4 },
-  pressed: { opacity: 0.7 },
   star: { color: colors.muted, fontSize: 20, lineHeight: 24 },
   starOn: { color: colors.warn },
 });

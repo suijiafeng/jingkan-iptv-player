@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { colors } from "../../theme";
 import { LIVE_EDGE_MARGIN_S, type MediaHandle } from "./mediaHandle";
-import { SLOW_START_SECONDS } from "./playerShared";
 
 /** 每 DOTS_CYCLE_MS 循环一次 ""、"."、".."、"..."。 */
 const DOTS_CYCLE_MS = 1200;
@@ -74,6 +73,7 @@ export function OverlayButton({
   variant = "pill",
   compact = false,
   selected,
+  testID,
 }: {
   label: string;
   /** 用图形代替标签文字；无障碍标签仍保留按钮名称。 */
@@ -85,10 +85,12 @@ export function OverlayButton({
   /** 竖屏画面：环形按钮从 44dp 缩小到 40dp。 */
   compact?: boolean;
   selected?: boolean;
+  testID?: string;
 }) {
   const round = variant === "quiet" || variant === "ring";
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{
@@ -211,6 +213,25 @@ export function LiveBadge({ catchup = false }: { catchup?: boolean }) {
   );
 }
 
+/**
+ * 离开直播边缘时，“直播”文字变为这个标签：红点变灰，
+ * 点击后跳回直播边缘。
+ */
+function BackToLive({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="回到直播"
+      hitSlop={8}
+      onPress={onPress}
+      style={({ pressed }) => [styles.backToLive, pressed && styles.pressed]}
+    >
+      <View style={[styles.liveDot, styles.liveDotBehind]} />
+      <Text style={styles.backToLiveText}>回到直播</Text>
+    </Pressable>
+  );
+}
+
 export function clock(seconds: number): string {
   const total = Math.max(0, Math.round(seconds));
   const hours = Math.floor(total / 3600);
@@ -257,7 +278,7 @@ export function MediaStatus({
   // 位于直播边缘时不显示差距，落后时显示距离；点播显示进度。
   const label = info.isLive
     ? behindLive
-      ? `落后 ${clock(behind)}`
+      ? `-${clock(behind)}`
       : ""
     : `${clock(shown)} / ${clock(duration)}`;
   const at = (offsetX: number) =>
@@ -310,37 +331,11 @@ export function MediaStatus({
       </View>
       {info.isLive &&
         (behindLive ? (
-          <OverlayButton label="回到直播" onPress={() => media.goLive()} />
+          <BackToLive onPress={() => media.goLive()} />
         ) : (
           <LiveBadge catchup />
         ))}
     </View>
-  );
-}
-
-/** 记录没有画面的等待秒数，避免失效来源让用户无提示地等上 30 秒。使用按尝试标识区分的独立组件，使每秒计时只重渲染自身。 */
-export function WaitProgress() {
-  const [started] = useState(() => Date.now());
-  const [seconds, setSeconds] = useState(0);
-  useEffect(() => {
-    // 以开始时刻为基准，对齐整秒连续设置超时，而不使用 setInterval。
-    const elapsed = Math.floor((Date.now() - started) / 1000);
-    const timer = setTimeout(
-      () => setSeconds(Math.floor((Date.now() - started) / 1000)),
-      (elapsed + 1) * 1000 - (Date.now() - started),
-    );
-    return () => clearTimeout(timer);
-  }, [started, seconds]);
-  const slow = seconds >= SLOW_START_SECONDS;
-  // 一个数字提示：“已等 12 秒（最多 30 秒）”，随后变为“已等 16 秒 · 比平时慢”。
-  if (seconds <= 0) return null;
-  const line = slow
-    ? `已等 ${seconds} 秒 · 比平时慢`
-    : `已等 ${seconds} 秒，最多 30 秒`;
-  return (
-    <Text style={styles.noticeBody} numberOfLines={1}>
-      {line}
-    </Text>
   );
 }
 
@@ -358,6 +353,22 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#FF6B5E",
   },
+  liveDotBehind: { backgroundColor: colors.muted },
+  backToLive: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    height: 28,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF24",
+  },
+  backToLiveText: {
+    color: colors.text,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: "500",
+  },
   liveText: {
     color: colors.text,
     letterSpacing: 0.7,
@@ -365,13 +376,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: "600",
   },
-  noticeBody: {
-    color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
-    textAlign: "center",
-  },
-  noticeText: { gap: 8 },
   loadingTitle: { flexDirection: "row", justifyContent: "center" },
   loadingDots: { width: 22, textAlign: "left" },
   overlayButton: {

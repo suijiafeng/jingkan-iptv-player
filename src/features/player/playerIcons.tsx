@@ -269,6 +269,90 @@ export function MenuIcon({ size = 20, color = colors.text }: IconProps) {
   );
 }
 
+/** 播放：实心三角形略向右移，使视觉上居中。 */
+export function PlayIcon({ size = 22, color = colors.text }: IconProps) {
+  return (
+    <View
+      style={[styles.box, { width: size, height: size }]}
+      pointerEvents="none"
+    >
+      <View
+        style={{
+          marginLeft: size * 0.12,
+          borderLeftWidth: size * 0.6,
+          borderTopWidth: size * 0.35,
+          borderBottomWidth: size * 0.35,
+          borderLeftColor: color,
+          borderTopColor: "transparent",
+          borderBottomColor: "transparent",
+        }}
+      />
+    </View>
+  );
+}
+
+/** 暂停图标：两根竖线。 */
+export function PauseIcon({ size = 22, color = colors.text }: IconProps) {
+  const bar = {
+    width: size * 0.18,
+    height: size * 0.68,
+    borderRadius: 1.5,
+    backgroundColor: color,
+  };
+  return (
+    <View
+      style={[
+        styles.box,
+        { width: size, height: size, flexDirection: "row", gap: size * 0.18 },
+      ]}
+      pointerEvents="none"
+    >
+      <View style={bar} />
+      <View style={bar} />
+    </View>
+  );
+}
+
+/**
+ * 重试图标：右上方留缺口的圆环，十二点方向的末端
+ * 带一个顺时针方向的小箭头。
+ */
+export function RefreshIcon({ size = 16, color = colors.text }: IconProps) {
+  const ring = size * 0.78;
+  const head = size * 0.2;
+  return (
+    <View style={{ width: size, height: size }} pointerEvents="none">
+      <View
+        style={{
+          position: "absolute",
+          left: (size - ring) / 2,
+          top: (size - ring) / 2,
+          width: ring,
+          height: ring,
+          borderRadius: ring / 2,
+          borderWidth: 2,
+          borderColor: color,
+          borderTopColor: "transparent",
+          transform: [{ rotate: "45deg" }],
+        }}
+      />
+      <View
+        style={{
+          position: "absolute",
+          left: size / 2 - head * 0.2,
+          top: (size - ring) / 2 - head * 0.6 + 1,
+          borderLeftWidth: head,
+          borderTopWidth: head * 0.6,
+          borderBottomWidth: head * 0.6,
+          borderLeftColor: color,
+          borderTopColor: "transparent",
+          borderBottomColor: "transparent",
+        }}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   box: { alignItems: "center", justifyContent: "center" },
   corner: { position: "absolute" },

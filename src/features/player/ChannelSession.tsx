@@ -10,13 +10,7 @@ import { qualityName } from "../../domain/channelSources";
 import { channelTitle, displayGroups } from "../../domain/channelLabels";
 import { NativeAttempt } from "./NativeAttempt";
 import { FullscreenBars } from "./FullscreenBars";
-import {
-  LoadingTitle,
-  MediaStatus,
-  OverlayButton,
-  Shade,
-  WaitProgress,
-} from "./overlayWidgets";
+import { MediaStatus, OverlayButton, Shade } from "./overlayWidgets";
 import { ChevronLeftIcon, FullscreenIcon } from "./playerIcons";
 import { SourceList } from "./SourceList";
 import {
@@ -70,32 +64,19 @@ export function ChannelSession(props: SessionProps) {
     setControlsShown,
     controlsVisible,
     waiting,
-    starting,
-    retained,
     primaryLabel,
     primaryAction,
     title,
     osd,
     zap,
     description,
-    pausedBody,
     primaryIcon,
     primaryDisabled,
-    zapCluster,
+    centerStatus,
+    retained,
     sourceButton,
     favoriteButton,
   } = view;
-  // 先显示标题，再用一行说明当前状态及相关提示。
-  const failed = state.phase === "timeout" || state.phase === "error";
-  const noticeLine = [
-    state.phase === "paused" ? pausedBody : description.body,
-    failed ? props.failover.failedBody : "",
-    failed && props.channel.checkStatus === "unreachable"
-      ? "上次检测也打不开"
-      : "",
-  ]
-    .filter(Boolean)
-    .join(" · ");
   return (
     <View
       style={
@@ -146,12 +127,6 @@ export function ChannelSession(props: SessionProps) {
             testID="audio-stage"
           >
             <Text style={sessionStyles.audioSymbol}>♫</Text>
-            {!props.mini && (
-              <Text style={sessionStyles.infoSubtitle}>
-                听音频 ·{" "}
-                {state.phase === "playing" ? "正在收听" : description.title}
-              </Text>
-            )}
           </View>
         )}
         {/* 整个画面：轻触切换控件显示；全屏时
@@ -214,11 +189,19 @@ export function ChannelSession(props: SessionProps) {
           />
         )}
         {props.fullscreen && !controlsVisible && state.phase === "playing" && (
+          // 用低干扰的上下方向提示代替“上下滑动换台”文字。
           <View
             style={[sessionStyles.swipeHint, { right: insets.right + 14 }]}
             pointerEvents="none"
+            accessible={false}
+            importantForAccessibility="no-hide-descendants"
           >
-            <Text style={sessionStyles.swipeHintText}>上下滑动换台</Text>
+            <View style={sessionStyles.swipeUp}>
+              <ChevronLeftIcon size={18} />
+            </View>
+            <View style={sessionStyles.swipeDown}>
+              <ChevronLeftIcon size={18} />
+            </View>
           </View>
         )}
         {props.fullscreen && osd && !props.sheetOpen && (
@@ -242,57 +225,29 @@ export function ChannelSession(props: SessionProps) {
         {!props.mini &&
           state.phase !== "playing" &&
           !(state.phase === "paused" && state.attemptId !== null) && (
-            // box-none：在遮暗区域滑动时，事件仍会传给手势层。
+            // 画面变暗，只显示加载圆点或唯一的操作；
+            // 原因由全局提示说明；box-none 使遮暗区域的滑动
+            // 该区域的触摸仍会到达手势层。
             <View
               style={[
                 sessionStyles.videoNotice,
                 waiting && sessionStyles.videoNoticeSoft,
               ]}
               pointerEvents="box-none"
-              accessibilityLiveRegion="polite"
             >
-              {/* 文字位于居中按钮组上方，向上扩展；无论提示内容如何变化，按钮位置都保持不动。 */}
-              <View pointerEvents="none" style={sessionStyles.noticeText}>
-                {waiting ? (
-                  <LoadingTitle
-                    title={description.title}
-                    style={sessionStyles.noticeTitle}
-                  />
-                ) : (
-                  !(state.phase === "paused" && !pausedBody) && (
-                    <Text style={sessionStyles.noticeTitle}>
-                      {description.title}
-                    </Text>
-                  )
-                )}
-                {waiting ? (
-                  <WaitProgress key={state.attemptId ?? "checking"} />
-                ) : (
-                  !!noticeLine && (
-                    <Text style={sessionStyles.noticeBody} numberOfLines={1}>
-                      {noticeLine}
-                    </Text>
-                  )
-                )}
-              </View>
-              {(state.attemptId === null || starting) && zapCluster(true)}
-              {state.phase === "cellular" && (
-                <Pressable
-                  style={[sessionStyles.quietLink, sessionStyles.belowCluster]}
-                  accessibilityRole="button"
-                  accessibilityLabel="暂不播放"
-                  onPress={() => controller.pause("cellular-declined")}
-                >
-                  <Text style={sessionStyles.quietLinkText}>暂不播放</Text>
-                </Pressable>
-              )}
+              {centerStatus}
             </View>
           )}
+        {/* 播放中或原位暂停时，播放/暂停位于画面中央，
+            与其他控件一起显示和隐藏。 */}
         {!props.mini &&
           controlsVisible &&
           !props.sheetOpen &&
-          (state.phase === "playing" || retained) &&
-          zapCluster(true)}
+          (state.phase === "playing" || retained) && (
+            <View style={sessionStyles.centerLayer} pointerEvents="box-none">
+              {centerStatus}
+            </View>
+          )}
         {props.mini && (
           <Pressable
             style={StyleSheet.absoluteFill}
@@ -303,20 +258,12 @@ export function ChannelSession(props: SessionProps) {
         )}
         {!props.fullscreen && !props.mini && controlsVisible && (
           <>
-            <View style={sessionStyles.portraitMedia} pointerEvents="box-none">
-              <MediaStatus media={media} onScrubbingChange={setScrubbing} />
-            </View>
-            <View style={sessionStyles.portraitTopLeft}>
-              <OverlayButton
-                label="关闭播放器"
-                icon={<ChevronLeftIcon size={20} />}
-                variant="quiet"
-                accessibilityLabel="停止播放并关闭播放器"
-                onPress={props.onClose}
-              />
-            </View>
-            <View style={sessionStyles.portraitBottomRight}>
-              {/* 音量放在右侧控件组的最前面。 */}
+            {/* 底部只有一行：直播标记或回看进度，其后是音量和全屏；
+                播放、暂停键位于画面中央。 */}
+            <View style={sessionStyles.portraitBottom} pointerEvents="box-none">
+              <View style={sessionStyles.flex} pointerEvents="box-none">
+                <MediaStatus media={media} onScrubbingChange={setScrubbing} />
+              </View>
               {view.muteButton}
               {!props.audioOnly && (
                 <OverlayButton
@@ -327,6 +274,15 @@ export function ChannelSession(props: SessionProps) {
                   onPress={props.onToggleFullscreen}
                 />
               )}
+            </View>
+            <View style={sessionStyles.portraitTopLeft}>
+              <OverlayButton
+                label="关闭播放器"
+                icon={<ChevronLeftIcon size={20} />}
+                variant="quiet"
+                accessibilityLabel="停止播放并关闭播放器"
+                onPress={props.onClose}
+              />
             </View>
             <View style={sessionStyles.portraitTopRight}>
               {!props.audioOnly && view.pictureInPictureButton}
