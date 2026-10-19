@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  BackHandler,
   Pressable,
   ScrollView,
   Text,
@@ -126,6 +127,20 @@ export function ChannelFilterBar(
   // 国家/地区和语言菜单默认折叠到一个图标后，用户需要时再展开。
   const [facetsOpen, setFacetsOpen] = useState(false);
   const facetMenus = tab === "all" && !props.foldTriggers;
+  // 展开的筛选行算一级页面，返回键应先将其收起。
+  const rowOpen = sourcesOpen || facetsOpen;
+  useEffect(() => {
+    if (!rowOpen) return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        setSourcesOpen(false);
+        setFacetsOpen(false);
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [rowOpen]);
   const selectedSource = props.sources.find(
     (source) => source.id === props.sourceId,
   );
