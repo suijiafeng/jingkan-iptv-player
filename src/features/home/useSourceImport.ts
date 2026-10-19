@@ -266,6 +266,16 @@ export function useSourceImport({
     }
   };
 
+  /** 返回一层：预览返回编辑；编辑返回上层，未保存时先确认。 */
+  const backForm = async () => {
+    if (form?.preview) {
+      // 正在保存预览列表时，在保存完成之前没有可返回的上一步。
+      if (!busy) updateForm({});
+      return;
+    }
+    await closeForm();
+  };
+
   return {
     form,
     busy,
@@ -273,6 +283,7 @@ export function useSourceImport({
     startForm,
     updateForm,
     closeForm,
+    backForm,
     chooseFile,
     preview,
     save,
