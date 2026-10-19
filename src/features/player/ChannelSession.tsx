@@ -188,22 +188,6 @@ export function ChannelSession(props: SessionProps) {
             }}
           />
         )}
-        {props.fullscreen && !controlsVisible && state.phase === "playing" && (
-          // 用低干扰的上下方向提示代替“上下滑动换台”文字。
-          <View
-            style={[sessionStyles.swipeHint, { right: insets.right + 14 }]}
-            pointerEvents="none"
-            accessible={false}
-            importantForAccessibility="no-hide-descendants"
-          >
-            <View style={sessionStyles.swipeUp}>
-              <ChevronLeftIcon size={18} />
-            </View>
-            <View style={sessionStyles.swipeDown}>
-              <ChevronLeftIcon size={18} />
-            </View>
-          </View>
-        )}
         {props.fullscreen && osd && !props.sheetOpen && (
           <View
             style={[

@@ -192,12 +192,12 @@ export function useChannelSession(props: SessionProps) {
       return;
     }
     const id = state.attemptId;
-    // 可回看的媒体流原地暂停，以保留播放位置；普通直播
-    // 会停止并释放解码器；继续时重新连接到直播边缘。
+    // 就地暂停，让最后一帧保留在屏幕上；支持回看的流也能
+    // 保留播放位置。直播在同一个播放器上恢复，或重新连接到
+    // 暂停过久后重新连接到直播边缘，详见下方逻辑。
     if (
       id !== null &&
       (state.phase === "playing" || state.phase === "buffering") &&
-      mediaInfo.seekable &&
       media.pause()
     ) {
       if (!controller.userPaused(id)) controller.pause();
