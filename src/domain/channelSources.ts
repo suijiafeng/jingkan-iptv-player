@@ -16,6 +16,14 @@ const QUALITY: Record<string, DeclaredQuality> = {
   "8K": { label: "8K", rank: 4320 },
 };
 
+/** 表示清晰度的展示标签，例如“720p”“高清”，并非警告。 */
+export function isQualityTag(tag: string): boolean {
+  return (
+    parseDeclaredQuality(tag) !== null ||
+    Object.values(QUALITY).some((quality) => quality.label === tag)
+  );
+}
+
 /** 只接受显式元数据，刻意忽略频道名称。 */
 export function parseDeclaredQuality(
   value: string | null | undefined,

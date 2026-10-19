@@ -340,8 +340,7 @@ export function useChannelSession(props: SessionProps) {
   // 备用来源列表中；全屏使用浮层，竖屏使用底部面板。
   const sourceButton = (
     <SourceChip
-      quality={qualityName(props.channel)}
-      qualityKnown={!!props.channel.qualityLabel}
+      quality={props.channel.qualityLabel ?? null}
       position={
         Math.max(
           props.sources.findIndex((source) => source.id === props.channel.id),

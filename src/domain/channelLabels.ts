@@ -1,3 +1,4 @@
+import { parseDeclaredQuality } from "./channelSources";
 /** 分组经过翻译和去重后，用 ";" 连接保存。 */
 export const UNGROUPED = "未分组";
 export const GROUP_SEPARATOR = ";";
@@ -101,16 +102,24 @@ const TAG_TRANSLATIONS: Record<string, string> = {
 };
 
 /**
- * 显示时，将频道名末尾的 "[Geo-blocked]"、"[Not 24/7]" 等标记拆出。
- * 存储的名称不变，因此仍可按原名搜索。
+ * 为显示而从频道名称末尾拆出“[Geo-blocked]”“[Not 24/7]”等标记，
+ * 以及括号中的清晰度（“(1080p)”“（HD）”）。存储名称不变，
+ * 因而搜索仍可匹配；这里的结果不参与频道身份判断，也不作为来源声明的清晰度。
  */
 export function channelTitle(name: string): { title: string; tags: string[] } {
   const tags: string[] = [];
   let title = name.trim();
   let match: RegExpMatchArray | null;
-  while ((match = title.match(/\s*\[([^\]\n]{1,40})\]$/))) {
-    const tag = match[1].trim();
-    tags.unshift(TAG_TRANSLATIONS[tag.toLowerCase()] ?? tag);
+  for (;;) {
+    if ((match = title.match(/\s*\[([^\]\n]{1,40})\]$/))) {
+      const tag = match[1].trim();
+      tags.unshift(TAG_TRANSLATIONS[tag.toLowerCase()] ?? tag);
+    } else if ((match = title.match(/\s*[(（]([^)）\n]{1,10})[)）]$/))) {
+      // 只提取可识别的画质标记；"(Beijing)" 仍属于频道名。
+      const quality = parseDeclaredQuality(match[1]);
+      if (!quality) break;
+      tags.unshift(quality.label);
+    } else break;
     title = title.slice(0, title.length - match[0].length).trim();
   }
   // 如果名称完全由方括号内容构成，它就是频道名称，不视作标记。

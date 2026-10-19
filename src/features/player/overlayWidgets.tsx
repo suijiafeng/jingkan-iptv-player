@@ -130,10 +130,14 @@ export function OverlayButton({
   );
 }
 
-/** 用强调色显示清晰度，再显示当前来源序号及总数（“1/3”）；点击打开备选线路，来源名称在展开的列表中展示。未知清晰度不提供有用信息，保留弱化颜色，避免额外吸引注意。 */
+/**
+ * 先用强调色显示清晰度，再显示当前来源在总数中的位置（“1/3”）；
+ * 点击可打开备用线路，来源名称显示在打开的列表中。
+ * 清晰度未知时省略它（“1/2”）；只有一个来源且没有清晰度时，
+ * 按钮没有有效信息，因此不绘制。
+ */
 export function SourceChip({
   quality,
-  qualityKnown = true,
   position,
   count,
   solid = false,
@@ -141,8 +145,8 @@ export function SourceChip({
   accessibilityLabel,
   onPress,
 }: {
-  quality: string;
-  qualityKnown?: boolean;
+  /** 仅使用明确标注的画质，绝不从频道名称猜测。 */
+  quality: string | null;
   /** 正在播放的来源在 `count` 个来源中的位置，从 1 开始。 */
   position: number;
   count: number;
@@ -152,6 +156,7 @@ export function SourceChip({
   accessibilityLabel: string;
   onPress: () => void;
 }) {
+  if (!quality && count < 2) return null;
   return (
     <Pressable
       accessibilityRole="button"
@@ -168,12 +173,8 @@ export function SourceChip({
       onPress={onPress}
     >
       <Text style={styles.chipText} numberOfLines={1}>
-        <Text
-          style={qualityKnown ? styles.chipQuality : styles.chipQualityUnknown}
-        >
-          {quality}
-        </Text>
-        {count > 1 ? ` · ${position}/${count}` : ""}
+        {!!quality && <Text style={styles.chipQuality}>{quality}</Text>}
+        {count > 1 ? `${quality ? " · " : ""}${position}/${count}` : ""}
       </Text>
     </Pressable>
   );
@@ -422,7 +423,6 @@ const styles = StyleSheet.create({
   chipDisabled: { opacity: 0.7 },
   chipText: { color: colors.text, fontSize: 12, lineHeight: 18 },
   chipQuality: { color: colors.accent, fontWeight: "600" },
-  chipQualityUnknown: { color: colors.muted },
   shade: { position: "absolute", left: 0, right: 0 },
   shadeTop: {
     top: 0,
