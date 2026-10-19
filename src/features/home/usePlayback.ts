@@ -100,7 +100,7 @@ export function usePlayback({
       // 从频道页或小窗自身列表选择频道时，打开完整播放器。
       setPlayerMini(false);
     } catch {
-      if (stillWanted()) setError("无法读取播放频道，请重试");
+      if (stillWanted()) setError("频道读取未完成，请重试");
     }
   };
 
