@@ -68,8 +68,7 @@ export const ChannelRow = memo(function ChannelRow({
     [channel.name],
   );
   const unreachable = channel.active && channel.checkStatus === "unreachable";
-  // 读屏仍会播报“不可用”；可视界面使用淡化行和圆点。
-  const spokenLabels = [...tags, ...(unreachable ? ["不可用"] : [])];
+  const spokenLabels = [...tags, ...(unreachable ? ["暂时无法连接"] : [])];
   const { fontScale } = useWindowDimensions();
   const rowHeight = channelRowHeight(fontScale);
   const editingRecent = !!onRemoveRecent;
@@ -111,7 +110,7 @@ export const ChannelRow = memo(function ChannelRow({
             >
               {title}
             </Text>
-            {tags.map((label) => (
+            {spokenLabels.map((label) => (
               <Text
                 key={label}
                 numberOfLines={1}
@@ -121,7 +120,6 @@ export const ChannelRow = memo(function ChannelRow({
                 {label}
               </Text>
             ))}
-            {unreachable && <View style={rowStyles.badDot} />}
           </View>
           {/* 不显示来源名称：这一行代表逻辑频道，
               实际播放的来源会在开始播放时选择。 */}
@@ -198,12 +196,6 @@ const rowStyles = StyleSheet.create({
   },
   quiet: { color: colors.muted },
   unreachable: { opacity: 0.5 },
-  badDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.bad,
-  },
   star: {
     minWidth: sizes.touch,
     minHeight: sizes.touch,
