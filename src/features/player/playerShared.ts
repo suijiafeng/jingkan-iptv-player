@@ -48,7 +48,7 @@ export interface PlayerScreenProps {
   onDismissError?: () => void;
   /** 以小栏形式停靠在频道页上方，继续保持播放；后台行为遵循播放设置。外层只切换容器尺寸，会话、播放器和流均保持挂载。 */
   mini?: boolean;
-  /** 竖屏返回键：缩到小窗，而不是停止播放。 */
+  /** 竖屏返回，包括返回键和箭头：缩到小窗，而非停止播放。 */
   onMinimize?: () => void;
   onExpand?: () => void;
 }

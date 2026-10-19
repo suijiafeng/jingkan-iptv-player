@@ -260,12 +260,16 @@ export function ChannelSession(props: SessionProps) {
               )}
             </View>
             <View style={sessionStyles.portraitTopLeft}>
+              {/* 与返回键相同：回到列表并将播放停靠在小条中，
+                  小条上的 ✕ 才会停止播放。 */}
               <OverlayButton
-                label="关闭播放器"
+                label="返回频道列表"
                 icon={<ChevronLeftIcon size={20} />}
                 variant="quiet"
-                accessibilityLabel="停止播放并关闭播放器"
-                onPress={props.onClose}
+                accessibilityLabel={
+                  props.onMinimize ? "返回频道列表，继续小窗播放" : "关闭播放器"
+                }
+                onPress={props.onMinimize ?? props.onClose}
               />
             </View>
             <View style={sessionStyles.portraitTopRight}>
