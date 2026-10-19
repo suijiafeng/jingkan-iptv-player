@@ -37,6 +37,14 @@ interface ControllerOptions {
   onAvailability?: (ok: boolean) => void;
 }
 export const INITIAL_PLAY_TIMEOUT_MS = 30_000;
+/**
+ * 已经播放过的直播再报告来源错误时，通常是落后于节目单窗口
+ * （BehindLiveWindowException），或服务器停止更新节目单。expo-video
+ * 不提供具体类名，因此以“已经播放，随后发生媒体故障”为判断信号。
+ * 新尝试会重新接入直播边缘；每个时间窗口最多重连这么多次，超过后保留错误。
+ */
+export const LIVE_RECONNECT_LIMIT = 3;
+export const LIVE_RECONNECT_WINDOW_MS = 120_000;
 const activePhases: PlaybackPhase[] = [
   "checking",
   "connecting",
@@ -66,6 +74,7 @@ export class PlaybackController {
   private startedAttempt: number | null = null;
   private disposed = false;
   private pictureInPicture = false;
+  private liveReconnects: number[] = [];
 
   canContinueOutsideApp = () =>
     !!this.options.backgroundAllowed || this.pictureInPicture;
@@ -124,8 +133,9 @@ export class PlaybackController {
       ...(pauseReason ? { pauseReason } : {}),
     });
   }
-  private fail(failure: AttemptFailure) {
-    if (this.snapshot.attemptId !== null && failure !== "unknown")
+  /** 已实际播放过的流视为可达，不记录其后续失败。 */
+  private fail(failure: AttemptFailure, played = false) {
+    if (this.snapshot.attemptId !== null && failure !== "unknown" && !played)
       this.options.onAvailability?.(false);
     this.pictureInPicture = false;
     ++this.generation;
@@ -267,13 +277,28 @@ export class PlaybackController {
     failure: Exclude<AttemptFailure, "timeout"> = "unknown",
   ) {
     if (!this.isCurrentAttempt(id)) return;
-    if (status === "error") this.fail(failure);
-    else if (status === "loading")
+    if (status === "error") {
+      const played = this.startedAttempt === id;
+      if (played && failure === "media" && this.takeLiveReconnect())
+        // requestPlay 会丢弃旧的播放尝试及其原生播放器；
+        // 用户已经允许此媒体流在当前网络上播放。
+        void this.requestPlay(true);
+      else this.fail(failure, played);
+    } else if (status === "loading")
       this.publish({
         phase: this.startedAttempt === id ? "buffering" : "connecting",
         attemptId: id,
       });
     // readyToPlay 不能证明媒体已经真正播放。
+  }
+  private takeLiveReconnect(): boolean {
+    const now = Date.now();
+    this.liveReconnects = this.liveReconnects.filter(
+      (at) => now - at < LIVE_RECONNECT_WINDOW_MS,
+    );
+    if (this.liveReconnects.length >= LIVE_RECONNECT_LIMIT) return false;
+    this.liveReconnects.push(now);
+    return true;
   }
   nativeStopped(id: number) {
     if (!this.isCurrentAttempt(id)) return;

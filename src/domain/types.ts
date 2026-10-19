@@ -15,6 +15,10 @@ export interface Source {
   revision: number;
   channelCount: number;
   favoriteCount: number;
+  /** 此来源不同播放地址的已保存可用性状态，来自手动检测、自动检测及实际播放；未检测地址不计入可达或不可达任一项。 */
+  reachableCount: number;
+  unreachableCount: number;
+  lastCheckedAt: number | null;
 }
 
 export interface ParsedChannel {

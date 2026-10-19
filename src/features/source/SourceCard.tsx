@@ -37,6 +37,7 @@ export function SourceCard({
   const running = check?.sourceId === source.id;
   const lookupRunning = languageLookup === source.id;
   const taskBusy = running || lookupRunning;
+  const resultText = checkResultText(source, summary);
   return (
     <View
       style={[
@@ -131,12 +132,9 @@ export function SourceCard({
           </View>
         </View>
       )}
-      {!running && summary && (
+      {!running && resultText && (
         <View style={cardStyles.resultLine}>
-          <Text style={styles.muted}>
-            {summary.stopped ? "已停止：" : ""}可访问 {summary.ok} 个，不可达{" "}
-            {summary.unreachable} 个
-          </Text>
+          <Text style={styles.muted}>{resultText}</Text>
         </View>
       )}
       {lookupRunning && (
@@ -226,6 +224,17 @@ export function SourceCard({
       </View>
     </View>
   );
+}
+
+/**
+ * 优先显示本次会话的检测结果，否则使用 SQLite 保存的结果，
+ * 使检测状态在离开来源管理或重启应用后仍能保留。
+ */
+function checkResultText(source: Source, summary?: CheckSummary) {
+  if (summary)
+    return `${summary.stopped ? "已停止：" : ""}可访问 ${summary.ok} 个，不可达 ${summary.unreachable} 个`;
+  if (source.lastCheckedAt === null) return null;
+  return `上次检测 ${formatUpdateTime(source.lastCheckedAt)} · 可访问 ${source.reachableCount} 个，不可达 ${source.unreachableCount} 个`;
 }
 
 /** 稳定而紧凑的本地时间戳，不依赖区域数据。 */
