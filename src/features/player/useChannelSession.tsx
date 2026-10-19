@@ -48,9 +48,13 @@ export function useChannelSession(props: SessionProps) {
         checkNetwork: Network.getNetworkStateAsync,
         isAppActive: () => AppState.currentState === "active",
         onStarted: () => props.onStarted(props.channel),
+        onAvailability: (ok) => props.onAvailability?.(props.channel, ok),
       }),
   );
-  const { onStarted, channel } = props;
+  const { onStarted, onAvailability, channel } = props;
+  useEffect(() => {
+    controller.setOnAvailability((ok) => onAvailability?.(channel, ok));
+  }, [controller, onAvailability, channel]);
   useEffect(() => {
     controller.setOnStarted(() => onStarted(channel));
   }, [controller, onStarted, channel]);
@@ -117,6 +121,7 @@ export function useChannelSession(props: SessionProps) {
     };
   }, []);
   const autoHide =
+    !props.audioOnly &&
     controlsShown &&
     !props.sheetOpen &&
     !sourcesOpen &&
@@ -132,6 +137,7 @@ export function useChannelSession(props: SessionProps) {
   // 错误、超时、暂停、移动数据确认等状态总会重新显示控件。
   const loading = ["checking", "connecting", "buffering"].includes(state.phase);
   const controlsVisible =
+    props.audioOnly ||
     controlsShown ||
     props.sheetOpen ||
     screenReader ||

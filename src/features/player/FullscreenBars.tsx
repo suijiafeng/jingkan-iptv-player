@@ -90,6 +90,11 @@ export function FullscreenBars({
             {/* 音量放在右侧控件组的最前面。 */}
             {view.muteButton}
             <OverlayButton
+              label={props.audioOnly ? "看视频" : "听音频"}
+              selected={props.audioOnly}
+              onPress={props.onToggleAudioOnly}
+            />
+            <OverlayButton
               label="退出横屏"
               icon={<ExitFullscreenIcon size={20} />}
               accessibilityLabel="退出横屏"

@@ -10,8 +10,6 @@ import {
 
 /** 每次切换内容分类时最多检测这些频道。 */
 export const AUTO_CHECK_MAX = 200;
-/** 比此时间更近的检测结果，不会再次检测。 */
-export { CHECK_FRESH_MS } from "../source/availabilityCoordinator";
 
 export interface AutoCheckOptions {
   /** 标识当前分类；null 表示未选择分类。 */

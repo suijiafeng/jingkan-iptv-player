@@ -15,7 +15,7 @@ import {
   checkAvailability,
 } from "../source/availabilityCoordinator";
 import { lookupIptvOrgLanguages } from "../source/iptvOrgLanguages";
-import type { CheckProgress, CheckSummary } from "../source/SourceManagerModal";
+import type { CheckProgress, CheckSummary } from "../source/availability";
 
 /**
  * 用户从来源管理中启动的单来源任务，包括可用性检测和 iptv-org 语言查询。

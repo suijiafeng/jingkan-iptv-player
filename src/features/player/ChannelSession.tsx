@@ -29,6 +29,9 @@ import type { FailoverView } from "./useSourceFailover";
 import { sessionStyles } from "./channelSessionStyles";
 
 export interface SessionProps extends PlayerScreenProps {
+  audioOnly: boolean;
+  onToggleAudioOnly: () => void;
+  onRequestBackgroundPlayback: () => void;
   muted: boolean;
   onMutedChange: (muted: boolean) => void;
   /** 一次播放失败后，自动切换当前频道的其它播放地址。 */
@@ -126,7 +129,23 @@ export function ChannelSession(props: SessionProps) {
             backgroundAllowed={props.backgroundAllowed}
             title={title}
             muted={props.muted}
+            audioOnly={props.audioOnly}
           />
+        )}
+        {props.audioOnly && (
+          <View
+            style={[StyleSheet.absoluteFill, sessionStyles.audioStage]}
+            pointerEvents="none"
+            testID="audio-stage"
+          >
+            <Text style={sessionStyles.audioSymbol}>♫</Text>
+            {!props.mini && (
+              <Text style={sessionStyles.infoSubtitle}>
+                听音频 ·{" "}
+                {state.phase === "playing" ? "正在收听" : description.title}
+              </Text>
+            )}
+          </View>
         )}
         {/* 整个画面：轻触切换控件显示；全屏时
             垂直滑动还可切换频道。 */}
@@ -298,16 +317,18 @@ export function ChannelSession(props: SessionProps) {
             <View style={sessionStyles.portraitBottomRight}>
               {/* 音量放在右侧控件组的最前面。 */}
               {view.muteButton}
-              <OverlayButton
-                label="横屏全屏"
-                icon={<FullscreenIcon size={20} />}
-                variant="quiet"
-                accessibilityLabel="横屏全屏"
-                onPress={props.onToggleFullscreen}
-              />
+              {!props.audioOnly && (
+                <OverlayButton
+                  label="横屏全屏"
+                  icon={<FullscreenIcon size={20} />}
+                  variant="quiet"
+                  accessibilityLabel="横屏全屏"
+                  onPress={props.onToggleFullscreen}
+                />
+              )}
             </View>
             <View style={sessionStyles.portraitTopRight}>
-              {view.pictureInPictureButton}
+              {!props.audioOnly && view.pictureInPictureButton}
             </View>
           </>
         )}
@@ -325,7 +346,7 @@ export function ChannelSession(props: SessionProps) {
             </Text>
             <Text style={sessionStyles.miniSubtitle} numberOfLines={1}>
               {state.phase === "playing"
-                ? `${qualityName(props.channel)} · ${props.channel.sourceName}`
+                ? `${props.audioOnly ? "听音频" : qualityName(props.channel)} · ${props.channel.sourceName}`
                 : description.title}
             </Text>
           </Pressable>
@@ -337,6 +358,11 @@ export function ChannelSession(props: SessionProps) {
             onPress={primaryAction}
           />
           {view.muteButton}
+          <OverlayButton
+            label={props.audioOnly ? "看视频" : "听音频"}
+            selected={props.audioOnly}
+            onPress={props.onToggleAudioOnly}
+          />
           <OverlayButton
             label="✕"
             accessibilityLabel="停止播放"
@@ -361,9 +387,30 @@ export function ChannelSession(props: SessionProps) {
           </View>
           <View style={sessionStyles.infoRow}>
             {sourceButton}
+            <OverlayButton
+              label={props.audioOnly ? "看视频" : "听音频"}
+              selected={props.audioOnly}
+              onPress={props.onToggleAudioOnly}
+            />
             <View style={sessionStyles.flex} />
             {favoriteButton}
           </View>
+          {props.audioOnly && (
+            <Text style={sessionStyles.infoSubtitle}>
+              {props.backgroundAllowed
+                ? "锁屏可继续收听"
+                : "后台播放未开启，锁屏会暂停"}
+              {" · 尝试提前缓冲约 30 秒，取决于节目源；仍可能下载视频"}
+            </Text>
+          )}
+          {props.audioOnly &&
+            !props.backgroundAllowed &&
+            props.onEnableBackgroundPlayback && (
+              <OverlayButton
+                label="开启锁屏收听"
+                onPress={props.onRequestBackgroundPlayback}
+              />
+            )}
           {props.orientationError && (
             <Text accessibilityRole="alert" style={sessionStyles.warning}>
               设备未能切换屏幕方向，可以继续播放或退出全屏。

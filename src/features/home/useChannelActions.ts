@@ -108,6 +108,31 @@ export function useChannelActions({
       }
     });
 
+  /** 实际播放成功，比单独的 HTTP 可用性探测更有说服力。 */
+  const recordAvailability = async (target: Channel, ok: boolean) => {
+    if (!repo) return;
+    try {
+      await repo.saveCheckResults([
+        { channelId: target.id, streamUrl: target.streamUrl, ok },
+      ]);
+      const [saved] = await repo.getCheckResults([target.streamUrl]);
+      if (!mounted.current || !saved) return;
+      const patch = (channel: Channel): Channel =>
+        channel.streamUrl === target.streamUrl
+          ? {
+              ...channel,
+              checkStatus: saved.checkStatus,
+              checkedAt: saved.checkedAt,
+            }
+          : channel;
+      playback.patchChannels(patch);
+      list.setChannels((items) => items.map(patch));
+      list.setRecent((items) => items.map(patch));
+    } catch {
+      if (mounted.current) setError("播放可用性结果未能保存，请稍后重试");
+    }
+  };
+
   /** 播放器报告已开始播放，只有最近观看列表需要重新读取。 */
   const recordStarted = (channel: Channel) => {
     if (!repo) return;
@@ -127,6 +152,7 @@ export function useChannelActions({
     removeRecent,
     clearRecent,
     recordStarted,
+    recordAvailability,
     recentBusy,
     recentEditing,
     setRecentEditing,

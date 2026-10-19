@@ -4,6 +4,13 @@ import { colors } from "../../theme";
 /** ChannelSession 的样式：竖屏、全屏及停靠小窗布局。 */
 export const sessionStyles = StyleSheet.create({
   flex: { flex: 1 },
+  audioStage: {
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    paddingTop: 12,
+    gap: 4,
+  },
+  audioSymbol: { color: colors.accent, fontSize: 32 },
   fullscreenSources: {
     position: "absolute",
     top: 82,

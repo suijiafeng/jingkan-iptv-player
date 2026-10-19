@@ -1,42 +1,27 @@
-import { fetch as expoFetch } from "expo/fetch";
+import { checkStream } from "./streamProbe";
 
-export const CHECK_TIMEOUT_MS = 8000;
 export const CHECK_CONCURRENCY = 4;
 
 export interface CheckTarget {
   id: string;
   streamUrl: string;
 }
+/** 来源管理页展示的手动批量检测任务。 */
+export interface CheckProgress {
+  sourceId: string;
+  done: number;
+  /** 仓库正在加载完整且未分组的目标集合时为 null。 */
+  total: number | null;
+}
+export interface CheckSummary {
+  ok: number;
+  unreachable: number;
+  stopped: boolean;
+}
 export interface CheckResult {
   channelId: string;
   streamUrl: string;
   ok: boolean;
-}
-
-/** 只能由用户触发。每个地址只发起一次 Range 0-1023 请求：“ok”只表示服务器返回成功状态，不代表流媒体可解码或播放。 */
-export async function checkStream(
-  url: string,
-  signal: AbortSignal,
-): Promise<boolean> {
-  const controller = new AbortController();
-  const abort = () => controller.abort();
-  signal.addEventListener("abort", abort);
-  if (signal.aborted) abort();
-  const timer = setTimeout(abort, CHECK_TIMEOUT_MS);
-  try {
-    const response = await expoFetch(url, {
-      signal: controller.signal,
-      headers: { Range: "bytes=0-1023" },
-    });
-    void response.body?.cancel().catch(() => {});
-    return response.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-    signal.removeEventListener("abort", abort);
-    controller.abort();
-  }
 }
 
 /** 限制并发数的批量检测；停止时只返回已完成的结果。 */

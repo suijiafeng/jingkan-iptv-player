@@ -28,9 +28,11 @@ export interface PlayerScreenProps {
   onClose: () => void;
   onFavorite: (channel: Channel) => void;
   onStarted: (channel: Channel) => void;
+  onAvailability?: (channel: Channel, ok: boolean) => void;
   remoteAllowed: boolean;
   mobileWarning: boolean;
   backgroundAllowed?: boolean;
+  onEnableBackgroundPlayback?: () => void;
   /** 用户已选择在可能计费的网络上继续播放。 */
   onMobileAccepted?: () => void;
   /** 全屏上滑默认切换下一台；true 则反转方向（“我的电视”的“换台反转”）。 */

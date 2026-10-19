@@ -1,3 +1,5 @@
+import type { StoredCheck } from "../../data/availability";
+import { untilAborted } from "../../lib/abort";
 import type { Repository } from "../../data/repository";
 import {
   checkChannels,
@@ -5,7 +7,6 @@ import {
   type CheckTarget,
 } from "./availability";
 
-export const CHECK_FRESH_MS = 6 * 60 * 60 * 1000;
 export type CheckStore = Pick<
   Repository,
   "getCheckResults" | "saveCheckResults"
@@ -22,28 +23,28 @@ interface Options {
   force?: boolean;
   maxRequests?: number;
   onProgress?: (done: number, total: number) => void;
+  /** 判断结果新鲜度所用的时钟；测试时注入固定时间。 */
+  now?: () => number;
+}
+
+/** 地址检测成功后，一天内复用结果，之后才再次探测。 */
+export const OK_RESULT_TTL_MS = 24 * 60 * 60 * 1000;
+/**
+ * 故障往往是暂时的，例如服务器重启或令牌轮换。不可达标记会让频道排到
+ * 列表末尾，并在换台时跳过，因此该标记应更早过期。
+ */
+export const UNREACHABLE_RESULT_TTL_MS = 6 * 60 * 60 * 1000;
+
+/** 时钟回退会使结果年龄不可知，因此需要重新探测。 */
+function isFresh(entry: StoredCheck, now: number): boolean {
+  const age = now - entry.checkedAt;
+  const ttl =
+    entry.checkStatus === "ok" ? OK_RESULT_TTL_MS : UNREACHABLE_RESULT_TTL_MS;
+  return age >= 0 && age < ttl;
 }
 
 /** 每个已打开数据库共用一个队列，由全部 UI 入口共享。 */
 const queues = new WeakMap<CheckStore, Promise<void>>();
-
-/** 系统网络查询或许可对话框不得拖住已取消的任务。 */
-async function cancellable<T>(
-  task: Promise<T>,
-  signal: AbortSignal,
-): Promise<T | undefined> {
-  let abort!: () => void;
-  const cancelled = new Promise<undefined>((resolve) => {
-    abort = () => resolve(undefined);
-    signal.addEventListener("abort", abort);
-    if (signal.aborted) abort();
-  });
-  try {
-    return await Promise.race([task, cancelled]);
-  } finally {
-    signal.removeEventListener("abort", abort);
-  }
-}
 
 export async function checkAvailability(
   store: CheckStore,
@@ -68,13 +69,12 @@ export async function checkAvailability(
     );
     if (options.signal.aborted || !options.isPermitted())
       return { results: [], refreshed: false };
-    const now = Date.now();
+    // 复用尚未过期的持久化结果；已过期结果以及显式强制
+    // 再次执行可用性探测。
+    const now = (options.now ?? Date.now)();
     const cached = new Map(
       stored
-        .filter(
-          (entry) =>
-            entry.checkedAt <= now && now - entry.checkedAt < CHECK_FRESH_MS,
-        )
+        .filter((entry) => isFresh(entry, now))
         .map((entry) => [entry.streamUrl, entry]),
     );
     const reused: CheckResult[] = [];
@@ -94,7 +94,7 @@ export async function checkAvailability(
     options.onProgress?.(reused.length, total);
     if (
       selected.length &&
-      (!(await cancellable(
+      (!(await untilAborted(
         options.beforeRequests?.() ?? Promise.resolve(true),
         options.signal,
       )) ||

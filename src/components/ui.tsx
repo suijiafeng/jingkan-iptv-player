@@ -123,6 +123,22 @@ export function Notice({
     </Card>
   );
 }
+/** 可选带“关闭提示”操作的错误信息；空值不渲染。 */
+export function ErrorNotice({
+  message,
+  onDismiss,
+}: {
+  message?: string;
+  onDismiss?: () => void;
+}) {
+  if (!message) return null;
+  return (
+    <>
+      <Notice title={message} error />
+      {onDismiss && <Button label="关闭提示" secondary onPress={onDismiss} />}
+    </>
+  );
+}
 const uiStyles = StyleSheet.create({
   button: {
     minHeight: sizes.button,
