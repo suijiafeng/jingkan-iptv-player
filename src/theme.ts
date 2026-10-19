@@ -41,9 +41,9 @@ export const sizes = {
   /** 纯文字操作（清除、管理、删除）的点击区域。 */
   touch: 48,
   /** 列表行中的频道台标或首字标识。 */
-  logo: 44,
-  /** 频道行：44dp 台标，上下各留 14dp。 */
-  row: 72,
+  logo: 40,
+  /** 频道行：40dp 台标，上下各 8dp 留白。 */
+  row: 56,
 };
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },

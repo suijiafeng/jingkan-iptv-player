@@ -14,11 +14,16 @@ import { ChannelLogo } from "./ChannelLogo";
 /** 行间距，由列表作为分隔条或内容间距加入。 */
 export const CHANNEL_ROW_GAP = 4;
 
-/** 所有行高度一致，列表可通过 getItemLayout 直接计算位置，无需先渲染并测量；否则快速惯性滚动会超过测量进度，导致空白。内容包含上下各 12dp 留白、一行标题（旁边显示标签）、3dp 间距和一行说明；文字行高随字体缩放增长。 */
+/**
+ * 所有行高度一致，列表可通过 getItemLayout 直接计算位置，
+ * 无须先渲染和测量。否则快速滑动会超过测量进度，出现空白。
+ * 内容包括上下各 8dp 留白、一行标题（旁边放标签）、2dp 间隔及一行说明；
+ * 文本行随字体缩放增高。
+ */
 export function channelRowHeight(fontScale: number): number {
   const lines =
     (type.rowTitle.lineHeight + type.caption.lineHeight) * fontScale;
-  return Math.max(sizes.row, Math.ceil(24 + 3 + lines));
+  return Math.max(sizes.row, Math.ceil(16 + 2 + lines));
 }
 
 /** 行高为 rowHeight、行间距为 CHANNEL_ROW_GAP 时，第 `index` 行的偏移。 */
@@ -45,6 +50,7 @@ export const ChannelRow = memo(function ChannelRow({
   onRemoveRecent,
   recentBusy = false,
   artworkEnabled = false,
+  hiddenGroup = null,
 }: {
   channel: Channel;
   onPlay: (channel: Channel) => void;
@@ -53,6 +59,8 @@ export const ChannelRow = memo(function ChannelRow({
   onRemoveRecent?: (channel: Channel) => void;
   recentBusy?: boolean;
   artworkEnabled?: boolean;
+  /** 当前列表已按此分组筛选，说明文字中不再重复它。 */
+  hiddenGroup?: string | null;
 }) {
   const { title, tags } = useMemo(
     () => channelTitle(channel.name),
@@ -64,6 +72,9 @@ export const ChannelRow = memo(function ChannelRow({
   const rowHeight = channelRowHeight(fontScale);
   const editingRecent = !!onRemoveRecent;
   const playbackDisabled = !channel.active || editingRecent;
+  const caption = channel.active
+    ? displayGroups(channel.groupName, hiddenGroup)
+    : "节目单里已没有这个频道";
   return (
     <View style={[rowStyles.row, { height: rowHeight }]}>
       <Pressable
@@ -84,7 +95,7 @@ export const ChannelRow = memo(function ChannelRow({
           enabled={artworkEnabled}
           size={sizes.logo}
         />
-        <View style={{ flex: 1, gap: 3 }}>
+        <View style={rowStyles.text}>
           {/* 单行布局：标记位于标题旁，让所有行保持
               相同高度；参见 channelRowHeight。 */}
           <View style={rowStyles.titleLine}>
@@ -106,11 +117,11 @@ export const ChannelRow = memo(function ChannelRow({
           </View>
           {/* 不显示来源名称：这一行代表逻辑频道，
               实际播放的来源会在开始播放时选择。 */}
-          <Text numberOfLines={1} style={styles.caption}>
-            {channel.active
-              ? displayGroups(channel.groupName)
-              : "节目单里已没有这个频道"}
-          </Text>
+          {!!caption && (
+            <Text numberOfLines={1} style={styles.caption}>
+              {caption}
+            </Text>
+          )}
         </View>
       </Pressable>
       {onRemoveRecent && (
@@ -158,6 +169,7 @@ const rowStyles = StyleSheet.create({
     paddingRight: 4,
     overflow: "hidden",
   },
+  text: { flex: 1, gap: 2 },
   titleLine: { flexDirection: "row", alignItems: "center", gap: 6 },
   title: { ...type.rowTitle, color: colors.text, flexShrink: 1 },
   currentTitle: { color: colors.accent, fontWeight: "600" },
@@ -166,7 +178,7 @@ const rowStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   tag: {
     ...type.muted,

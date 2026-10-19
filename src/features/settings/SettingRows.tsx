@@ -82,7 +82,10 @@ export function SettingRow({
   );
 }
 
-/** 行末的纯文字操作，例如“撤销”“重试保存”。 */
+/**
+ * 行尾的次要操作，例如“撤销”：沿用旁边紧凑按钮的胶囊形状，
+ * 使用填充背景，让它在卡片上明确呈现为按钮。
+ */
 export function RowAction({
   label,
   onPress,
@@ -155,10 +158,13 @@ const rowStyles = StyleSheet.create({
   pill_warn: { color: colors.ink, backgroundColor: colors.warn },
   action: {
     minHeight: sizes.chip,
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
     justifyContent: "center",
+    backgroundColor: colors.raised,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   actionText: { ...type.chip, color: colors.accent },
   chevron: { ...type.heading, color: colors.muted, paddingHorizontal: 4 },

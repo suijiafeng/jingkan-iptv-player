@@ -55,8 +55,44 @@ export function splitGroups(groupName: string): string[] {
   return parts.length ? parts : [UNGROUPED];
 }
 
-export function displayGroups(groupName: string): string {
-  return splitGroups(groupName).join("、");
+/**
+ * 频道行的分组说明。`hidden` 表示列表当前已经筛选到的分组；
+ * 每行重复它没有意义，因此只保留频道的其他分组，也可能为空。
+ */
+export function displayGroups(
+  groupName: string,
+  hidden: string | null = null,
+): string {
+  return splitGroups(groupName)
+    .filter((group) => group !== hidden)
+    .join("、");
+}
+
+/**
+ * 所有显示行共有的分组，即“全部”范围下选中的内容标签；
+ * 空字符串选择未分组频道。其它范围忽略此条件。
+ */
+export function filteredGroup(
+  scope: string,
+  content: string | null,
+): string | null {
+  if (scope !== "all" || content === null) return null;
+  return content || UNGROUPED;
+}
+
+/** 使用最多三个字符，在列表中区分同系列频道：“CCTV5+”→“5+”、“CCTV怀旧剧场”→“怀”、“CGTN”→“CG”、“湖南卫视”→“湖”。否则相同的拉丁字母前缀（如 CCTV、BTV）会让每行都显示同一首字母。 */
+export function channelMonogram(title: string): string {
+  const name = title.trim();
+  const prefixed = name.match(/^[A-Za-z]{2,}[\s-]*(.*)$/);
+  if (prefixed) {
+    const rest = prefixed[1];
+    const number = rest.match(/^\d{1,2}\+?/);
+    if (number) return number[0];
+    const first = Array.from(rest)[0];
+    if (first && first.charCodeAt(0) > 0x7f) return first;
+    return name.slice(0, 2).toUpperCase();
+  }
+  return Array.from(name)[0] || "台";
 }
 
 const TAG_TRANSLATIONS: Record<string, string> = {

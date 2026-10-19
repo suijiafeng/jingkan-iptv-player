@@ -9,6 +9,7 @@ import {
   type NativeSyntheticEvent,
 } from "react-native";
 import type { Channel } from "../../domain/types";
+import { filteredGroup } from "../../domain/channelLabels";
 import {
   CHANNEL_ROW_GAP,
   ChannelRow,
@@ -94,6 +95,10 @@ export function ChannelListPage({
     [titleSpace, setTitleSpace] = useState(0);
   const listData: ChannelListItem[] = rows.length ? rows : [EMPTY_ROW];
   const listTop = headerHeight + LIST_TOP_GAP;
+  const hiddenGroup = filteredGroup(
+    headerProps.tab,
+    headerProps.facetSelection.content,
+  );
   const headerCollapse = scrollY.interpolate({
     inputRange: [0, Math.max(1, titleSpace)],
     outputRange: [0, -titleSpace],
@@ -138,7 +143,9 @@ export function ChannelListPage({
         removeClippedSubviews={false}
         contentContainerStyle={[
           theme.content,
-          { paddingTop: listTop },
+          // 行间距仅由分隔组件提供，与 getItemLayout 的计算假设保持一致；
+          // 页面的内容间距会额外增加每行 12dp，而布局计算没有计入它。
+          { paddingTop: listTop, gap: 0 },
           reserveMiniBar && { paddingBottom: MINI_BAR_SPACE },
         ]}
         ItemSeparatorComponent={ListSeparator}
@@ -158,6 +165,7 @@ export function ChannelListPage({
               onFavorite={onFavorite}
               onRemoveRecent={onRemoveRecent}
               recentBusy={recentBusy}
+              hiddenGroup={hiddenGroup}
             />
           )
         }
