@@ -268,7 +268,7 @@ export function useChannelSession(props: SessionProps) {
     state.pauseReason === "background"
       ? "切到后台时暂停"
       : state.pauseReason === "interrupted"
-        ? "被其他应用打断"
+        ? "音频被其他应用占用，已暂停"
         : "";
   // 主按钮图形：暂停或停止时显示 ▶，播放时显示 ❚❚。
   // 位于画面中央；加载时此处显示圆点，而

@@ -220,8 +220,7 @@ export function playerNotice({
   pausedBody: string;
   slow: boolean;
 }): string | null {
-  // 只说明发生了什么；重试按钮是唯一操作，而
-  // 最近检测失败只在标签上做标记，不再多写一句说明。
+  // 只说明发生了什么；重试标签就是唯一操作。
   if (
     phase === "timeout" ||
     phase === "error" ||
@@ -231,7 +230,7 @@ export function playerNotice({
   )
     return descriptions[phase].title;
   if (phase === "paused") return pausedBody || null;
-  if (slow) return "加载较慢";
+  if (slow) return "网络较慢，正在加载";
   if (phase === "checking" || phase === "connecting") return connectingTitle;
   return null;
 }
