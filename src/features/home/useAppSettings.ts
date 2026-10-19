@@ -35,7 +35,9 @@ export function useAppSettings({
     [artworkAllowed, setArtworkAllowed] = useState(false),
     [artworkSaving, setArtworkSaving] = useState(false),
     [artworkRevokePending, setArtworkRevokePending] = useState(false),
-    [guideVisible, setGuideVisible] = useState(false),
+    [guideOrigin, setGuideOrigin] = useState<"firstRun" | "settings" | null>(
+      null,
+    ),
     // 一次确认覆盖当前可能计费的连接，重新连上 Wi-Fi 后重置。
     [mobileAccepted, setMobileAcceptedState] = useState(false),
     // 网络许可对话框：隐藏时为 null，否则表示是否同时
@@ -84,7 +86,7 @@ export function useAppSettings({
             void opened
               .listSources()
               .then((saved) => {
-                if (active && !saved.length) setGuideVisible(true);
+                if (active && !saved.length) setGuideOrigin("firstRun");
               })
               .catch(() => undefined);
           if (!preserveTabOnReload.current)
@@ -259,7 +261,7 @@ export function useAppSettings({
    * 因此不单独报告这个错误。
    */
   const finishGuide = () => {
-    setGuideVisible(false);
+    setGuideOrigin(null);
     void repo?.setSetting("guideSeen", true).catch(() => undefined);
   };
 
@@ -315,8 +317,10 @@ export function useAppSettings({
     changeBackgroundPlayback,
     withdrawRemote,
     resetToDefaults,
-    guideVisible,
-    showGuide: () => setGuideVisible(true),
+    guideVisible: guideOrigin !== null,
+    /** 从“设置 › 使用指引”打开时，引导页左上角提供返回。 */
+    guideFromSettings: guideOrigin === "settings",
+    showGuide: () => setGuideOrigin("settings"),
     finishGuide,
   };
 }

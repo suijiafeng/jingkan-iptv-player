@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Button } from "../../components/ui";
+import { BackBar, Button } from "../../components/ui";
 import type { SourceKind } from "../../domain/types";
 import { colors, sizes, styles, type } from "../../theme";
 
@@ -11,9 +11,12 @@ export type GuideExit = SourceKind | null;
 /** 首次使用引导：一页说明应用用途，然后提供两种添加节目单方式。联网、移动数据及本地存储在实际发生时，通过许可对话框或“关于”解释，不在这里提前铺陈。 */
 export function FirstRunGuide({
   visible,
+  fromSettings = false,
   onFinish,
 }: {
   visible: boolean;
+  /** 从设置重新打开时，左上角显示普通返回按钮，不显示“稍后再说”。 */
+  fromSettings?: boolean;
   onFinish: (exit: GuideExit) => void;
 }) {
   return (
@@ -26,19 +29,23 @@ export function FirstRunGuide({
         style={styles.screen}
         edges={["top", "bottom", "left", "right"]}
       >
-        <View style={guideStyles.topBar}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => onFinish(null)}
-            hitSlop={8}
-            style={({ pressed }) => [
-              guideStyles.textAction,
-              pressed && guideStyles.pressed,
-            ]}
-          >
-            <Text style={guideStyles.textActionLabel}>稍后再说</Text>
-          </Pressable>
-        </View>
+        {fromSettings ? (
+          <BackBar onBack={() => onFinish(null)} />
+        ) : (
+          <View style={guideStyles.topBar}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => onFinish(null)}
+              hitSlop={8}
+              style={({ pressed }) => [
+                guideStyles.textAction,
+                pressed && guideStyles.pressed,
+              ]}
+            >
+              <Text style={guideStyles.textActionLabel}>稍后再说</Text>
+            </Pressable>
+          </View>
+        )}
         <View style={guideStyles.page}>
           <Text accessibilityRole="header" style={guideStyles.title}>
             静看 TV
