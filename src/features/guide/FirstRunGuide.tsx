@@ -1,10 +1,16 @@
 import React, { useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "../../components/ui";
-import { TvIcon } from "../../components/navIcons";
 import type { SourceKind } from "../../domain/types";
-import { colors, styles, type } from "../../theme";
+import { colors, sizes, styles, type } from "../../theme";
 
 const GUIDE_STEPS = [
   {
@@ -28,10 +34,7 @@ const GUIDE_STEPS = [
 /** 引导的结束方式：开始添加第一份节目单，或者稍后再添加。 */
 export type GuideExit = SourceKind | null;
 
-/**
- * 首次使用引导：用几页简短内容说明应用能做什么、不能做什么，最后提供
- * 两种节目单添加方式。返回键回到上一页；第一页则像“跳过”一样关闭引导。
- */
+/** 首次使用引导：用几个简短页面介绍应用提供和不提供的能力，最后给出两种添加节目单方式。每页主要操作固定在底部同一位置，连续点击不会误触“上一步”；返回、页码圆点和退出共用低干扰的顶栏。返回先回上一页，位于第一页时关闭引导。 */
 export function FirstRunGuide({
   visible,
   onFinish,
@@ -59,32 +62,14 @@ export function FirstRunGuide({
         edges={["top", "bottom", "left", "right"]}
       >
         <View style={guideStyles.topBar}>
-          {!lastStep && (
-            <Button
-              compact
-              secondary
-              label="跳过"
-              accessibilityLabel="跳过使用指引"
-              onPress={() => finish(null)}
-            />
-          )}
-        </View>
-        <ScrollView contentContainerStyle={guideStyles.page}>
-          <View style={guideStyles.iconBadge}>
-            {stepIndex === 0 ? (
-              <TvIcon color={colors.accent} size={40} />
-            ) : (
-              <Text style={guideStyles.stepNumber}>{stepIndex}</Text>
+          <View style={guideStyles.side}>
+            {stepIndex > 0 && (
+              <TextAction
+                label="上一步"
+                onPress={() => setStepIndex(stepIndex - 1)}
+              />
             )}
           </View>
-          <View accessibilityLiveRegion="polite" style={guideStyles.copy}>
-            <Text accessibilityRole="header" style={styles.title}>
-              {step.title}
-            </Text>
-            <Text style={[styles.body, guideStyles.body]}>{step.body}</Text>
-          </View>
-        </ScrollView>
-        <View style={guideStyles.footer}>
           <View
             accessible
             accessibilityLabel={`第 ${stepIndex + 1} 页，共 ${GUIDE_STEPS.length} 页`}
@@ -100,27 +85,40 @@ export function FirstRunGuide({
               />
             ))}
           </View>
-          {lastStep ? (
-            <>
-              <Button label="添加节目单链接" onPress={() => finish("url")} />
-              <Button
-                label="从文件导入"
-                secondary
-                onPress={() => finish("file")}
+          <View style={[guideStyles.side, guideStyles.sideEnd]}>
+            {lastStep ? (
+              <TextAction label="稍后再说" onPress={() => finish(null)} />
+            ) : (
+              <TextAction
+                label="跳过"
+                accessibilityLabel="跳过使用指引"
+                onPress={() => finish(null)}
               />
-              <Button label="稍后再说" secondary onPress={() => finish(null)} />
-            </>
+            )}
+          </View>
+        </View>
+        <ScrollView contentContainerStyle={guideStyles.page}>
+          <View accessibilityLiveRegion="polite" style={guideStyles.copy}>
+            <Text accessibilityRole="header" style={styles.title}>
+              {step.title}
+            </Text>
+            <Text style={[styles.body, guideStyles.body]}>{step.body}</Text>
+          </View>
+        </ScrollView>
+        <View style={guideStyles.footer}>
+          {lastStep && (
+            <Button
+              label="从文件导入"
+              secondary
+              onPress={() => finish("file")}
+            />
+          )}
+          {lastStep ? (
+            <Button label="添加节目单链接" onPress={() => finish("url")} />
           ) : (
             <Button
               label="下一步"
               onPress={() => setStepIndex(stepIndex + 1)}
-            />
-          )}
-          {stepIndex > 0 && (
-            <Button
-              label="上一步"
-              secondary
-              onPress={() => setStepIndex(stepIndex - 1)}
             />
           )}
         </View>
@@ -129,48 +127,60 @@ export function FirstRunGuide({
   );
 }
 
+/** 低强调操作：使用次要文本色，保留完整触控高度，不绘制背景。 */
+function TextAction({
+  label,
+  onPress,
+  accessibilityLabel,
+}: {
+  label: string;
+  onPress: () => void;
+  accessibilityLabel?: string;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      onPress={onPress}
+      hitSlop={8}
+      style={({ pressed }) => [
+        guideStyles.textAction,
+        pressed && guideStyles.pressed,
+      ]}
+    >
+      <Text style={guideStyles.textActionLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const guideStyles = StyleSheet.create({
   topBar: {
-    minHeight: 56,
-    paddingHorizontal: 20,
-    alignItems: "flex-end",
-    justifyContent: "center",
-  },
-  page: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingHorizontal: 28,
-    paddingVertical: 24,
-    gap: 24,
-  },
-  iconBadge: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: colors.surface,
+    flexDirection: "row",
     alignItems: "center",
+    minHeight: sizes.touch,
+    paddingHorizontal: 8,
+  },
+  // 两侧保持等宽，确保按钮文字变化时页码圆点仍居中。
+  side: { flex: 1, alignItems: "flex-start" },
+  sideEnd: { alignItems: "flex-end" },
+  textAction: {
+    minHeight: sizes.touch,
+    paddingHorizontal: 12,
     justifyContent: "center",
   },
-  stepNumber: {
-    ...type.title,
-    fontSize: 32,
-    lineHeight: 40,
-    color: colors.accent,
-  },
+  textActionLabel: { ...type.body, color: colors.muted },
+  pressed: { opacity: 0.6 },
+  // 各页正文从相同高度开始，避免标题跳动。
+  page: { flexGrow: 1, paddingHorizontal: 28, paddingTop: 96 },
   copy: { gap: 12 },
   body: { color: colors.muted, fontSize: 16, lineHeight: 24 },
   footer: { paddingHorizontal: 20, paddingBottom: 20, gap: 12 },
-  dots: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 8,
-  },
+  dots: { flexDirection: "row", gap: 6 },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: colors.line,
   },
-  dotCurrent: { width: 24, backgroundColor: colors.accent },
+  dotCurrent: { width: 18, backgroundColor: colors.accent },
 });
