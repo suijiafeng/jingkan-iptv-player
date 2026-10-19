@@ -35,6 +35,8 @@ export interface PlayerScreenProps {
   onEnableBackgroundPlayback?: () => void;
   /** 用户已选择在可能计费的网络上继续播放。 */
   onMobileAccepted?: () => void;
+  /** 继续时若勾选了“不再提醒”，则关闭“移动网络提醒”。 */
+  onStopMobileReminders?: () => void;
   /** 全屏上滑默认切换下一台；true 则反转方向（“我的电视”的“换台反转”）。 */
   swipeReverse?: boolean;
   /** 上一台和下一台会跳过最近一次手动检测发现不可达的频道。 */
