@@ -225,6 +225,7 @@ export function ChannelSession(props: SessionProps) {
               pointerEvents="box-none"
               accessibilityLiveRegion="polite"
             >
+              {/* 文字位于居中按钮组上方，向上扩展；无论提示内容如何变化，按钮位置都保持不动。 */}
               <View pointerEvents="none" style={sessionStyles.noticeText}>
                 {waiting ? (
                   <LoadingTitle
@@ -248,10 +249,10 @@ export function ChannelSession(props: SessionProps) {
                   )
                 )}
               </View>
-              {(state.attemptId === null || starting) && zapCluster(false)}
+              {(state.attemptId === null || starting) && zapCluster(true)}
               {state.phase === "cellular" && (
                 <Pressable
-                  style={sessionStyles.quietLink}
+                  style={[sessionStyles.quietLink, sessionStyles.belowCluster]}
                   accessibilityRole="button"
                   accessibilityLabel="暂不播放"
                   onPress={() => controller.pause("cellular-declined")}
@@ -295,6 +296,8 @@ export function ChannelSession(props: SessionProps) {
               />
             </View>
             <View style={sessionStyles.portraitBottomRight}>
+              {/* 音量放在右侧控件组的最前面。 */}
+              {view.muteButton}
               <OverlayButton
                 label="横屏全屏"
                 icon={<FullscreenIcon size={20} />}
@@ -304,7 +307,6 @@ export function ChannelSession(props: SessionProps) {
               />
             </View>
             <View style={sessionStyles.portraitTopRight}>
-              {view.muteButton}
               {view.pictureInPictureButton}
             </View>
           </>
@@ -370,6 +372,16 @@ export function ChannelSession(props: SessionProps) {
         </View>
       )}
       <FullscreenBars view={view} session={props} />
+      {props.fullscreen && sourcesOpen && (
+        // 点击列表之外的任意位置都会关闭它，与竖屏底部面板一致。
+        <Pressable
+          testID="fullscreen-sources-backdrop"
+          style={StyleSheet.absoluteFill}
+          accessible={false}
+          importantForAccessibility="no"
+          onPress={() => setSourcesOpen(false)}
+        />
+      )}
       {props.fullscreen && sourcesOpen && (
         <View
           testID="fullscreen-sources"

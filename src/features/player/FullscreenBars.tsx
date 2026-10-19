@@ -2,15 +2,11 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { colors } from "../../theme";
 import { LiveBadge, MediaStatus, OverlayButton } from "./overlayWidgets";
-import { ChevronLeftIcon, MenuIcon } from "./playerIcons";
+import { ChevronLeftIcon, ExitFullscreenIcon, MenuIcon } from "./playerIcons";
 import type { SessionProps } from "./ChannelSession";
 import type { SessionView } from "./useChannelSession";
 
-/**
- * 仅用于全屏。顶栏包含返回、标题和收藏（当前播放内容）；底栏包含
- * 回看流时间轴、直播标记，再放来源按钮和频道列表（切换其他内容）。
- * 换台使用会话在两种布局中绘制的中央控件组。
- */
+/** 仅用于全屏。顶部栏依次放返回、标题，右侧按钮组先放线路标签（位于它打开的浮层上方），再放收藏。底部栏依次放回看时间轴、直播标识，右侧按钮组先放音量，再放退出横屏和频道列表。换台按钮位于两种布局共用的居中按钮组中。 */
 export function FullscreenBars({
   view,
   session: props,
@@ -69,6 +65,8 @@ export function FullscreenBars({
               .join(" · ")}
           </Text>
         </View>
+        {/* 来源放在右侧控件组的最前面。 */}
+        {props.fullscreen && sourceButton}
         {props.fullscreen && favoriteButton}
       </View>
       {props.fullscreen && controlsVisible && (
@@ -89,9 +87,15 @@ export function FullscreenBars({
           <View style={styles.row}>
             {!mediaInfo.seekable && mediaInfo.isLive && <LiveBadge />}
             <View style={styles.flex} />
-            {sourceButton}
+            {/* 音量放在右侧控件组的最前面。 */}
             {view.muteButton}
-            {view.pictureInPictureButton}
+            <OverlayButton
+              label="退出横屏"
+              icon={<ExitFullscreenIcon size={20} />}
+              accessibilityLabel="退出横屏"
+              variant="quiet"
+              onPress={props.onToggleFullscreen}
+            />
             <OverlayButton
               label="频道列表"
               icon={<MenuIcon />}
