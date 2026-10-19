@@ -33,6 +33,7 @@ export function useAppSettings({
     [artworkAllowed, setArtworkAllowed] = useState(false),
     [artworkSaving, setArtworkSaving] = useState(false),
     [artworkRevokePending, setArtworkRevokePending] = useState(false),
+    [guideVisible, setGuideVisible] = useState(false),
     // 一次确认覆盖当前可能计费的连接，重新连上 Wi-Fi 后重置。
     [mobileAccepted, setMobileAccepted] = useState(false);
   const mounted = useRef(true),
@@ -54,6 +55,7 @@ export function useAppSettings({
         const skipDead = await opened.getSetting("skipUnreachable", true);
         const artwork = await opened.getSetting("artworkAllowed", false);
         const favorites = await opened.listChannels({ mode: "favorites" });
+        const guideSeen = await opened.getSetting("guideSeen", false);
         if (active) {
           remoteRef.current = allowed;
           setRemoteAllowed(allowed);
@@ -62,6 +64,15 @@ export function useAppSettings({
           setSwipeReverse(reverse);
           setSkipUnreachable(skipDead);
           setArtworkAllowed(artwork);
+          // 只在真正首次运行时显示；已添加来源的用户跳过
+          // 此操作；这项检查不会阻塞主页面的打开。
+          if (!guideSeen)
+            void opened
+              .listSources()
+              .then((saved) => {
+                if (active && !saved.length) setGuideVisible(true);
+              })
+              .catch(() => undefined);
           if (!preserveTabOnReload.current)
             setTab(favorites.length ? "favorites" : "all");
           preserveTabOnReload.current = false;
@@ -227,6 +238,15 @@ export function useAppSettings({
     setRevokePending(true);
   };
 
+  /**
+   * 永久关闭引导；保存失败只会使下次启动再次显示，
+   * 因此不单独报告这个错误。
+   */
+  const finishGuide = () => {
+    setGuideVisible(false);
+    void repo?.setSetting("guideSeen", true).catch(() => undefined);
+  };
+
   /** 执行“清空全部”后，将所有设置恢复为首次运行的默认值。 */
   const resetToDefaults = () => {
     setRevokePending(false);
@@ -271,6 +291,9 @@ export function useAppSettings({
     changeBackgroundPlayback,
     withdrawRemote,
     resetToDefaults,
+    guideVisible,
+    showGuide: () => setGuideVisible(true),
+    finishGuide,
   };
 }
 
