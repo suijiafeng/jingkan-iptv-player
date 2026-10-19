@@ -10,6 +10,7 @@ export interface CountryPreference {
 export interface RegionResult {
   countryCode: string | null;
   source: "location" | "ip" | "device" | "conflict" | "none";
+  /** 结果的判断依据：在国家菜单中用一行简短文字说明。 */
   message: string;
 }
 
@@ -29,7 +30,7 @@ export const DEFAULT_COUNTRY_PREFERENCE: CountryPreference = {
 export const NO_REGION: RegionResult = {
   countryCode: null,
   source: "none",
-  message: "地区信息不足，显示全部。",
+  message: "地区信息不足",
 };
 
 // 来自 IANA zone1970.tab（2026-10-18）的单国家/地区时区，并包含旧别名
@@ -135,13 +136,13 @@ export function resolveRegion(
     return {
       countryCode: null,
       source: "conflict",
-      message: "手机位置与访问 IP 的地区不一致，显示全部，请手动选择。",
+      message: "手机位置与访问 IP 不一致",
     };
   if (location)
     return {
       countryCode: location,
       source: "location",
-      message: `根据手机位置${ip ? "并经访问 IP 印证" : ""}选择${countryLabel(location)}。`,
+      message: `依据：手机位置${ip ? "、访问 IP" : ""}`,
     };
   if (ip) {
     // 语言刻意不作为位置依据；使用中文界面并不
@@ -150,30 +151,30 @@ export function resolveRegion(
       return {
         countryCode: null,
         source: "conflict",
-        message: "访问 IP 与手机地区或时区设置不一致，显示全部，请手动选择。",
+        message: "IP 与手机地区或时区不一致",
       };
     if (region === ip || zone === ip)
       return {
         countryCode: ip,
         source: "ip",
-        message: `访问 IP 与手机地区或时区相符，选择${countryLabel(ip)}。`,
+        message: "依据：访问 IP、手机地区或时区",
       };
     return {
       ...NO_REGION,
-      message: "访问 IP 缺少手机地区或时区的印证，显示全部。",
+      message: "访问 IP 缺少手机设置印证",
     };
   }
   if (region && zone === region)
     return {
       countryCode: region,
       source: "device",
-      message: `手机地区与时区均为${countryLabel(region)}，已用作默认推荐。设备设置可能与实际位置不同。`,
+      message: "依据：手机地区与时区设置",
     };
   if (region && zone && region !== zone)
     return {
       countryCode: null,
       source: "conflict",
-      message: "手机地区与时区不一致，显示全部，请手动选择。",
+      message: "手机地区与时区不一致",
     };
   return { ...NO_REGION };
 }
@@ -187,4 +188,19 @@ export function effectiveCountry(
   return result.countryCode && availableCountries.includes(result.countryCode)
     ? result.countryCode
     : null;
+}
+
+/**
+ * 国家/地区菜单顶部的一行简短说明，解释当前显示地区的依据。
+ * 主页面只显示结果本身。
+ */
+export function regionBasis(
+  preference: CountryPreference,
+  result: RegionResult,
+  shownCountry: string | null,
+): string {
+  if (preference.mode === "manual") return "手动选择";
+  if (result.countryCode && shownCountry === null)
+    return `识别为${countryLabel(result.countryCode)}，来源中无此标注`;
+  return result.message;
 }

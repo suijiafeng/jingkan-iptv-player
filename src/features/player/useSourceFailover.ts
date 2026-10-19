@@ -3,7 +3,6 @@ import type { Channel } from "../../domain/types";
 import {
   advanceRound,
   type AttemptFailure,
-  exhaustedBody,
   type FailoverRound,
   freshRound,
   sourceGroupKey,
@@ -15,8 +14,6 @@ import {
 export interface FailoverView {
   /** 自动切换后连接期间显示的标题，其他情况为 null。 */
   connectingTitle: string | null;
-  /** 本轮每个地址都尝试过后，用于失败状态的说明文字。 */
-  failedBody: string;
   /** 本次尝试没有产生画面就结束，可能切换到其它地址。 */
   onFailure: (failure: AttemptFailure) => void;
   /** 用户开始播放、重试或继续时，启动新一轮尝试。 */
@@ -62,9 +59,5 @@ export function useSourceFailover(
     current?.autoSelected === channel.id && position
       ? switchingTitle(position)
       : null;
-  const failedBody =
-    current && position && current.tried.length >= position.total
-      ? exhaustedBody(position.total)
-      : "";
-  return { connectingTitle, failedBody, onFailure, onUserPlay, onManualSelect };
+  return { connectingTitle, onFailure, onUserPlay, onManualSelect };
 }

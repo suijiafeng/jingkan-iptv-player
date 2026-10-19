@@ -112,7 +112,3 @@ export function advanceRound(
 /** 自动切换线路并连接时的状态文字，绝不显示地址。 */
 export const switchingTitle = (position: { index: number; total: number }) =>
   `来源 ${position.index}/${position.total} 连接中`;
-
-/** 本轮所有地址均未产生画面后，额外显示的一行说明。 */
-export const exhaustedBody = (total: number) =>
-  total > 1 ? `${total} 个来源都试过了` : "";
