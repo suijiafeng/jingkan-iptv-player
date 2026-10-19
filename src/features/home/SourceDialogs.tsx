@@ -7,7 +7,10 @@ import { SourceManagerModal } from "../source/SourceManagerModal";
 import type { SourceImport } from "./useSourceImport";
 import type { useSourceTasks } from "./useSourceTasks";
 
-/** 来源管理及其打开的对话页，包括重命名和添加/刷新表单。重命名后返回管理页；表单则替换管理页。 */
+/**
+ * 来源管理及其打开的对话框：重命名和添加/刷新表单。重命名后返回管理页；
+ * 表单替换管理页，取消表单时也返回管理页。
+ */
 export function SourceDialogs({
   repo,
   sources,
@@ -55,11 +58,11 @@ export function SourceDialogs({
         onClose={() => setManaging(false)}
         onAdd={(kind) => {
           setManaging(false);
-          importer.startForm(kind);
+          importer.startForm(kind, true);
         }}
         onRefresh={(source) => {
           setManaging(false);
-          void importer.refresh(source);
+          void importer.refresh(source, true);
         }}
         onRename={(source) => {
           setError("");
