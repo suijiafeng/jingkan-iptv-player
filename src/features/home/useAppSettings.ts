@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as Network from "expo-network";
 import { openRepository, Repository } from "../../data/repository";
 import { ImportIOError } from "../../data/importIO";
-import { confirm, RISK } from "../common/confirm";
+import { confirm } from "../common/confirm";
 import { isOffline, mightUseMobileData } from "../player/playbackController";
 import type { Tab } from "../channel/ChannelListParts";
 
@@ -35,13 +35,25 @@ export function useAppSettings({
     [artworkRevokePending, setArtworkRevokePending] = useState(false),
     [guideVisible, setGuideVisible] = useState(false),
     // 一次确认覆盖当前可能计费的连接，重新连上 Wi-Fi 后重置。
-    [mobileAccepted, setMobileAccepted] = useState(false);
+    [mobileAccepted, setMobileAcceptedState] = useState(false),
+    // 网络许可对话框：隐藏时为 null，否则表示是否同时
+    // 同时作为移动数据使用确认。
+    [consentCellular, setConsentCellular] = useState<boolean | null>(null);
   const mounted = useRef(true),
+    consentAnswer = useRef<((allowed: boolean) => void) | null>(null),
+    // 供同一任务中紧接知情确认执行的检查读取，早于
+    // 重新渲染才会让它们拿到新状态。
+    mobileAcceptedRef = useRef(false),
     preserveTabOnReload = useRef(false),
     remoteRef = useRef(false),
     // 撤销许可时递增；基于旧许可世代启动的异步任务会停止。
     permissionEpoch = useRef(0),
     artworkMutation = useRef(false);
+
+  const setMobileAccepted = (accepted: boolean) => {
+    mobileAcceptedRef.current = accepted;
+    setMobileAcceptedState(accepted);
+  };
 
   useEffect(() => {
     mounted.current = true;
@@ -104,11 +116,20 @@ export function useAppSettings({
       return false;
     }
     const epoch = permissionEpoch.current;
-    const accepted = await confirm(
-      "允许访问节目来源？",
-      RISK,
-      "了解风险并允许",
-    );
+    // 使用移动数据时，联网许可也涵盖流量提醒，只询问一次
+    // 首次播放只需要一次确认，避免连续询问两次。
+    const network = await Network.getNetworkStateAsync().catch(() => null);
+    const cellular =
+      mobileWarning &&
+      !mobileAcceptedRef.current &&
+      !!network &&
+      !isOffline(network) &&
+      mightUseMobileData(network);
+    const accepted = await new Promise<boolean>((resolve) => {
+      consentAnswer.current?.(false);
+      consentAnswer.current = resolve;
+      setConsentCellular(cellular);
+    });
     if (
       !accepted ||
       !repo ||
@@ -126,6 +147,7 @@ export function useAppSettings({
     if (epoch !== permissionEpoch.current || !mounted.current) return false;
     remoteRef.current = true;
     setRemoteAllowed(true);
+    if (cellular) setMobileAccepted(true);
     return true;
   };
 
@@ -135,7 +157,11 @@ export function useAppSettings({
     if (isOffline(network))
       throw new ImportIOError("当前没有可用网络，请连接后重试");
     // 与播放采用相同规则：VPN 或未知网络也可能按流量计费。
-    if (mobileWarning && !mobileAccepted && mightUseMobileData(network)) {
+    if (
+      mobileWarning &&
+      !mobileAcceptedRef.current &&
+      mightUseMobileData(network)
+    ) {
       const accepted = await confirm(
         "可能使用移动数据？",
         "下载节目单或播放直播会消耗流量。确认后，在连回 Wi-Fi 之前不再询问。",
@@ -285,6 +311,14 @@ export function useAppSettings({
     /** 只有台标专属许可和当前联网许可同时有效时，才加载台标。 */
     artworkEnabled: artworkAllowed && remoteAllowed && !revokePending,
     guardRemote,
+    /** 是否显示许可对话框，以及是否显示移动数据说明行。 */
+    consentCellular,
+    answerConsent: (allowed: boolean) => {
+      const answer = consentAnswer.current;
+      consentAnswer.current = null;
+      setConsentCellular(null);
+      answer?.(allowed);
+    },
     checkNetwork,
     changeArtwork,
     saveToggle,

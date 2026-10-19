@@ -67,7 +67,8 @@ export const ChannelRow = memo(function ChannelRow({
     [channel.name],
   );
   const unreachable = channel.active && channel.checkStatus === "unreachable";
-  const labels = [...tags, ...(unreachable ? ["不可用"] : [])];
+  // 读屏仍会播报“不可用”；可视界面使用淡化行和圆点。
+  const spokenLabels = [...tags, ...(unreachable ? ["不可用"] : [])];
   const { fontScale } = useWindowDimensions();
   const rowHeight = channelRowHeight(fontScale);
   const editingRecent = !!onRemoveRecent;
@@ -82,12 +83,16 @@ export const ChannelRow = memo(function ChannelRow({
         accessibilityLabel={
           editingRecent
             ? `${title}，观看记录`
-            : `${title}${labels.length ? `，${labels.join("，")}` : ""}，${channel.active ? "播放" : "节目单里已没有这个频道"}`
+            : `${title}${spokenLabels.length ? `，${spokenLabels.join("，")}` : ""}，${channel.active ? "播放" : "节目单里已没有这个频道"}`
         }
         accessibilityState={{ disabled: playbackDisabled, selected: current }}
         onPress={() => onPlay(channel)}
         disabled={playbackDisabled}
-        style={({ pressed }) => [rowStyles.main, pressed && { opacity: 0.65 }]}
+        style={({ pressed }) => [
+          rowStyles.main,
+          unreachable && rowStyles.unreachable,
+          pressed && { opacity: 0.65 },
+        ]}
       >
         <ChannelLogo
           uri={channel.logoUrl}
@@ -105,15 +110,12 @@ export const ChannelRow = memo(function ChannelRow({
             >
               {title}
             </Text>
-            {labels.map((label) => (
-              <Text
-                key={label}
-                numberOfLines={1}
-                style={[rowStyles.tag, label === "不可用" && rowStyles.badTag]}
-              >
+            {tags.map((label) => (
+              <Text key={label} numberOfLines={1} style={rowStyles.tag}>
                 {label}
               </Text>
             ))}
+            {unreachable && <View style={rowStyles.badDot} />}
           </View>
           {/* 不显示来源名称：这一行代表逻辑频道，
               实际播放的来源会在开始播放时选择。 */}
@@ -188,7 +190,13 @@ const rowStyles = StyleSheet.create({
     paddingHorizontal: 6,
     overflow: "hidden",
   },
-  badTag: { color: colors.bad },
+  unreachable: { opacity: 0.5 },
+  badDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.bad,
+  },
   star: {
     minWidth: sizes.touch,
     minHeight: sizes.touch,

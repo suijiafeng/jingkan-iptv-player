@@ -8,6 +8,8 @@ export const colors = {
   /** 行旁未选中的星标或图标：使用次要色的 60% 不透明度。 */
   mutedFaint: "#A6B6BD99",
   accent: "#8CE7D4",
+  /** 选中筛选标签的底色：强调色的 16% 不透明度。 */
+  accentSoft: "#8CE7D429",
   ink: "#092B26",
   line: "#293B43",
   warn: "#F3C58B",

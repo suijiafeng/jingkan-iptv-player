@@ -130,11 +130,11 @@ export function OverlayButton({
   );
 }
 
-/** 清晰度使用强调色，后面显示来源；点击可打开备选线路。未知清晰度不提供有用信息，因此保留弱化颜色，不吸引额外注意。 */
+/** 用强调色显示清晰度，再显示当前来源序号及总数（“1/3”）；点击打开备选线路，来源名称在展开的列表中展示。未知清晰度不提供有用信息，保留弱化颜色，避免额外吸引注意。 */
 export function SourceChip({
   quality,
   qualityKnown = true,
-  sourceName,
+  position,
   count,
   solid = false,
   disabled = false,
@@ -143,7 +143,8 @@ export function SourceChip({
 }: {
   quality: string;
   qualityKnown?: boolean;
-  sourceName: string;
+  /** 正在播放的来源在 `count` 个来源中的位置，从 1 开始。 */
+  position: number;
   count: number;
   /** 放在竖屏频道信息块的不透明表面上，而非视频画面上。 */
   solid?: boolean;
@@ -172,8 +173,7 @@ export function SourceChip({
         >
           {quality}
         </Text>
-        {` ${sourceName}`}
-        {count > 1 ? ` · ${count} 个 ▾` : ""}
+        {count > 1 ? ` · ${position}/${count}` : ""}
       </Text>
     </Pressable>
   );

@@ -26,20 +26,30 @@ export function SettingSection({
   );
 }
 
-/** 单行布局：标题可带状态标签，下方放说明，末尾放开关、文字操作或箭头。提供 onPress 时，整行均可点击。 */
+/**
+ * 一行设置：标题可附状态标签，下方仅在有必要时显示说明，
+ * 可选当前值，末尾是开关、文字操作或箭头。
+ * 提供 onPress 时，整行都可以点击。
+ */
 export function SettingRow({
   title,
   caption,
   status,
+  value,
   trailing,
   onPress,
   accessibilityLabel,
   danger = false,
   dimmed = false,
+  warn = false,
 }: {
   title: string;
   caption?: string;
   status?: { label: string; tone: "accent" | "muted" | "warn" };
+  /** 当前值以弱化颜色显示在末尾控件之前，例如“2 份”。 */
+  value?: string;
+  /** 警告色说明：存在需要用户处理的事项。 */
+  warn?: boolean;
   trailing?: React.ReactNode;
   onPress?: () => void;
   accessibilityLabel?: string;
@@ -61,8 +71,13 @@ export function SettingRow({
             </Text>
           )}
         </View>
-        {caption && <Text style={styles.caption}>{caption}</Text>}
+        {caption && (
+          <Text style={[styles.caption, warn && rowStyles.warnCaption]}>
+            {caption}
+          </Text>
+        )}
       </View>
+      {value && <Text style={rowStyles.value}>{value}</Text>}
       {trailing}
     </>
   );
@@ -146,6 +161,8 @@ const rowStyles = StyleSheet.create({
   text: { flex: 1, minWidth: 0, gap: 2 },
   titleLine: { flexDirection: "row", alignItems: "center", gap: 8 },
   dangerTitle: { color: colors.bad },
+  warnCaption: { color: colors.warn },
+  value: { ...type.body, color: colors.muted },
   pill: {
     ...type.caption,
     borderRadius: 999,

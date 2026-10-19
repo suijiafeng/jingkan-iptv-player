@@ -82,8 +82,8 @@ export function GroupTabs({
       horizontal
       style={styles.scroller}
       contentContainerStyle={styles.content}
-      showsHorizontalScrollIndicator
-      indicatorStyle="white"
+      // 标签本身已表明这一行可滚动，再加滚动条只会干扰。
+      showsHorizontalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       onLayout={({ nativeEvent }) => {
         if (viewport.current !== nativeEvent.layout.width) {
