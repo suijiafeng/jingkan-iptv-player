@@ -132,6 +132,13 @@ export function ChannelSession(props: SessionProps) {
             audioOnly={props.audioOnly}
           />
         )}
+        {/* 只给视频加遮罩；所有标签和控件都绘制在其上方。 */}
+        {!props.mini && controlsVisible && !props.sheetOpen && (
+          <>
+            <Shade edge="top" heightRatio={0.46} />
+            <Shade edge="bottom" heightRatio={0.52} />
+          </>
+        )}
         {props.audioOnly && (
           <View
             style={[StyleSheet.absoluteFill, sessionStyles.audioStage]}
@@ -281,12 +288,6 @@ export function ChannelSession(props: SessionProps) {
               )}
             </View>
           )}
-        {!props.mini && controlsVisible && !props.sheetOpen && (
-          <>
-            <Shade edge="top" heightRatio={0.46} />
-            <Shade edge="bottom" heightRatio={0.52} />
-          </>
-        )}
         {!props.mini &&
           controlsVisible &&
           !props.sheetOpen &&

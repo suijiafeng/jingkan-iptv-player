@@ -177,8 +177,7 @@ export function SourceChip({
   );
 }
 
-/** 在覆盖栏后方还原原型的渐变遮罩，由多层半透明条带叠成；现有依赖中没有渐变模块。 */
-const SHADE_STEPS = 8;
+/** 原生连续渐变：控件附近较暗，向中心逐渐透明。 */
 export function Shade({
   edge,
   heightRatio,
@@ -195,21 +194,7 @@ export function Shade({
         edge === "top" ? styles.shadeTop : styles.shadeBottom,
         { height: `${Math.round(heightRatio * 100)}%` },
       ]}
-    >
-      {Array.from({ length: SHADE_STEPS }, (_unused, step) => {
-        // 最靠近边缘的条带最暗，透明度向中心逐渐降低。
-        const alpha = 0.74 * (1 - step / SHADE_STEPS);
-        return (
-          <View
-            key={step}
-            style={[
-              styles.shadeStrip,
-              { backgroundColor: `rgba(4, 8, 10, ${alpha.toFixed(3)})` },
-            ]}
-          />
-        );
-      })}
-    </View>
+    />
   );
 }
 
@@ -435,9 +420,16 @@ const styles = StyleSheet.create({
   chipQuality: { color: colors.accent, fontWeight: "600" },
   chipQualityUnknown: { color: colors.muted },
   shade: { position: "absolute", left: 0, right: 0 },
-  shadeTop: { top: 0, flexDirection: "column" },
-  shadeBottom: { bottom: 0, flexDirection: "column-reverse" },
-  shadeStrip: { flex: 1 },
+  shadeTop: {
+    top: 0,
+    backgroundImage:
+      "linear-gradient(to bottom, rgba(4, 8, 10, 0.55), rgba(4, 8, 10, 0))",
+  },
+  shadeBottom: {
+    bottom: 0,
+    backgroundImage:
+      "linear-gradient(to top, rgba(4, 8, 10, 0.55), rgba(4, 8, 10, 0))",
+  },
   overlayButtonDisabled: { opacity: 0.4 },
   overlayButtonSolid: { backgroundColor: colors.raised },
   overlayButtonText: {
