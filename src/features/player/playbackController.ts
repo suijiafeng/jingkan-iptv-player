@@ -277,6 +277,14 @@ export class PlaybackController {
     failure: Exclude<AttemptFailure, "timeout"> = "unknown",
   ) {
     if (!this.isCurrentAttempt(id)) return;
+    // 为了保留最后一帧而暂停的播放器，仍可能失败或报告
+    // 正在加载，例如直播窗口已经推进；这两种情况都不能取消暂停：
+    // 安静地释放播放器；下次点击 ▶ 时重新连接。
+    if (this.snapshot.phase === "paused") {
+      if (status === "error")
+        this.stop("paused", this.snapshot.pauseReason ?? "manual");
+      return;
+    }
     if (status === "error") {
       const played = this.startedAttempt === id;
       if (played && failure === "media" && this.takeLiveReconnect())
