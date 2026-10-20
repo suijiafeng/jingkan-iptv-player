@@ -24,6 +24,9 @@ interface Props {
   media?: MediaHandle;
 }
 
+/** 未播放状态需持续多久，才判断为暂停。 */
+const STOP_CONFIRM_MS = 400;
+
 // 这是目标值，不保证能缓存这么多：直播清单窗口外可能没有后续分片，
 // 直播窗口以外的片段无法预读，因此实际可保留的缓冲通常更短。
 // 大小限制优先于缓冲时长，对高码率电视流尤其重要。
@@ -100,6 +103,12 @@ export function NativeAttempt({
     let live = true;
     let instance: VideoPlayer | undefined;
     let exitTimer: ReturnType<typeof setTimeout> | undefined;
+    // 收到未播放报告后，先等待以确认是否只是缓冲。
+    let stopTimer: ReturnType<typeof setTimeout> | undefined;
+    const cancelStop = () => {
+      if (stopTimer !== undefined) clearTimeout(stopTimer);
+      stopTimer = undefined;
+    };
     let settleExit: (() => void) | undefined;
     const sniff = new AbortController();
     const subscriptions: { remove: () => void }[] = [];
@@ -169,6 +178,7 @@ export function NativeAttempt({
       subscriptions.push(
         ownedPlayer.addListener("statusChange", ({ status, error }) => {
           if (!current()) return;
+          if (status !== "readyToPlay") cancelStop();
           media?.sample(ownedPlayer);
           // 只有粗粒度错误分类离开这个闭包，原始错误消息不会外传。
           controller.nativeStatus(
@@ -182,9 +192,21 @@ export function NativeAttempt({
         }),
         ownedPlayer.addListener("playingChange", ({ isPlaying }) => {
           if (!current()) return;
+          cancelStop();
           if (isPlaying) controller.nativeStarted(attemptId);
           else if (ownedPlayer.status === "readyToPlay")
-            controller.nativeStopped(attemptId);
+            // 卡顿可能先报告未播放，随后才报告加载中
+            // 状态；只有就绪时持续发生的暂停才算播放被中断
+            // 否则会被误认为“音频被其它应用占用”。
+            stopTimer = setTimeout(() => {
+              stopTimer = undefined;
+              if (
+                current() &&
+                !ownedPlayer.playing &&
+                ownedPlayer.status === "readyToPlay"
+              )
+                controller.nativeStopped(attemptId);
+            }, STOP_CONFIRM_MS);
         }),
         ownedPlayer.addListener("playToEnd", () => {
           if (current()) controller.nativeEnded(attemptId);
@@ -237,6 +259,7 @@ export function NativeAttempt({
       alive.current = false;
       live = false;
       if (exitTimer !== undefined) clearTimeout(exitTimer);
+      cancelStop();
       exitPictureInPicture.current = null;
       if (pendingPip.current) {
         clearTimeout(pendingPip.current.timer);
