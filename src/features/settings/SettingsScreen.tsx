@@ -196,17 +196,11 @@ export function SettingsScreen(props: Props) {
           }
         />
       </SettingSection>
-      <SettingSection label="本机资料">
+      {/* 本地资料与应用信息共用一张普通行组成的卡片；备份只占一行，页面末尾不再堆放一组大按钮。 */}
+      <SettingSection label="资料与应用">
         {props.repo && props.onRestoreBackup && (
           <BackupControls repo={props.repo} onRestore={props.onRestoreBackup} />
         )}
-        <SettingRow
-          title="清空全部本地资料"
-          danger
-          onPress={props.onClearAll}
-        />
-      </SettingSection>
-      <SettingSection label="应用信息">
         {props.onShowGuide && (
           <SettingRow
             title="使用指引"
@@ -215,6 +209,11 @@ export function SettingsScreen(props: Props) {
           />
         )}
         <About />
+        <SettingRow
+          title="清空全部本地资料"
+          danger
+          onPress={props.onClearAll}
+        />
       </SettingSection>
     </ScrollView>
   );
