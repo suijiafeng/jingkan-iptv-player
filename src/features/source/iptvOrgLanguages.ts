@@ -1,7 +1,8 @@
 import { fetch as expoFetch } from "expo/fetch";
 import { readBoundedStream } from "../../data/importIO";
 import { linkedDeadline } from "../../lib/abort";
-import { normalizeLanguages } from "../../domain/channelFacets";
+import { isIptvOrgId, normalizeLanguages } from "../../domain/channelFacets";
+import type { ParsedChannel } from "../../domain/types";
 
 /** iptv-org 公共数据库；仅在用户请求时获取。 */
 export const IPTV_ORG_FEEDS_URL = "https://iptv-org.github.io/api/feeds.json";
@@ -10,6 +11,13 @@ export const MAX_FEEDS_BYTES = 24 * 1024 * 1024;
 export const FEEDS_TIMEOUT_MS = 120_000;
 
 export class LanguageLookupError extends Error {}
+
+/** 符合 iptv-org 格式、但节目单未标注语言的频道。 */
+export function needsLanguageLookup(
+  channel: Pick<ParsedChannel, "tvgId" | "languages">,
+): boolean {
+  return isIptvOrgId(channel.tvgId) && !channel.languages?.length;
+}
 
 /** 从 iptv-org feeds.json 中挑选所需 tvg-id 的语言。“Name.cc@Feed”匹配指定线路；单独的“Name.cc”使用主线路。输入不可信，形状不符合线路记录的数据一律跳过。 */
 export function languagesFromFeeds(

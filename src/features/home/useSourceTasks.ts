@@ -9,18 +9,17 @@ import { AppState } from "react-native";
 import type { Repository } from "../../data/repository";
 import type { Source } from "../../domain/types";
 import { ImportIOError } from "../../data/importIO";
-import { isIptvOrgId } from "../../domain/channelFacets";
 import {
   AvailabilitySaveError,
   checkAvailability,
 } from "../source/availabilityCoordinator";
-import { lookupIptvOrgLanguages } from "../source/iptvOrgLanguages";
+import {
+  lookupIptvOrgLanguages,
+  needsLanguageLookup,
+} from "../source/iptvOrgLanguages";
 import type { CheckProgress, CheckSummary } from "../source/availability";
 
-/**
- * 用户从来源管理中启动的单来源任务，包括可用性检测和 iptv-org 语言查询。
- * 两者使用与导入相同的网络许可检查，并在撤销许可时停止。
- */
+/** 单来源的联网任务：从来源管理启动的可用性检测，以及导入预览要求补全语言后执行的 iptv-org 查询。两者均遵守与导入相同的联网限制，并在撤销许可时停止。 */
 export function useSourceTasks({
   repo,
   setError,
@@ -44,11 +43,8 @@ export function useSourceTasks({
     [checkSummaries, setCheckSummaries] = useState<
       Record<string, CheckSummary>
     >({}),
-    // iptv-org 语言查询（由用户触发，只下载一次）。
-    [languageLookup, setLanguageLookup] = useState<string | null>(null),
-    [languageMessages, setLanguageMessages] = useState<Record<string, string>>(
-      {},
-    );
+    // 导入后查询 iptv-org 语言信息，只下载一次。
+    [languageLookup, setLanguageLookup] = useState<string | null>(null);
   const checkController = useRef<AbortController | null>(null),
     languageController = useRef<AbortController | null>(null),
     checkGeneration = useRef(0);
@@ -72,8 +68,12 @@ export function useSourceTasks({
     setLanguageLookup(null);
   }, []);
 
-  /** 从 iptv-org 数据库补全此来源中符合 iptv-org 格式频道的缺失语言。联网限制与其它远程请求一致。 */
-  const runLanguageLookup = async (source: Source) => {
+  /**
+   * 从 iptv-org 数据库为此来源中符合 iptv-org 格式、但未标注语言的频道补全语言。
+   * 与其它远程请求使用相同的许可检查；成功后体现在语言筛选中，
+   * 只有失败才显示提示。
+   */
+  const runLanguageLookup = async (sourceId: string) => {
     if (!repo || languageController.current) return;
     const abort = new AbortController();
     languageController.current = abort;
@@ -83,28 +83,20 @@ export function useSourceTasks({
       languageController.current === abort &&
       !abort.signal.aborted &&
       epoch === permissionEpoch.current;
-    const say = (message: string) =>
-      setLanguageMessages((all) => ({ ...all, [source.id]: message }));
-    setLanguageLookup(source.id);
+    setLanguageLookup(sourceId);
     try {
       if (!(await guardRemote(abort.signal)) || !current()) return;
       if (!(await checkNetwork(abort.signal)) || !current()) return;
       const targets = (
-        await repo.listChannels({ sourceId: source.id, includeVariants: true })
-      ).filter(
-        (channel) => isIptvOrgId(channel.tvgId) && !channel.languages?.length,
-      );
-      if (!current()) return;
-      if (!targets.length) {
-        say("没有需要补全的频道");
-        return;
-      }
+        await repo.listChannels({ sourceId, includeVariants: true })
+      ).filter(needsLanguageLookup);
+      if (!current() || !targets.length) return;
       const found = await lookupIptvOrgLanguages(
         new Set(targets.map((channel) => channel.tvgId!)),
         abort.signal,
       );
       if (!current()) return;
-      const changedCount = await repo.saveLookedUpLanguages(
+      await repo.saveLookedUpLanguages(
         targets.flatMap((channel) => {
           const languages = found.get(channel.tvgId!);
           return languages
@@ -112,14 +104,13 @@ export function useSourceTasks({
             : [];
         }),
       );
-      say(`已补全 ${changedCount} 个频道的语言`);
       changed();
     } catch (failure) {
-      if (mounted.current && epoch === permissionEpoch.current)
-        say(
+      if (current())
+        setError(
           failure instanceof Error && failure.message
-            ? failure.message
-            : "语言补全未完成，请稍后重试",
+            ? `频道已导入，语言未补全：${failure.message}`
+            : "频道已导入，语言暂未补全",
         );
     } finally {
       if (languageController.current === abort) {
@@ -212,7 +203,6 @@ export function useSourceTasks({
     checkSummaries,
     clearCheckSummaries: () => setCheckSummaries({}),
     languageLookup,
-    languageMessages,
     runCheck,
     runLanguageLookup,
     stopCheck,

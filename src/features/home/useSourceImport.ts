@@ -16,6 +16,7 @@ import {
 } from "../../data/importIO";
 import { confirm } from "../common/confirm";
 import { initialForm, type SourceFormState } from "../source/form";
+import { needsLanguageLookup } from "../source/iptvOrgLanguages";
 
 /**
  * 添加或刷新节目单的表单：选择文件或下载，预览解析结果，
@@ -32,6 +33,7 @@ export function useSourceImport({
   changed,
   onImported,
   onReturnToManagement,
+  onFillLanguages,
 }: {
   repo: Repository | null;
   setError: (message: string) => void;
@@ -45,6 +47,8 @@ export function useSourceImport({
   onImported: () => void;
   /** 从来源管理打开的表单被取消后，应返回来源管理。 */
   onReturnToManagement: () => void;
+  /** 保存后的列表若在预览中请求补全，则继续补全其语言。 */
+  onFillLanguages: (sourceId: string) => void;
 }) {
   const [form, setForm] = useState<SourceFormState | null>(null),
     [busy, setBusy] = useState(false),
@@ -74,6 +78,9 @@ export function useSourceImport({
     setForm((current) =>
       current ? { ...current, ...patch, preview: null } : current,
     );
+  /** 预览中的语言开关；与 updateForm 不同，它不会清除预览。 */
+  const setFillLanguages = (fillLanguages: boolean) =>
+    setForm((current) => (current ? { ...current, fillLanguages } : current));
 
   const closeForm = async () => {
     if (saving.current) return;
@@ -191,7 +198,9 @@ export function useSourceImport({
     setBusy(true);
     const submitted = form;
     try {
+      let sourceId: string;
       if (submitted.refresh) {
+        sourceId = submitted.refresh.sourceId;
         await repo.refreshSource(
           submitted.refresh.sourceId,
           submitted.refresh.revision,
@@ -214,7 +223,7 @@ export function useSourceImport({
           (submitted.kind === "file"
             ? submitted.fileName
             : new URL(submitted.url).hostname);
-        await repo.importSource({
+        ({ id: sourceId } = await repo.importSource({
           name,
           kind: submitted.kind,
           location:
@@ -223,12 +232,17 @@ export function useSourceImport({
               : submitted.url.trim(),
           preview: submitted.preview!,
           content: submitted.kind === "file" ? submitted.content : undefined,
-        });
+        }));
       }
       setForm(null);
       fromManagement.current = false;
       onImported();
       changed();
+      if (
+        submitted.fillLanguages &&
+        submitted.preview!.channels.some(needsLanguageLookup)
+      )
+        onFillLanguages(sourceId);
     } catch {
       setFormError("保存失败，原数据未变");
     } finally {
@@ -282,6 +296,7 @@ export function useSourceImport({
     formError,
     startForm,
     updateForm,
+    setFillLanguages,
     closeForm,
     backForm,
     chooseFile,

@@ -107,6 +107,16 @@ export default function App() {
     checkNetwork: settings.checkNetwork,
     reconcilePlayingSources: playback.reconcilePlayingSources,
   };
+  const sourceTasks = useSourceTasks({
+    repo,
+    setError,
+    mounted,
+    remoteRef: settings.remoteRef,
+    permissionEpoch: settings.permissionEpoch,
+    guardRemote: settings.guardRemote,
+    checkNetwork: settings.checkNetwork,
+    changed,
+  });
   const importer = useSourceImport({
     repo,
     setError,
@@ -120,16 +130,7 @@ export default function App() {
       filters.reset();
     },
     onReturnToManagement: () => setManage(true),
-  });
-  const sourceTasks = useSourceTasks({
-    repo,
-    setError,
-    mounted,
-    remoteRef: settings.remoteRef,
-    permissionEpoch: settings.permissionEpoch,
-    guardRemote: settings.guardRemote,
-    checkNetwork: settings.checkNetwork,
-    changed,
+    onFillLanguages: (sourceId) => void sourceTasks.runLanguageLookup(sourceId),
   });
   // 分类切换后，在后台检测当前显示的频道。
   const { progress: autoCheck, cancel: cancelAutoCheck } =

@@ -1,5 +1,12 @@
-import React, { useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 import { Button } from "../../components/ui";
 import { displayGroups } from "../../domain/channelLabels";
 import {
@@ -9,18 +16,18 @@ import {
 } from "../../domain/types";
 import { colors, sizes, styles, type } from "../../theme";
 import type { SourceFormState } from "./form";
+import { needsLanguageLookup } from "./iptvOrgLanguages";
 
 /** 采用固定行高，使 20,000 条记录的列表无需逐行测量即可滚动。 */
 const ROW_HEIGHT = 56;
 
-/**
- * 保存之前的节目单解析结果。按需渲染并列出全部频道，列表可以滚动；
- * 数量和警告位于列表头部，“导入”始终固定在底部，无须滚动寻找。
- */
+/** 保存前的节目单解析结果。完整列出所有频道，列表可滚动且按需渲染；数量和警告放在列表开头，“导入”固定在底部，无需滚动查找。若 iptv-org 频道缺少语言，默认开启的开关会说明：保存后将下载 iptv-org 数据库来补全语言。 */
 export function ImportPreviewBody({
   preview,
   header,
   busy,
+  fillLanguages,
+  onFillLanguages,
   onSave,
   onBack,
 }: {
@@ -28,12 +35,18 @@ export function ImportPreviewBody({
   /** 页面标题及错误信息，显示在统计数字上方。 */
   header: React.ReactNode;
   busy: boolean;
+  fillLanguages: boolean;
+  onFillLanguages: (on: boolean) => void;
   onSave: () => void;
   onBack: () => void;
 }) {
   const [skippedOpen, setSkippedOpen] = useState(false);
   const { stats } = preview;
   const skipped = stats.duplicates + stats.ignored;
+  const unlabelled = useMemo(
+    () => preview.channels.filter(needsLanguageLookup).length,
+    [preview.channels],
+  );
   return (
     <View style={previewStyles.root}>
       <FlatList
@@ -56,6 +69,24 @@ export function ImportPreviewBody({
               <Text style={previewStyles.warnText}>
                 {stats.http} 个频道未加密（HTTP）
               </Text>
+            )}
+            {unlabelled > 0 && (
+              <View style={previewStyles.fillRow}>
+                <View style={previewStyles.fillText}>
+                  <Text style={styles.body}>自动补全语言</Text>
+                  <Text style={styles.caption}>
+                    导入后从 iptv-org 公开数据库下载约 8 MB 语言数据，为{" "}
+                    {unlabelled} 个未标语言的频道补全
+                  </Text>
+                </View>
+                <Switch
+                  accessibilityLabel="导入后自动补全语言"
+                  value={fillLanguages}
+                  disabled={busy}
+                  onValueChange={onFillLanguages}
+                  trackColor={{ true: colors.accent }}
+                />
+              </View>
             )}
             {skipped > 0 && (
               <Pressable
@@ -120,6 +151,13 @@ const previewStyles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingBottom: 16 },
   header: { gap: 12, paddingTop: 20, paddingBottom: 8 },
   warnText: { ...type.body, color: colors.warn },
+  fillRow: {
+    minHeight: sizes.touch,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  fillText: { flex: 1, gap: 2 },
   skippedToggle: {
     minHeight: sizes.touch,
     flexDirection: "row",
