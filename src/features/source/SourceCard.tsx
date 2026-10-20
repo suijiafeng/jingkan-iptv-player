@@ -39,17 +39,16 @@ export function SourceCard({
   ]
     .filter(Boolean)
     .join(" · ");
-  // 停用的来源没有其它可操作事项，因此不显示第三行。
-  const attention = !source.enabled
-    ? ""
-    : [
-        // 检测按地址执行，不按频道执行。
-        checked && unreachable > 0 ? `${unreachable} 个地址暂时无法连接` : "",
-        summary?.stopped ? "测试已停止" : "",
-        source.lastErrorCategory ? "上次刷新未完成，旧频道已保留" : "",
-      ]
-        .filter(Boolean)
-        .join(" · ");
+  // 来源停用时仍保留该部分，并与其他内容一起变淡，避免切换
+  // 切换开关绝不改变卡片高度。
+  const attention = [
+    // 检测按地址执行，不按频道执行。
+    checked && unreachable > 0 ? `${unreachable} 个地址暂时无法连接` : "",
+    summary?.stopped ? "测试已停止" : "",
+    source.lastErrorCategory ? "上次刷新未完成，旧频道已保留" : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <View style={cardStyles.card}>
       <View style={cardStyles.head}>
