@@ -131,3 +131,12 @@ export function safeHostname(input: string): string {
     return "网络来源";
   }
 }
+
+/**
+ * 用于显示的流地址：保留查询参数之前的部分。查询参数和片段经常
+ * 携带令牌，因此只显示为“?…”。
+ */
+export function displayStreamAddress(url: string): string {
+  const cut = url.search(/[?#]/);
+  return cut === -1 ? url : `${url.slice(0, cut)}?…`;
+}
