@@ -37,14 +37,16 @@ export function orderedSources(sources: readonly Channel[]): Channel[] {
   return [...sources].sort(compareChannelSources);
 }
 
-/** 当前地址在频道来源列表中的位置，从 1 开始。 */
+/**
+ * 当前地址在给定 `sources` 中的位置，从 1 开始；该顺序就是来源列表
+ * 的显示顺序，按钮和切换提示也使用它。故障切换则按清晰度顺序尝试。
+ */
 export function sourcePosition(
   sources: readonly Channel[],
   current: Pick<Channel, "id">,
 ): { index: number; total: number } | null {
-  const ordered = orderedSources(sources);
-  const index = ordered.findIndex((source) => source.id === current.id);
-  return index < 0 ? null : { index: index + 1, total: ordered.length };
+  const index = sources.findIndex((source) => source.id === current.id);
+  return index < 0 ? null : { index: index + 1, total: sources.length };
 }
 
 /**

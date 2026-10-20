@@ -30,6 +30,7 @@ import {
   VolumeIcon,
 } from "./playerIcons";
 import { OverlayButton, SourceChip } from "./overlayWidgets";
+import { sourcePosition } from "./sourceFailover";
 import {
   CenterChip,
   LoadingDots,
@@ -338,12 +339,7 @@ export function useChannelSession(props: SessionProps) {
   // 因此即使只有一个来源也能打开；TalkBack 还会播报清晰度与名称。
   const sourceButton = (
     <SourceChip
-      position={
-        Math.max(
-          props.sources.findIndex((source) => source.id === props.channel.id),
-          0,
-        ) + 1
-      }
+      position={sourcePosition(props.sources, props.channel)?.index ?? 1}
       count={props.sources.length}
       accessibilityLabel={
         props.sources.length > 1
