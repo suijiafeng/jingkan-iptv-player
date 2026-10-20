@@ -154,12 +154,14 @@ export function useChannelSession(props: SessionProps) {
   // 加载时保持画面简洁，方便换台；需要用户决定的状态
   // 错误、超时、暂停、移动数据确认等状态总会重新显示控件。
   const loading = ["checking", "connecting", "buffering"].includes(state.phase);
+  // 系统小窗有自己的控件，应用控件会遮挡它。
   const controlsVisible =
-    props.audioOnly ||
-    controlsShown ||
-    props.sheetOpen ||
-    screenReader ||
-    (state.phase !== "playing" && !loading);
+    !mediaInfo.pictureInPicture &&
+    (props.audioOnly ||
+      controlsShown ||
+      props.sheetOpen ||
+      screenReader ||
+      (state.phase !== "playing" && !loading));
 
   const busy = ["checking", "connecting", "playing", "buffering"].includes(
     state.phase,

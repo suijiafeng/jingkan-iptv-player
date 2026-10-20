@@ -13,6 +13,8 @@ export interface MediaInfo {
   isLive: boolean;
   /** 只有支持回看的直播窗口和有限时长点播支持拖动进度。 */
   seekable: boolean;
+  /** 内容显示在系统小窗中时，不叠加应用自己的覆盖控件。 */
+  pictureInPicture: boolean;
 }
 export interface MediaTimeline {
   /** 距可跳转窗口（或文件）起点的秒数。 */
@@ -26,7 +28,11 @@ export function seekableMedia(isLive: boolean, duration: number): boolean {
   return isLive ? duration >= CATCHUP_MIN_WINDOW_S : true;
 }
 
-const NO_INFO: MediaInfo = { isLive: false, seekable: false };
+const NO_INFO: MediaInfo = {
+  isLive: false,
+  seekable: false,
+  pictureInPicture: false,
+};
 
 /** UI 操作当前原生播放尝试的窄接口：无需重连即可播放、暂停和跳转，并提供采样时间轴；它从不暴露流地址。基本信息与时间轴使用独立快照，使每秒只重渲染时间轴视图。 */
 export class MediaHandle {
@@ -63,6 +69,11 @@ export class MediaHandle {
     this.enterPictureInPicture = null;
     this.publish(NO_INFO, null);
   }
+  /** 所附播放器进入或退出了系统画中画。 */
+  setPictureInPicture(player: VideoPlayer, active: boolean) {
+    if (this.player !== player) return;
+    this.publish({ ...this.info, pictureInPicture: active }, this.timeline);
+  }
   /** 采样已连接的播放器；释放之后读取原生属性可能抛错。 */
   sample(player: VideoPlayer) {
     if (this.player !== player) return;
@@ -71,7 +82,7 @@ export class MediaHandle {
       const isLive = player.isLive;
       const seekable = seekableMedia(isLive, duration);
       this.publish(
-        { isLive, seekable },
+        { isLive, seekable, pictureInPicture: this.info.pictureInPicture },
         seekable
           ? {
               duration,
@@ -86,7 +97,8 @@ export class MediaHandle {
   private publish(info: MediaInfo, timeline: MediaTimeline | null) {
     if (
       info.isLive !== this.info.isLive ||
-      info.seekable !== this.info.seekable
+      info.seekable !== this.info.seekable ||
+      info.pictureInPicture !== this.info.pictureInPicture
     ) {
       this.info = info;
       this.infoListeners.forEach((listener) => listener());
