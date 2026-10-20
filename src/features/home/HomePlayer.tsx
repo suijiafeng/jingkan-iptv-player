@@ -1,19 +1,19 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Animated, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Channel } from "../../domain/types";
 import { colors } from "../../theme";
 import { PlayerScreen } from "../player/PlayerScreen";
 import type { ChannelSheetProps } from "../player/playerShared";
 import type { AppSettings } from "./useAppSettings";
 import type { Playback } from "./usePlayback";
-
-/** 停靠播放栏与下方标签导航之间的间距。 */
-const MINI_BAR_GAP = 8;
+import { FloatingChrome } from "./FloatingChrome";
+import { MINI_EDGE, useFloatingWindow } from "./useFloatingWindow";
 
 /**
- * 覆盖在主页面上的播放器：全屏，或停靠在底部标签栏正上方的小条。
- * 两种尺寸使用同一处组件树位置，因此收起为小条或再次展开时，
- * 不会重新挂载会话及其播放器实例。
+ * 覆盖主页面的播放器：全屏，或停靠在底部标签栏正上方的小浮窗。
+ * 两种尺寸使用相同的组件树位置，因此收起和展开都不会重新挂载
+ * 会话及其播放器实例。
  */
 export function HomePlayer({
   playing,
@@ -42,22 +42,40 @@ export function HomePlayer({
   onAvailability: (channel: Channel, ok: boolean) => void;
 }) {
   const { playerMini, previousChannel } = playback;
+  // 应用的安全区视图在底部有内边距，而绝对定位子元素会
+  // 绝对定位子元素从内边距边缘开始放置，因此窗口也必须避开该安全区。
+  const insets = useSafeAreaInsets();
+  const floating = useFloatingWindow({
+    bottomOffset: insets.bottom + tabsHeight + MINI_EDGE,
+    topInset: insets.top,
+  });
   // 优先使用新读取的记录；刷新可能已经修改该频道。
   const shownPrevious = previousChannel
     ? (freshRows.find((channel) => channel.id === previousChannel.id) ??
       previousChannel)
     : null;
   return (
-    <View
+    <Animated.View
       testID="player-container"
       style={
         playerMini
-          ? [playerStyles.miniContainer, { bottom: tabsHeight + MINI_BAR_GAP }]
+          ? [
+              playerStyles.miniContainer,
+              {
+                bottom: insets.bottom + tabsHeight + MINI_EDGE,
+                width: floating.width,
+                height: floating.height,
+                transform: floating.transform,
+              },
+            ]
           : playerStyles.playerOverlay
       }
+      {...(playerMini ? floating.panHandlers : {})}
     >
       <PlayerScreen
         mini={playerMini}
+        // 位于浮窗 1dp 边框的内部。
+        miniSize={{ width: floating.width - 2, height: floating.height - 2 }}
         onMinimize={() => playback.setPlayerMini(true)}
         onExpand={() => playback.setPlayerMini(false)}
         error={error}
@@ -87,7 +105,15 @@ export function HomePlayer({
         skipUnreachable={settings.skipUnreachable}
         previousChannel={shownPrevious}
       />
-    </View>
+      {playerMini && (
+        <FloatingChrome
+          side={floating.side}
+          onClose={playback.closePlayer}
+          onEdgeTouch={floating.onEdgeTouch}
+          onEdgeTouchEnd={floating.onEdgeTouchEnd}
+        />
+      )}
+    </Animated.View>
   );
 }
 
@@ -100,13 +126,15 @@ const playerStyles = StyleSheet.create({
     right: 0,
     backgroundColor: colors.bg,
   },
+  // 默认位置在右下角；拖动通过相对该位置的变换移动窗口。
   miniContainer: {
     position: "absolute",
-    left: 8,
-    right: 8,
-    borderRadius: 14,
-    backgroundColor: colors.raised,
-    // Android 的 elevation 让小条显示在列表行上方。
-    elevation: 6,
+    right: MINI_EDGE,
+    borderWidth: 1,
+    borderColor: "#FFFFFF1F",
+    overflow: "hidden",
+    backgroundColor: "#000000",
+    // 使用 elevation，让 Android 上的小窗显示在列表行之上。
+    elevation: 8,
   },
 });

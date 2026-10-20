@@ -199,12 +199,16 @@ export function ExitFullscreenIcon({
   return <CornerBrackets size={size} color={color} inward />;
 }
 
-/** 关闭面板：两条交叉的线。 */
-export function CloseIcon({ size = 20, color = colors.text }: IconProps) {
+/** 关闭面板：两条交叉线；weight 参数可让小尺寸图标的线条更细。 */
+export function CloseIcon({
+  size = 20,
+  color = colors.text,
+  weight = 2.5,
+}: IconProps & { weight?: number }) {
   const bar = {
     position: "absolute" as const,
     width: size * 0.7,
-    height: 2.5,
+    height: weight,
     borderRadius: 2,
     backgroundColor: color,
   };

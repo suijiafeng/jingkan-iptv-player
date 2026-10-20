@@ -29,8 +29,11 @@ import {
   type ChannelListItem,
 } from "./channelListItems";
 
-/** 小窗停靠时，列表下方预留停靠栏高度及其边距。 */
-const MINI_BAR_SPACE = 88;
+/**
+ * 停靠小窗的总高度为关闭键 40、间距 6、16:9 画面 99，再加 12dp 外边距。
+ * 列表下方预留该空间，使最后几行能滚动到小窗之外。
+ */
+const MINI_BAR_SPACE = 160;
 /** 顶部覆盖层与第一条列表行之间的间距。 */
 const LIST_TOP_GAP = 12;
 

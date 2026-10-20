@@ -283,11 +283,8 @@ export function PlayerScreen(props: PlayerScreenProps) {
 
 const screenStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  miniScreen: {
-    borderRadius: 14,
-    overflow: "hidden",
-    backgroundColor: colors.raised,
-  },
+  // 停靠窗口自行绘制边框，视频画面填满其内部。
+  miniScreen: { flex: 1, backgroundColor: "transparent" },
   flex: { flex: 1 },
   inlineList: { flex: 1, paddingHorizontal: 12, paddingTop: 8, gap: 8 },
   overlay: {

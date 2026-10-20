@@ -46,8 +46,16 @@ export interface PlayerScreenProps {
   artworkEnabled?: boolean;
   error?: string;
   onDismissError?: () => void;
-  /** 以小栏形式停靠在频道页上方，继续保持播放；后台行为遵循播放设置。外层只切换容器尺寸，会话、播放器和流均保持挂载。 */
+  /**
+   * 以小浮窗停靠在频道页上，同时继续播放（后台行为遵循播放设置）。
+   * 外层切换容器尺寸，会话、播放器实例和媒体流始终保持挂载。
+   */
   mini?: boolean;
+  /**
+   * 停靠画面的尺寸，单位为 dp。原生视频视图必须拿到明确的数值尺寸
+   * 才会更新布局；仅使用 flex 时曾一直保留旧的画面边界。
+   */
+  miniSize?: { width: number; height: number };
   /** 竖屏返回，包括返回键和箭头：缩到小窗，而非停止播放。 */
   onMinimize?: () => void;
   onExpand?: () => void;
