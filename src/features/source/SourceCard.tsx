@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/ui";
+import { daysAgo } from "../../domain/timeAgo";
 import type { Source } from "../../domain/types";
 import { colors, sizes, styles, type } from "../../theme";
 import type { CheckProgress, CheckSummary } from "./availability";
@@ -52,7 +53,7 @@ export function SourceCard({
       : `${source.channelCount} 个频道`,
     // 检测按地址执行，不按频道执行。
     checked && unreachable > 0 ? `${unreachable} 个地址暂时无法连接` : "",
-    summary?.stopped ? "检测已停止" : "",
+    summary?.stopped ? "测试已停止" : "",
     updatedAgo(source.lastSuccessAt, now),
   ]
     .filter(Boolean)
@@ -73,7 +74,7 @@ export function SourceCard({
         <View
           accessible
           accessibilityRole="progressbar"
-          accessibilityLabel="正在检测可用性"
+          accessibilityLabel="正在测试连通"
           accessibilityValue={
             check.total === null
               ? undefined
@@ -83,8 +84,8 @@ export function SourceCard({
         >
           <Text style={styles.muted}>
             {check.total === null
-              ? "正在读取待检测频道…"
-              : `正在检测可用性 ${check.done}/${check.total}`}
+              ? "正在读取待测试频道…"
+              : `正在测试连通 ${check.done}/${check.total}`}
           </Text>
           <View style={cardStyles.progressTrack}>
             <View
@@ -119,11 +120,11 @@ export function SourceCard({
                 source.lastErrorCategory
                   ? "重试刷新"
                   : source.kind === "file"
-                    ? "重新解析"
+                    ? "更新节目单"
                     : "刷新"
               }
               accessibilityLabel={
-                source.kind === "file" ? "重新解析 / 更换文件" : "刷新并预览"
+                source.kind === "file" ? "更新节目单 / 更换文件" : "刷新并预览"
               }
               secondary
               style={cardStyles.action}
@@ -133,7 +134,7 @@ export function SourceCard({
             {running ? (
               <Button
                 compact
-                label="停止检测"
+                label="停止测试"
                 secondary
                 style={cardStyles.action}
                 onPress={props.onStopCheck}
@@ -141,8 +142,8 @@ export function SourceCard({
             ) : (
               <Button
                 compact
-                label="检测"
-                accessibilityLabel={checked ? "重新检测" : "检测可用性"}
+                label="测试连通"
+                accessibilityLabel={checked ? "重新测试连通" : "测试连通"}
                 secondary
                 style={cardStyles.action}
                 disabled={saving || !!check || !source.channelCount}
@@ -236,20 +237,10 @@ export function SourceCard({
   );
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 /** 显示“今天更新”“昨天更新”“3 天前更新”；时间未知时不显示。 */
 export function updatedAgo(timestamp: number, now: number) {
-  if (!Number.isFinite(timestamp) || timestamp <= 0) return "";
-  const startOfToday = new Date(now);
-  startOfToday.setHours(0, 0, 0, 0);
-  const days = Math.max(
-    0,
-    Math.ceil((startOfToday.getTime() - timestamp) / DAY_MS),
-  );
-  if (days === 0) return "今天更新";
-  if (days === 1) return "昨天更新";
-  return `${days} 天前更新`;
+  const ago = daysAgo(timestamp, now);
+  return ago ? `${ago}更新` : "";
 }
 
 const cardStyles = StyleSheet.create({
