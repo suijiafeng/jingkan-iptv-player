@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,11 +12,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BackBar, Button, Card, Heading, Notice } from "../../components/ui";
-import { displayGroups } from "../../domain/channelLabels";
-import { IMPORT_ISSUE_LABELS, ImportIssueReason } from "../../domain/types";
-import { colors, sizes, styles, type } from "../../theme";
+import { BackBar, Button, Heading, Notice } from "../../components/ui";
+import { colors, styles } from "../../theme";
 import type { SourceFormState } from "./form";
+import { ImportPreviewBody } from "./ImportPreview";
 
 interface Props {
   form: SourceFormState | null;
@@ -50,23 +49,30 @@ export function SourceFormModal({
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.content}
-          >
-            {form && (
-              <>
-                <Heading
-                  title={
-                    form.preview
-                      ? `${form.preview.stats.valid} 个频道`
-                      : form.refresh
-                        ? "刷新节目单"
-                        : "添加节目单"
-                  }
-                />
-                {error && <Notice title={error} error />}
-                {!form.preview ? (
+          {form?.preview ? (
+            // 使用独立布局：完整频道列表按需渲染并滚动，而
+            // 嵌套在表单 ScrollView 中的列表无法做到这一点。
+            <ImportPreviewBody
+              preview={form.preview}
+              header={
+                <>
+                  <Heading title={`${form.preview.stats.valid} 个频道`} />
+                  {error && <Notice title={error} error />}
+                </>
+              }
+              busy={busy}
+              onSave={onSave}
+              onBack={() => onUpdate({ preview: null })}
+            />
+          ) : (
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.content}
+            >
+              {form && (
+                <>
+                  <Heading title={form.refresh ? "刷新节目单" : "添加节目单"} />
+                  {error && <Notice title={error} error />}
                   <>
                     {!form.refresh && (
                       <View style={styles.row}>
@@ -145,84 +151,14 @@ export function SourceFormModal({
                       onPress={onPreview}
                     />
                   </>
-                ) : (
-                  <ImportPreviewBody
-                    preview={form.preview}
-                    busy={busy}
-                    onSave={onSave}
-                    onBack={() => onUpdate({ preview: null })}
-                  />
-                )}
-                {busy && <ActivityIndicator color={colors.accent} />}
-              </>
-            )}
-          </ScrollView>
+                  {busy && <ActivityIndicator color={colors.accent} />}
+                </>
+              )}
+            </ScrollView>
+          )}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
-  );
-}
-
-/**
- * 保存之前的解析结果：数量作为标题，HTTP 风险使用警告色，
- * 所有跳过的内容折叠在一行后方。
- */
-function ImportPreviewBody({
-  preview,
-  busy,
-  onSave,
-  onBack,
-}: {
-  preview: NonNullable<SourceFormState["preview"]>;
-  busy: boolean;
-  onSave: () => void;
-  onBack: () => void;
-}) {
-  const [skippedOpen, setSkippedOpen] = useState(false);
-  const { stats } = preview;
-  const skipped = stats.duplicates + stats.ignored;
-  const shown = preview.channels.slice(0, 5);
-  return (
-    <>
-      {stats.http > 0 && (
-        <Text style={formStyles.warnText}>
-          {stats.http} 个频道未加密（HTTP）
-        </Text>
-      )}
-      {skipped > 0 && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: skippedOpen }}
-          onPress={() => setSkippedOpen((open) => !open)}
-          style={formStyles.skippedToggle}
-        >
-          <Text style={styles.muted}>{skipped} 条未导入</Text>
-          <Text style={styles.muted}>{skippedOpen ? "收起" : "›"}</Text>
-        </Pressable>
-      )}
-      {skippedOpen &&
-        Object.entries(preview.issueCounts).map(([reason, count]) => (
-          <Text key={reason} style={styles.muted}>
-            {IMPORT_ISSUE_LABELS[reason as ImportIssueReason]}：{count}
-          </Text>
-        ))}
-      {shown.map((channel) => (
-        <Card key={channel.identityKey}>
-          <Text style={styles.heading}>{channel.name}</Text>
-          <Text style={styles.muted}>{displayGroups(channel.groupName)}</Text>
-        </Card>
-      ))}
-      {stats.valid > shown.length && (
-        <Text style={styles.muted}>… 还有 {stats.valid - shown.length} 个</Text>
-      )}
-      <Button
-        label={busy ? "正在保存…" : "导入"}
-        accessibilityLabel={`导入 ${stats.valid} 个频道`}
-        disabled={busy || !stats.valid}
-        onPress={onSave}
-      />
-      <Button label="返回修改" secondary disabled={busy} onPress={onBack} />
-    </>
   );
 }
 
@@ -237,12 +173,5 @@ const formStyles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     paddingHorizontal: 16,
-  },
-  warnText: { ...type.body, color: colors.warn },
-  skippedToggle: {
-    minHeight: sizes.touch,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
   },
 });
