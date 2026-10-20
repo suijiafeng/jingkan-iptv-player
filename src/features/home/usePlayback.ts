@@ -1,5 +1,6 @@
 import { useRef, useState, type MutableRefObject } from "react";
 import type { Repository } from "../../data/repository";
+import { uniqueStreams } from "../../domain/channelSources";
 import type { Channel } from "../../domain/types";
 
 /**
@@ -46,7 +47,10 @@ export function usePlayback({
       fresh?.active && fresh.groupKey
         ? fresh.groupKey
         : (current.groupKey ?? current.id);
-    const alternatives = await repo.listChannelSources(groupKey);
+    const alternatives = uniqueStreams(
+      await repo.listChannelSources(groupKey),
+      current.id,
+    );
     if (
       !mounted.current ||
       task !== playGeneration.current ||
@@ -86,8 +90,10 @@ export function usePlayback({
         setError("频道已不可用");
         return;
       }
-      const alternatives = await repo.listChannelSources(
-        representative.groupKey ?? representative.id,
+      const alternatives = uniqueStreams(
+        await repo.listChannelSources(
+          representative.groupKey ?? representative.id,
+        ),
       );
       if (!stillWanted()) return;
       setPlayQueue(queue.filter((queued) => queued.active));

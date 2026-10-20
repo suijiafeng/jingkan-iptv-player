@@ -92,3 +92,23 @@ export function qualityName(
 ): string {
   return channel.qualityLabel ?? "未知清晰度";
 }
+
+/**
+ * 每个流地址只保留一行。两个来源可能给出相同地址，播放任意一个
+ * 都是同一条流，因此播放器只显示一次。保留原顺序；当 keepId 指定
+ * 当前播放行时，同地址保留该行。
+ */
+export function uniqueStreams<T extends Pick<Channel, "id" | "streamUrl">>(
+  sources: T[],
+  keepId?: string,
+): T[] {
+  const kept = sources.find((source) => source.id === keepId);
+  const seen = new Set<string>();
+  const unique: T[] = [];
+  for (const source of sources) {
+    if (seen.has(source.streamUrl)) continue;
+    seen.add(source.streamUrl);
+    unique.push(kept && kept.streamUrl === source.streamUrl ? kept : source);
+  }
+  return unique;
+}
