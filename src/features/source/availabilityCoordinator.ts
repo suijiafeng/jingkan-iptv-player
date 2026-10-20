@@ -22,6 +22,11 @@ interface Options {
   beforeRequests?: () => Promise<boolean>;
   force?: boolean;
   maxRequests?: number;
+  /**
+   * 同时执行的检测数，在 beforeRequests 通过后读取；调用方根据
+   * 该步骤获取的网络类型选择并发数。
+   */
+  concurrency?: () => number;
   onProgress?: (done: number, total: number) => void;
   /** 判断结果新鲜度所用的时钟；测试时注入固定时间。 */
   now?: () => number;
@@ -34,6 +39,12 @@ export const OK_RESULT_TTL_MS = 24 * 60 * 60 * 1000;
  * 列表末尾，并在换台时跳过，因此该标记应更早过期。
  */
 export const UNREACHABLE_RESULT_TTL_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * 每完成指定数量就写入一次结果。即使系统中途结束检测，
+ * 已完成的结果仍能保留，下次可从剩余部分继续。
+ */
+export const CHECK_SAVE_BATCH = 100;
 
 /** 时钟回退会使结果年龄不可知，因此需要重新探测。 */
 function isFresh(entry: StoredCheck, now: number): boolean {
@@ -102,19 +113,46 @@ export async function checkAvailability(
         !options.isPermitted())
     )
       return { results: reused, refreshed: false, skipped: true };
+    // 探测继续执行时，按顺序逐批保存；每次保存
+    // 执行时检查许可，因此撤销后不会继续写入。
+    const saved = new Set<CheckResult>();
+    let unsaved: CheckResult[] = [],
+      saving = Promise.resolve(),
+      saveFailed = false;
+    const save = (batch: CheckResult[]) => {
+      saving = saving
+        .then(async () => {
+          if (saveFailed || !options.isPermitted()) return;
+          await store.saveCheckResults(batch);
+          for (const result of batch) saved.add(result);
+        })
+        .catch(() => {
+          saveFailed = true;
+        });
+    };
     const checked = selected.length
       ? await checkChannels(selected, {
           signal: options.signal,
+          concurrency: options.concurrency?.(),
+          onResult: (result) => {
+            unsaved.push(result);
+            if (unsaved.length < CHECK_SAVE_BATCH) return;
+            save(unsaved);
+            unsaved = [];
+          },
           onProgress: (done) =>
             options.onProgress?.(reused.length + done, total),
         })
       : [];
     // 持久化期间仍占用队列；下一位调用方从 SQLite 读取
     // 在本次提交完成之后执行，而不是让第二个请求与保存操作争抢。
+    await saving;
+    if (saveFailed) throw new AvailabilitySaveError();
     if (!options.isPermitted()) return { results: [], refreshed: false };
-    if (checked.length) {
+    const rest = checked.filter((result) => !saved.has(result));
+    if (rest.length) {
       try {
-        await store.saveCheckResults(checked);
+        await store.saveCheckResults(rest);
       } catch {
         throw new AvailabilitySaveError();
       }

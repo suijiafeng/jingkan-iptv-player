@@ -6,6 +6,7 @@ import {
   type MutableRefObject,
 } from "react";
 import { AppState } from "react-native";
+import * as Network from "expo-network";
 import type { Repository } from "../../data/repository";
 import type { Source } from "../../domain/types";
 import { ImportIOError } from "../../data/importIO";
@@ -17,7 +18,13 @@ import {
   lookupIptvOrgLanguages,
   needsLanguageLookup,
 } from "../source/iptvOrgLanguages";
-import type { CheckProgress, CheckSummary } from "../source/availability";
+import {
+  CHECK_CONCURRENCY,
+  UNMETERED_CHECK_CONCURRENCY,
+  type CheckProgress,
+  type CheckSummary,
+} from "../source/availability";
+import { isOffline, mightUseMobileData } from "../player/playbackController";
 
 /** 单来源的联网任务：从来源管理启动的可用性检测，以及导入预览要求补全语言后执行的 iptv-org 查询。两者均遵守与导入相同的联网限制，并在撤销许可时停止。 */
 export function useSourceTasks({
@@ -146,13 +153,23 @@ export function useSourceTasks({
         sourceId: source.id,
         includeVariants: true,
       });
-      if (!allowed()) return;
+      let concurrency = CHECK_CONCURRENCY;
       const { results, skipped } = await checkAvailability(repo, targets, {
         signal: abort.signal,
         force,
+        concurrency: () => concurrency,
         isPermitted: stillPermitted,
-        beforeRequests: async () =>
-          (await checkNetwork(abort.signal)) && allowed(),
+        beforeRequests: async () => {
+          if (!(await checkNetwork(abort.signal)) || !allowed()) return false;
+          // 与移动数据提醒采用相同规则：只有已知 Wi-Fi 或以太网
+          // 被视为不计费连接，并使用更大的检测并发数。
+          const network = await Network.getNetworkStateAsync().catch(
+            () => null,
+          );
+          if (network && !isOffline(network) && !mightUseMobileData(network))
+            concurrency = UNMETERED_CHECK_CONCURRENCY;
+          return allowed();
+        },
         onProgress: (done, total) => {
           if (allowed()) setCheck({ sourceId: source.id, done, total });
         },

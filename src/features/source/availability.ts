@@ -1,6 +1,8 @@
 import { checkStream } from "./streamProbe";
 
 export const CHECK_CONCURRENCY = 4;
+/** Wi-Fi 或以太网下，手动检测的并发探测数量加倍。 */
+export const UNMETERED_CHECK_CONCURRENCY = 8;
 
 export interface CheckTarget {
   id: string;
@@ -31,6 +33,8 @@ export async function checkChannels(
     signal: AbortSignal;
     concurrency?: number;
     onProgress?: (done: number, total: number) => void;
+    /** 每个结果一到达就回调，最终返回列表中使用的也是同一对象。 */
+    onResult?: (result: CheckResult) => void;
     check?: (url: string, signal: AbortSignal) => Promise<boolean>;
   },
 ): Promise<CheckResult[]> {
@@ -42,7 +46,9 @@ export async function checkChannels(
       const target = targets[next++];
       const ok = await check(target.streamUrl, options.signal);
       if (options.signal.aborted) return;
-      results.push({ channelId: target.id, streamUrl: target.streamUrl, ok });
+      const result = { channelId: target.id, streamUrl: target.streamUrl, ok };
+      results.push(result);
+      options.onResult?.(result);
       options.onProgress?.(results.length, targets.length);
     }
   };
