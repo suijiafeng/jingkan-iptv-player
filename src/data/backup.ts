@@ -35,11 +35,14 @@ const CHANNEL_COLUMNS = [
   "qualityLabel",
   "qualityRank",
 ] as const;
-const PREFERENCES = [
-  "mobileWarning",
-  "swipeReverse",
-  "skipUnreachable",
-] as const;
+const PREFERENCES = ["mobileWarning", "swipeReverse"] as const;
+/**
+ * 这些字段是在版本 1 文件发布后添加的，缺少字段时采用默认值。
+ * skipUnreachable 不再是可选设置，始终开启，但仍写入备份，
+ * 让旧版应用也能恢复新版备份。
+ */
+const OPTIONAL_PREFERENCES = { miniPlayer: true } as const;
+const LEGACY_PREFERENCES = { skipUnreachable: true } as const;
 type BackupRow = Record<string, SqlValue>;
 export interface LocalBackup {
   format: "jingkan-backup";
@@ -180,6 +183,11 @@ export function parseBackup(text: string): LocalBackup {
       if (typeof saved[key] !== "boolean") throw new BackupError();
       preferences[key] = saved[key];
     }
+    for (const [key, fallback] of Object.entries(OPTIONAL_PREFERENCES)) {
+      const value = saved[key] ?? fallback;
+      if (typeof value !== "boolean") throw new BackupError();
+      preferences[key] = value;
+    }
     return {
       format: "jingkan-backup",
       version: 1,
@@ -209,6 +217,14 @@ export async function readBackup(
       row?.value === "true" ||
       (row?.value !== "false" && key !== "swipeReverse");
   }
+  for (const [key, fallback] of Object.entries(OPTIONAL_PREFERENCES)) {
+    const row = await tx.getFirstAsync<{ value: string }>(
+      "SELECT value FROM settings WHERE key = ?",
+      [key],
+    );
+    preferences[key] = row ? row.value === "true" : fallback;
+  }
+  Object.assign(preferences, LEGACY_PREFERENCES);
   return {
     format: "jingkan-backup",
     version: 1,
@@ -253,7 +269,7 @@ export async function writeBackup(
       );
     }
   }
-  for (const key of PREFERENCES)
+  for (const key of [...PREFERENCES, ...Object.keys(OPTIONAL_PREFERENCES)])
     await tx.runAsync("INSERT INTO settings(key,value) VALUES(?,?)", [
       key,
       JSON.stringify(backup.preferences[key]),

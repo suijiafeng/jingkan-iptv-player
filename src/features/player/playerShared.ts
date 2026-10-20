@@ -39,8 +39,6 @@ export interface PlayerScreenProps {
   onStopMobileReminders?: () => void;
   /** 全屏上滑默认切换下一台；true 则反转方向（“我的电视”的“换台反转”）。 */
   swipeReverse?: boolean;
-  /** 上一台和下一台会跳过最近一次手动检测发现不可达的频道。 */
-  skipUnreachable?: boolean;
   /** 当前频道之前观看的频道，供一键返回。 */
   previousChannel?: Channel | null;
   artworkEnabled?: boolean;

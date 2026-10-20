@@ -10,7 +10,7 @@ import type { Tab } from "../channel/ChannelListParts";
 
 /** 布尔设置立即显示新值，保存失败时回退。 */
 export type SavedToggleKey =
-  "mobileWarning" | "swipeReverse" | "skipUnreachable" | "backgroundPlayback";
+  "mobileWarning" | "swipeReverse" | "miniPlayer" | "backgroundPlayback";
 
 /**
  * 打开本地数据库，并持有设置与网络许可；
@@ -31,7 +31,8 @@ export function useAppSettings({
     [backgroundPlayback, setBackgroundPlayback] = useState(false),
     [backgroundSaving, setBackgroundSaving] = useState(false),
     [swipeReverse, setSwipeReverse] = useState(false),
-    [skipUnreachable, setSkipUnreachable] = useState(true),
+    // 离开播放器时，将其停靠为小浮窗。
+    [miniPlayer, setMiniPlayer] = useState(true),
     [artworkAllowed, setArtworkAllowed] = useState(false),
     [artworkSaving, setArtworkSaving] = useState(false),
     [artworkRevokePending, setArtworkRevokePending] = useState(false),
@@ -68,7 +69,7 @@ export function useAppSettings({
         const warning = await opened.getSetting("mobileWarning", true);
         const background = await opened.getSetting("backgroundPlayback", false);
         const reverse = await opened.getSetting("swipeReverse", false);
-        const skipDead = await opened.getSetting("skipUnreachable", true);
+        const docking = await opened.getSetting("miniPlayer", true);
         const artwork = await opened.getSetting("artworkAllowed", false);
         const favorites = await opened.listChannels({ mode: "favorites" });
         const guideSeen = await opened.getSetting("guideSeen", false);
@@ -78,7 +79,7 @@ export function useAppSettings({
           setMobileWarning(warning);
           setBackgroundPlayback(background);
           setSwipeReverse(reverse);
-          setSkipUnreachable(skipDead);
+          setMiniPlayer(docking);
           setArtworkAllowed(artwork);
           // 只在真正首次运行时显示；已添加来源的用户跳过
           // 此操作；这项检查不会阻塞主页面的打开。
@@ -217,7 +218,7 @@ export function useAppSettings({
     mobileWarning: setMobileWarning,
     backgroundPlayback: setBackgroundPlayback,
     swipeReverse: setSwipeReverse,
-    skipUnreachable: setSkipUnreachable,
+    miniPlayer: setMiniPlayer,
   };
   const saveToggle = (key: SavedToggleKey, value: boolean) => {
     const setValue = toggleSetters[key];
@@ -272,7 +273,7 @@ export function useAppSettings({
     setBackgroundPlayback(false);
     setMobileAccepted(false);
     setSwipeReverse(false);
-    setSkipUnreachable(true);
+    setMiniPlayer(true);
     setArtworkAllowed(false);
     setArtworkRevokePending(false);
   };
@@ -296,7 +297,7 @@ export function useAppSettings({
     mobileAccepted,
     setMobileAccepted,
     swipeReverse,
-    skipUnreachable,
+    miniPlayer,
     artworkAllowed,
     artworkSaving,
     artworkRevokePending,

@@ -76,7 +76,10 @@ export function HomePlayer({
         mini={playerMini}
         // 位于浮窗 1dp 边框的内部。
         miniSize={{ width: floating.width - 2, height: floating.height - 2 }}
-        onMinimize={() => playback.setPlayerMini(true)}
+        // 关闭小窗功能后，离开播放器就会停止播放。
+        onMinimize={
+          settings.miniPlayer ? () => playback.setPlayerMini(true) : undefined
+        }
         onExpand={() => playback.setPlayerMini(false)}
         error={error}
         onDismissError={onDismissError}
@@ -102,7 +105,6 @@ export function HomePlayer({
           settings.saveToggle("mobileWarning", false)
         }
         swipeReverse={settings.swipeReverse}
-        skipUnreachable={settings.skipUnreachable}
         previousChannel={shownPrevious}
       />
       {playerMini && (

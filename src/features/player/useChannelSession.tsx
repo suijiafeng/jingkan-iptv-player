@@ -240,8 +240,9 @@ export function useChannelSession(props: SessionProps) {
   const index = props.channels.findIndex((channel) =>
     sameChannel(channel, props.channel),
   );
-  const skip = (channel: Channel) =>
-    !!props.skipUnreachable && channel.checkStatus === "unreachable";
+  // 上一个和下一个总会跳过检测发现无法连接的频道；
+  // 列表仍允许用户手动选择任意频道。
+  const skip = (channel: Channel) => channel.checkStatus === "unreachable";
   const previous = adjacentPlayableIndex(props.channels, index, -1, skip);
   const next = adjacentPlayableIndex(props.channels, index, 1, skip);
   const selectNext = () => {
