@@ -137,7 +137,6 @@ export function OverlayButton({
  * 按钮没有有效信息，因此不绘制。
  */
 export function SourceChip({
-  quality,
   position,
   count,
   solid = false,
@@ -145,8 +144,6 @@ export function SourceChip({
   accessibilityLabel,
   onPress,
 }: {
-  /** 仅使用明确标注的画质，绝不从频道名称猜测。 */
-  quality: string | null;
   /** 正在播放的来源在 `count` 个来源中的位置，从 1 开始。 */
   position: number;
   count: number;
@@ -156,7 +153,7 @@ export function SourceChip({
   accessibilityLabel: string;
   onPress: () => void;
 }) {
-  if (!quality && count < 2) return null;
+  if (count < 1) return null;
   return (
     <Pressable
       accessibilityRole="button"
@@ -173,8 +170,9 @@ export function SourceChip({
       onPress={onPress}
     >
       <Text style={styles.chipText} numberOfLines={1}>
-        {!!quality && <Text style={styles.chipQuality}>{quality}</Text>}
-        {count > 1 ? `${quality ? " · " : ""}${position}/${count}` : ""}
+        {/* 明确标签按钮将打开的内容：当前频道的来源列表。 */}
+        <Text style={styles.chipLead}>视频来源：</Text>
+        {position}/{count}
       </Text>
     </Pressable>
   );
@@ -422,7 +420,7 @@ const styles = StyleSheet.create({
   chipSolid: { backgroundColor: colors.raised },
   chipDisabled: { opacity: 0.7 },
   chipText: { color: colors.text, fontSize: 12, lineHeight: 18 },
-  chipQuality: { color: colors.accent, fontWeight: "600" },
+  chipLead: { color: colors.muted },
   shade: { position: "absolute", left: 0, right: 0 },
   shadeTop: {
     top: 0,

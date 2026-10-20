@@ -333,11 +333,11 @@ export function useChannelSession(props: SessionProps) {
   ) : state.phase === "blocked" ? null : (
     playPauseButton
   );
-  // 显示实际播放地址的清晰度和来源，点击按钮打开
-  // 备用来源列表中；全屏使用浮层，竖屏使用底部面板。
+  // 显示正在播放频道的第几个地址（2/3）；点击按钮打开
+  // 显示每个地址的列表，全屏使用浮层、竖屏使用底部面板，
+  // 因此即使只有一个来源也能打开；TalkBack 还会播报清晰度与名称。
   const sourceButton = (
     <SourceChip
-      quality={props.channel.qualityLabel ?? null}
       position={
         Math.max(
           props.sources.findIndex((source) => source.id === props.channel.id),
@@ -347,11 +347,10 @@ export function useChannelSession(props: SessionProps) {
       count={props.sources.length}
       accessibilityLabel={
         props.sources.length > 1
-          ? `来源：${qualityName(props.channel)} · ${props.channel.sourceName}，共 ${props.sources.length} 个，点击切换`
-          : `来源：${qualityName(props.channel)} · ${props.channel.sourceName}`
+          ? `视频来源：${qualityName(props.channel)} · ${props.channel.sourceName}，共 ${props.sources.length} 个，点击切换`
+          : `视频来源：${qualityName(props.channel)} · ${props.channel.sourceName}，点击查看地址`
       }
       solid={!props.fullscreen}
-      disabled={props.sources.length < 2}
       onPress={() => setSourcesOpen(!sourcesOpen)}
     />
   );
