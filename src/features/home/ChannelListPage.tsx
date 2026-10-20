@@ -28,12 +28,8 @@ import {
   EMPTY_ROW,
   type ChannelListItem,
 } from "./channelListItems";
+import { MINI_WINDOW_SPACE } from "./useFloatingWindow";
 
-/**
- * 停靠小窗的总高度为关闭键 40、间距 6、16:9 画面 99，再加 12dp 外边距。
- * 列表下方预留该空间，使最后几行能滚动到小窗之外。
- */
-const MINI_BAR_SPACE = 160;
 /** 顶部覆盖层与第一条列表行之间的间距。 */
 const LIST_TOP_GAP = 12;
 
@@ -150,7 +146,7 @@ export function ChannelListPage({
           // 行间距仅由分隔组件提供，与 getItemLayout 的计算假设保持一致；
           // 页面的内容间距会额外增加每行 12dp，而布局计算没有计入它。
           { paddingTop: listTop, gap: 0 },
-          reserveMiniBar && { paddingBottom: MINI_BAR_SPACE },
+          reserveMiniBar && { paddingBottom: MINI_WINDOW_SPACE },
         ]}
         ItemSeparatorComponent={ListSeparator}
         renderItem={({ item }) =>

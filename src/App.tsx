@@ -328,6 +328,7 @@ export default function App() {
         )}
         {tab === "settings" ? (
           <SettingsScreen
+            reserveMiniBar={!!playing && playerMini}
             repo={repo}
             onRestoreBackup={controls.restoreBackup}
             sourceCount={sources.length}

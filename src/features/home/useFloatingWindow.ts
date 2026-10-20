@@ -13,6 +13,12 @@ export const MINI_DEFAULT_WIDTH = 176;
 export const MINI_MIN_WIDTH = 144;
 /** 屏幕左右两侧以及顶部安全区上方所保留的边距。 */
 export const MINI_EDGE = 12;
+/**
+ * 页面在停靠小窗时于底部预留的空间：默认画面高度加外边距，
+ * 让最后几行可以滚动到小窗之外。
+ */
+export const MINI_WINDOW_SPACE =
+  Math.round((MINI_DEFAULT_WIDTH * 9) / 16) + 2 * MINI_EDGE;
 /** 超过此移动距离后，将触摸视为拖动而非点击。 */
 const DRAG_SLOP = 6;
 
