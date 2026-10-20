@@ -44,6 +44,7 @@ import {
   PlaybackController,
 } from "./playbackController";
 import {
+  CONTROLS_FIRST_HIDE_MS,
   CONTROLS_HIDE_MS,
   descriptions,
   OSD_MS,
@@ -146,9 +147,21 @@ export function useChannelSession(props: SessionProps) {
     !scrubbing &&
     !screenReader &&
     state.phase === "playing";
+  // 新流首次显示控件时停留更久；控件一旦隐藏（由计时器
+  // 或用户点击隐藏后，后续显示使用较短延迟。
+  const firstShow = useRef(true);
+  useEffect(() => {
+    firstShow.current = true;
+  }, [state.attemptId]);
+  useEffect(() => {
+    if (!controlsShown) firstShow.current = false;
+  }, [controlsShown]);
   useEffect(() => {
     if (!autoHide) return;
-    const timer = setTimeout(() => setControlsShown(false), CONTROLS_HIDE_MS);
+    const timer = setTimeout(
+      () => setControlsShown(false),
+      firstShow.current ? CONTROLS_FIRST_HIDE_MS : CONTROLS_HIDE_MS,
+    );
     return () => clearTimeout(timer);
   }, [autoHide, setControlsShown]);
   // 加载时保持画面简洁，方便换台；需要用户决定的状态

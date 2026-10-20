@@ -82,6 +82,8 @@ export const descriptions: Record<
 };
 
 export const CONTROLS_HIDE_MS = 4000;
+/** 媒体流开始后首次显示控件时多停留片刻，便于用户找到按钮。 */
+export const CONTROLS_FIRST_HIDE_MS = 6000;
 /** 全屏切台后的频道名称和位置提示层。 */
 export const OSD_MS = 2500;
 /** 超过这段时间仍无画面时，建议换台（规范要求在 15 秒提示）。 */
