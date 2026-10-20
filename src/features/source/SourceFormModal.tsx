@@ -82,7 +82,12 @@ export function SourceFormModal({
                           secondary={form.kind !== "file"}
                           label="文件"
                           disabled={busy}
-                          onPress={() => onUpdate({ kind: "file" })}
+                          // 直接打开文件选择器；下方的方框用于
+                          // 仅用于更换已经选择的文件。
+                          onPress={() => {
+                            onUpdate({ kind: "file" });
+                            if (!form.fileName) onChooseFile();
+                          }}
                         />
                       </View>
                     )}

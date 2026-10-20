@@ -32,12 +32,11 @@ interface ManagerProps {
 }
 
 /**
- * 来源管理页与打开它的设置页采用相同布局：先用分组卡片放置
- * 两种添加来源的方式，再为每个来源显示一张卡片。
+ * 来源管理采用与入口设置页一致的布局：一行用于添加来源，
+ * 随后每个来源各占一张卡片。
  */
 export function SourceManagerModal(props: ManagerProps) {
   const { check, sources } = props;
-  const enabledCount = sources.filter((source) => source.enabled).length;
   return (
     <Modal
       visible={props.visible}
@@ -51,16 +50,12 @@ export function SourceManagerModal(props: ManagerProps) {
         >
           <Heading title="节目来源" />
           <ErrorNotice message={props.error} onDismiss={props.onDismissError} />
+          {/* 在表单内选择链接或文件，不要重复选择两次。 */}
           <SettingSection label="添加">
             <SettingRow
-              title="添加链接"
+              title="添加节目来源"
               trailing={<Chevron />}
               onPress={() => props.onAdd("url")}
-            />
-            <SettingRow
-              title="导入文件"
-              trailing={<Chevron />}
-              onPress={() => props.onAdd("file")}
             />
           </SettingSection>
           {sources.length === 0 ? (
@@ -72,11 +67,6 @@ export function SourceManagerModal(props: ManagerProps) {
             </View>
           ) : (
             <View style={managerStyles.list}>
-              <Text style={[styles.caption, managerStyles.listLabel]}>
-                {enabledCount === sources.length
-                  ? `已添加 ${sources.length} 份`
-                  : `已添加 ${sources.length} 份，启用 ${enabledCount} 份`}
-              </Text>
               {sources.map((source) => (
                 <SourceCard
                   key={source.id}
@@ -107,7 +97,6 @@ export function SourceManagerModal(props: ManagerProps) {
 const managerStyles = StyleSheet.create({
   content: { gap: 16 },
   list: { gap: 10 },
-  listLabel: { paddingHorizontal: 4, marginBottom: -4 },
   emptyCard: {
     minHeight: 200,
     borderRadius: 14,
