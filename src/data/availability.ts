@@ -1,3 +1,4 @@
+import { normalizeLanguages } from "../domain/channelFacets";
 import type { SqlExecutor } from "./sql";
 
 export interface StoredCheck {
@@ -48,16 +49,47 @@ export async function synchronizeChecks(
   );
 }
 
+/** 新导入的记录也继承同地址其它记录已经识别到的音轨语言。此操作独立于 synchronizeChecks，后者还会在音轨列尚不存在的旧版本迁移中运行。 */
+export async function synchronizeStreamLanguages(
+  db: SqlExecutor,
+  sourceId: string,
+): Promise<void> {
+  await db.runAsync(
+    `UPDATE channels AS c SET streamLanguages = (
+      SELECT known.streamLanguages FROM channels known
+      WHERE known.streamUrl = c.streamUrl AND known.streamLanguages <> ''
+      ORDER BY known.checkedAt DESC, known.id LIMIT 1
+    ) WHERE c.sourceId = ? AND c.streamLanguages = '' AND EXISTS (
+      SELECT 1 FROM channels known
+      WHERE known.streamUrl = c.streamUrl AND known.streamLanguages <> ''
+    )`,
+    [sourceId],
+  );
+}
+
+/**
+ * 按地址记录可达性。只有检测读取了主播放列表时，才用声明的音轨语言
+ * 替换已保存的语言；其他情况保留最后已知的语言。
+ */
 export async function writeChecks(
   db: SqlExecutor,
-  results: { streamUrl: string; ok: boolean }[],
+  results: { streamUrl: string; ok: boolean; languages?: string[] }[],
   now: number,
 ): Promise<void> {
   for (const result of new Map(
     results.map((item) => [item.streamUrl, item]),
   ).values())
     await db.runAsync(
-      "UPDATE channels SET checkStatus = ?, checkedAt = ? WHERE streamUrl = ?",
-      [result.ok ? "ok" : "unreachable", now, result.streamUrl],
+      result.languages
+        ? "UPDATE channels SET checkStatus = ?, checkedAt = ?, streamLanguages = ? WHERE streamUrl = ?"
+        : "UPDATE channels SET checkStatus = ?, checkedAt = ? WHERE streamUrl = ?",
+      [
+        result.ok ? "ok" : "unreachable",
+        now,
+        ...(result.languages
+          ? [normalizeLanguages(result.languages.join(";")).join(";")]
+          : []),
+        result.streamUrl,
+      ],
     );
 }

@@ -1,5 +1,5 @@
 import { M3U_LIMITS, utf8ByteLength } from "../domain/m3u";
-import { synchronizeChecks } from "./availability";
+import { synchronizeChecks, synchronizeStreamLanguages } from "./availability";
 import type {
   Channel,
   ChannelQuery,
@@ -31,6 +31,7 @@ export interface RawChannel extends Omit<
   languages: string;
   lookupLanguages?: string;
   effectiveLanguages?: string;
+  streamLanguages?: string;
   favoriteCreatedAt?: number | null;
   sourceCreatedAt?: number;
   groupRow?: number;
@@ -40,12 +41,14 @@ export interface RawChannel extends Omit<
 
 /**
  * 频道展示和筛选使用的语言：节目单标注优先，其次是 iptv-org 查询结果，
- * 再次是用户按节目单分组顺序设置的分组语言，最后是整个来源的默认语言。
+ * 再次是可用性检测时媒体流自己声明的音轨语言，然后按节目单分组顺序
+ * 使用用户设置的分组语言，最后使用整个来源的默认语言。
  * 查询要求将 channels 表作为 c，与作为 s 的 sources 表连接。
  */
 export const EFFECTIVE_LANGUAGES = `COALESCE(
   NULLIF(c.languages, ''),
   NULLIF(c.lookupLanguages, ''),
+  NULLIF(c.streamLanguages, ''),
   (SELECT group_concat(language, ';') FROM (
     SELECT g.language FROM source_group_languages g
     WHERE g.sourceId = c.sourceId
@@ -188,6 +191,7 @@ export function mapChannel(row: RawChannel): Channel {
   const {
     lookupLanguages,
     effectiveLanguages,
+    streamLanguages: _streamLanguages,
     favoriteCreatedAt: _favoriteCreatedAt,
     sourceCreatedAt: _sourceCreatedAt,
     groupRow: _groupRow,
@@ -261,12 +265,14 @@ export async function upsertChannels(
       lookupLanguages=CASE WHEN channels.tvgId IS excluded.tvgId THEN channels.lookupLanguages ELSE '' END,
       checkStatus=CASE WHEN channels.streamUrl=excluded.streamUrl THEN channels.checkStatus END,
       checkedAt=CASE WHEN channels.streamUrl=excluded.streamUrl THEN channels.checkedAt END,
+      streamLanguages=CASE WHEN channels.streamUrl=excluded.streamUrl THEN channels.streamLanguages ELSE '' END,
       streamUrl=excluded.streamUrl,qualityLabel=excluded.qualityLabel,qualityRank=excluded.qualityRank,
       sortIndex=excluded.sortIndex,active=1,lastSeenRevision=excluded.lastSeenRevision`,
       params,
     );
   }
   await synchronizeChecks(tx, sourceId);
+  await synchronizeStreamLanguages(tx, sourceId);
   // 收藏和最近观看按 groupKey 保存，因此新导入的
   // 备用线路继承该状态，无需复制每条播放地址的数据行。
 }

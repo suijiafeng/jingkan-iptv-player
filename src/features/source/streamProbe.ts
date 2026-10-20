@@ -2,7 +2,11 @@ import { fetch as expoFetch } from "expo/fetch";
 import { normalizeRemoteUrl } from "../../domain/url";
 import { abortableDelay, linkedDeadline } from "../../lib/abort";
 import { readStreamHead } from "../../lib/streamHead";
-import { looksLikePlaylist, nextProbeStep } from "./playlistProbe";
+import {
+  audioLanguages,
+  looksLikePlaylist,
+  nextProbeStep,
+} from "./playlistProbe";
 
 /** 每次请求的上限；一次尝试最多发起四个请求，见 CHECK_ATTEMPT_BUDGET_MS。 */
 export const CHECK_TIMEOUT_MS = 8000;
@@ -20,6 +24,12 @@ const MAX_PLAYLIST_DEPTH = 2;
  * 连接重置、超时或临时状态码（408、429、5xx）。
  */
 type Attempt = "ok" | "failed" | "error";
+
+/** 可达地址还可声明它包含的音轨语言，直接从检测本来就会获取的主清单读取。没有可读主清单时，不提供该字段。 */
+export interface StreamCheck {
+  ok: boolean;
+  languages?: string[];
+}
 
 interface Fetched {
   status: number;
@@ -83,6 +93,7 @@ async function followAddress(
   url: string,
   signal: AbortSignal,
   depth: number,
+  found: { languages?: string[] },
 ): Promise<Attempt> {
   const head = await requestHead(url, signal);
   const headFailure = outcome(head);
@@ -95,6 +106,9 @@ async function followAddress(
     : await request(head.url, signal, false, PLAYLIST_MAX_BYTES);
   const playlistFailure = outcome(playlist);
   if (playlistFailure) return playlistFailure;
+  if (depth === 0)
+    found.languages =
+      audioLanguages(playlist.text, playlist.complete) ?? undefined;
   const step = nextProbeStep(playlist.text, playlist.complete);
   // 节目单已响应，空的直播窗口无法进一步探测。
   if (!step) return "ok";
@@ -109,16 +123,18 @@ async function followAddress(
     next,
     signal,
     step.kind === "playlist" ? depth + 1 : MAX_PLAYLIST_DEPTH + 1,
+    found,
   );
 }
 
 async function attemptStream(
   url: string,
   signal: AbortSignal,
+  found: { languages?: string[] },
 ): Promise<Attempt> {
   const deadline = linkedDeadline(signal, CHECK_ATTEMPT_BUDGET_MS);
   try {
-    return await followAddress(url, deadline.signal, 0);
+    return await followAddress(url, deadline.signal, 0, found);
   } catch {
     return "error";
   } finally {
@@ -131,9 +147,21 @@ export async function checkStream(
   url: string,
   signal: AbortSignal,
 ): Promise<boolean> {
-  const first = await attemptStream(url, signal);
-  if (first !== "error") return first === "ok";
-  await abortableDelay(CHECK_RETRY_DELAY_MS, signal);
-  if (signal.aborted) return false;
-  return (await attemptStream(url, signal)) === "ok";
+  return (await probeStream(url, signal)).ok;
+}
+
+/** checkStream 的检测结果，加上可达 HLS 主播放列表声明的音轨语言。 */
+export async function probeStream(
+  url: string,
+  signal: AbortSignal,
+): Promise<StreamCheck> {
+  let found: { languages?: string[] } = {};
+  let attempt = await attemptStream(url, signal, found);
+  if (attempt === "error") {
+    await abortableDelay(CHECK_RETRY_DELAY_MS, signal);
+    if (signal.aborted) return { ok: false };
+    found = {};
+    attempt = await attemptStream(url, signal, found);
+  }
+  return attempt === "ok" ? { ok: true, ...found } : { ok: false };
 }

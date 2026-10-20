@@ -1,3 +1,5 @@
+import { normalizeLanguages } from "../../domain/channelFacets";
+
 export type ProbeStep =
   { kind: "playlist"; uri: string } | { kind: "segment"; uri: string };
 
@@ -24,4 +26,28 @@ export function nextProbeStep(
   }
   const uri = lines.find(isUri);
   return uri ? { kind: "segment", uri } : null;
+}
+
+/**
+ * 从主列表的 #EXT-X-MEDIA:TYPE=AUDIO 条目读取声明的音轨语言，
+ * 并转为基础代码，例如 "zh-CN" → "zh"。只采用媒体流明确声明的信息，
+ * 不读取名称或 URL。文本不是主列表时返回 null，因此媒体列表或分片
+ * 不提供任何语言信息。
+ */
+export function audioLanguages(
+  text: string,
+  complete: boolean,
+): string[] | null {
+  const body = complete ? text : text.slice(0, text.lastIndexOf("\n") + 1);
+  const lines = body.split(/\r?\n/).map((line) => line.trim());
+  if (!lines.some((line) => line.startsWith("#EXT-X-STREAM-INF"))) return null;
+  const found = new Set<string>();
+  for (const line of lines) {
+    if (!line.startsWith("#EXT-X-MEDIA:")) continue;
+    if (!/(?:^|[:,])TYPE=AUDIO(?:,|$)/.test(line)) continue;
+    const declared = /(?:^|[:,])LANGUAGE="([^"]*)"/.exec(line)?.[1];
+    for (const code of normalizeLanguages(declared))
+      found.add(code.split("-")[0]);
+  }
+  return [...found];
 }

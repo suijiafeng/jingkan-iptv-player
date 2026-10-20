@@ -348,6 +348,7 @@ export class Repository {
       channelId: string;
       streamUrl: string;
       ok: boolean;
+      languages?: string[];
     }[],
   ): Promise<void> {
     if (!results.length) return;

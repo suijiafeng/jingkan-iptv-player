@@ -1,4 +1,4 @@
-import { checkStream } from "./streamProbe";
+import { probeStream, type StreamCheck } from "./streamProbe";
 
 export const CHECK_CONCURRENCY = 4;
 /** Wi-Fi 或以太网下，手动检测的并发探测数量加倍。 */
@@ -24,6 +24,8 @@ export interface CheckResult {
   channelId: string;
   streamUrl: string;
   ok: boolean;
+  /** 流声明的音轨语言；未声明时缺省。 */
+  languages?: string[];
 }
 
 /** 限制并发数的批量检测；停止时只返回已完成的结果。 */
@@ -35,18 +37,30 @@ export async function checkChannels(
     onProgress?: (done: number, total: number) => void;
     /** 每个结果一到达就回调，最终返回列表中使用的也是同一对象。 */
     onResult?: (result: CheckResult) => void;
-    check?: (url: string, signal: AbortSignal) => Promise<boolean>;
+    check?: (
+      url: string,
+      signal: AbortSignal,
+    ) => Promise<boolean | StreamCheck>;
   },
 ): Promise<CheckResult[]> {
-  const check = options.check ?? checkStream;
+  const check = options.check ?? probeStream;
   const results: CheckResult[] = [];
   let next = 0;
   const worker = async () => {
     while (!options.signal.aborted && next < targets.length) {
       const target = targets[next++];
-      const ok = await check(target.streamUrl, options.signal);
+      const answer = await check(target.streamUrl, options.signal);
       if (options.signal.aborted) return;
-      const result = { channelId: target.id, streamUrl: target.streamUrl, ok };
+      const { ok, languages } =
+        typeof answer === "boolean"
+          ? { ok: answer, languages: undefined }
+          : answer;
+      const result: CheckResult = {
+        channelId: target.id,
+        streamUrl: target.streamUrl,
+        ok,
+        ...(languages ? { languages } : {}),
+      };
       results.push(result);
       options.onResult?.(result);
       options.onProgress?.(results.length, targets.length);

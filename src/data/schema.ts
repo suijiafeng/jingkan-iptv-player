@@ -37,8 +37,17 @@ export async function migrateSchema(tx: SqlExecutor): Promise<void> {
   await tx.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
 }
 
-/** v9：针对节目单和 iptv-org 查询均未标注语言的频道，允许用户手动指定语言；每个来源可设置一项，每个来源内的分组名称也可设置一项。绝不推断；删除来源时一并删除这些选择。 */
+/** v9：针对节目单和 iptv-org 查询均未标注语言的频道，新增两类语言来源：可用性检测从流媒体主清单读取并按地址记录的音轨语言，以及用户为整个来源或来源内某个分组手动指定的语言。绝不推断；删除来源时一并删除这些选择。 */
 async function migrateV9(tx: SqlExecutor): Promise<void> {
+  const channelColumns = new Set(
+    (await tx.getAllAsync<{ name: string }>("PRAGMA table_info(channels)")).map(
+      (column) => column.name,
+    ),
+  );
+  if (!channelColumns.has("streamLanguages"))
+    await tx.execAsync(
+      "ALTER TABLE channels ADD COLUMN streamLanguages TEXT NOT NULL DEFAULT '';",
+    );
   const columns = new Set(
     (await tx.getAllAsync<{ name: string }>("PRAGMA table_info(sources)")).map(
       (column) => column.name,
