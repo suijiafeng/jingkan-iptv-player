@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -22,6 +22,9 @@ import {
 import { useChannelSession } from "./useChannelSession";
 import type { FailoverView } from "./useSourceFailover";
 import { sessionStyles } from "./channelSessionStyles";
+
+/** 长按后，频道名称在停靠画面上保留的时长。 */
+const MINI_TITLE_MS = 2500;
 
 export interface SessionProps extends PlayerScreenProps {
   audioOnly: boolean;
@@ -75,6 +78,12 @@ export function ChannelSession(props: SessionProps) {
     sourceButton,
     favoriteButton,
   } = view;
+  const [miniTitleShown, setMiniTitleShown] = useState(false);
+  useEffect(() => {
+    if (!miniTitleShown) return;
+    const timer = setTimeout(() => setMiniTitleShown(false), MINI_TITLE_MS);
+    return () => clearTimeout(timer);
+  }, [miniTitleShown]);
   const paused = state.phase === "paused";
   const docks = !!props.onMinimize && !paused;
   const { onPausedChange } = props;
@@ -252,7 +261,20 @@ export function ChannelSession(props: SessionProps) {
             accessibilityRole="button"
             accessibilityLabel={`展开播放器，${title}`}
             onPress={props.onExpand}
+            // 窗口不常驻标题；长按后才显示频道名称。
+            onLongPress={() => setMiniTitleShown(true)}
           />
+        )}
+        {props.mini && miniTitleShown && (
+          <View style={sessionStyles.miniTitleStrip} pointerEvents="none">
+            <Text
+              style={sessionStyles.miniTitleText}
+              numberOfLines={1}
+              testID="mini-title"
+            >
+              {title}
+            </Text>
+          </View>
         )}
         {!props.fullscreen && !props.mini && controlsVisible && (
           <>
