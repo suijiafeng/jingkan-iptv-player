@@ -1,11 +1,9 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
-import { channelMonogram } from "../../domain/channelLabels";
 import { daysAgo } from "../../domain/timeAgo";
 import type { Source } from "../../domain/types";
 import { colors, sizes, styles, type } from "../../theme";
 import type { CheckProgress, CheckSummary } from "./availability";
-import { SourceActionSheet, type SheetAction } from "./SourceActionSheet";
 
 interface Props {
   source: Source;
@@ -13,46 +11,30 @@ interface Props {
   check: CheckProgress | null;
   summary?: CheckSummary;
   saving: boolean;
-  /** 正在查询语言的来源，没有任务时为空。 */
-  languageLookup: string | null;
-  languageMessage?: string;
-  onRefresh: (source: Source) => void;
   onRename: (source: Source) => void;
   onRemove: (source: Source) => void;
   onEnabledChange: (source: Source, enabled: boolean) => void;
   onCheck: (source: Source, force?: boolean) => void;
   onStopCheck: () => void;
-  onLookupLanguages?: (source: Source) => void;
-  onStopLanguageLookup?: () => void;
 }
 
-/**
- * 管理页中的一个来源，布局类似设置行：首字图标、名称及下方的数量，
- * 再放启用或停用开关。需要处理的事项才增加第三行警告色说明。
- * 底栏保留两个常用操作，其余操作通过“更多”打开底部弹层。
- */
+/** 管理页中的单个来源：同一行左侧显示名称，右侧显示频道数量与更新时间；只有需要注意时，才额外显示一行警告色说明。底栏一行容纳全部操作：左侧依次是“测试连通”“编辑”（名称与链接）和错误色的“删除”，右侧末尾放启用开关。 */
 export function SourceCard({
   source,
   check,
   summary,
   saving,
-  languageLookup,
-  languageMessage,
   ...props
 }: Props) {
-  const [moreOpen, setMoreOpen] = useState(false);
   // 按天显示即可，使用管理页打开时的时间已足够精确。
   const [now] = useState(() => Date.now());
   const running = check?.sourceId === source.id;
-  const lookupRunning = languageLookup === source.id;
   const checked = !!summary || typeof source.lastCheckedAt === "number";
   const unreachable = summary ? summary.unreachable : source.unreachableCount;
+  // 按列表的显示方式统计频道；只有当某些
+  // 其中部分地址无法连接。
   const meta = [
-    source.kind === "file" ? "本地文件" : "链接",
-    // 列表展示逻辑频道；多个地址可以归属于同一频道。
-    source.addressCount > source.channelCount
-      ? `${source.channelCount} 个频道，${source.addressCount} 个地址`
-      : `${source.channelCount} 个频道`,
+    `${source.channelCount} 个频道`,
     updatedAgo(source.lastSuccessAt, now),
   ]
     .filter(Boolean)
@@ -68,56 +50,28 @@ export function SourceCard({
       ]
         .filter(Boolean)
         .join(" · ");
-  const sheetActions: SheetAction[] = [
-    ...(source.enabled && props.onLookupLanguages && !lookupRunning
-      ? [
-          {
-            label: "补全语言",
-            disabled:
-              !!languageLookup || !!check || saving || !source.channelCount,
-            onPress: () => props.onLookupLanguages?.(source),
-          },
-        ]
-      : []),
-    { label: "改名", disabled: saving, onPress: () => props.onRename(source) },
-    {
-      label: "删除",
-      danger: true,
-      disabled: saving,
-      onPress: () => props.onRemove(source),
-    },
-  ];
   return (
     <View style={cardStyles.card}>
       <View style={cardStyles.head}>
-        <View
-          accessible={false}
-          importantForAccessibility="no-hide-descendants"
-          style={[cardStyles.badge, !source.enabled && cardStyles.dimmed]}
-        >
-          <Text style={cardStyles.monogram}>
-            {channelMonogram(source.name)}
-          </Text>
-        </View>
         <View style={[cardStyles.text, !source.enabled && cardStyles.dimmed]}>
-          <Text style={cardStyles.title} numberOfLines={1}>
-            {source.name}
-          </Text>
-          <Text style={styles.caption}>{meta}</Text>
+          {/* 名称在左，数量信息占据同一行右侧。名称过长时显示省略号，数量始终保留。 */}
+          <View style={cardStyles.titleLine}>
+            <Text style={cardStyles.title} numberOfLines={1}>
+              {source.name}
+            </Text>
+            <Text style={[styles.caption, cardStyles.meta]} numberOfLines={1}>
+              {meta}
+            </Text>
+          </View>
           {!!attention && (
-            <Text style={[styles.caption, cardStyles.warnText]}>
+            <Text
+              style={[styles.caption, cardStyles.warnText]}
+              numberOfLines={1}
+            >
               {attention}
             </Text>
           )}
         </View>
-        <Switch
-          accessibilityLabel={source.enabled ? "停用" : "启用"}
-          accessibilityHint={saving ? "正在保存" : undefined}
-          value={source.enabled}
-          disabled={saving || running || lookupRunning}
-          trackColor={{ true: colors.accent }}
-          onValueChange={(enabled) => props.onEnabledChange(source, enabled)}
-        />
       </View>
       {running && (
         <View
@@ -152,69 +106,47 @@ export function SourceCard({
           </View>
         </View>
       )}
-      {lookupRunning && (
-        <Text
-          style={[styles.caption, cardStyles.note]}
-          accessibilityLiveRegion="polite"
-        >
-          正在补全语言…
-        </Text>
-      )}
-      {!lookupRunning && languageMessage && (
-        <Text style={[styles.caption, cardStyles.note]}>{languageMessage}</Text>
-      )}
+      {/* 每张卡都显示相同的四项操作；当前不能使用的操作
+          保留在原位并置灰，不将其隐藏。 */}
       <View style={cardStyles.footer}>
-        {source.enabled && (
-          <>
-            <FooterAction
-              label={
-                source.lastErrorCategory
-                  ? "重试刷新"
-                  : source.kind === "file"
-                    ? "更新节目单"
-                    : "刷新"
-              }
-              accessibilityLabel={
-                source.kind === "file" ? "更新节目单 / 更换文件" : "刷新并预览"
-              }
-              disabled={saving || !!check || !!languageLookup}
-              onPress={() => props.onRefresh(source)}
-            />
-            {running ? (
-              <FooterAction label="停止测试" onPress={props.onStopCheck} />
-            ) : (
-              <FooterAction
-                label="测试连通"
-                accessibilityLabel={checked ? "重新测试连通" : "测试连通"}
-                disabled={saving || !!check || !source.channelCount}
-                onPress={() =>
-                  summary ? props.onCheck(source, true) : props.onCheck(source)
-                }
-              />
-            )}
-            {lookupRunning && (
-              <FooterAction
-                label="停止补全"
-                accessibilityLabel="停止补全语言"
-                onPress={() => props.onStopLanguageLookup?.()}
-              />
-            )}
-          </>
+        {running ? (
+          <FooterAction label="停止测试" onPress={props.onStopCheck} />
+        ) : (
+          <FooterAction
+            label="测试连通"
+            accessibilityLabel={checked ? "重新测试连通" : "测试连通"}
+            disabled={
+              !source.enabled || saving || !!check || !source.channelCount
+            }
+            onPress={() =>
+              summary ? props.onCheck(source, true) : props.onCheck(source)
+            }
+          />
         )}
-        <View style={cardStyles.spacer} />
         <FooterAction
-          label="更多"
-          accessibilityLabel="更多操作"
-          muted
-          onPress={() => setMoreOpen(true)}
+          label="编辑"
+          disabled={saving}
+          onPress={() => props.onRename(source)}
+        />
+        <FooterAction
+          label="删除"
+          danger
+          disabled={saving}
+          onPress={() => props.onRemove(source)}
+        />
+        <View style={cardStyles.spacer} />
+        {/* 开关位于行的末尾，让上方文字可以
+            使用卡片的完整宽度。 */}
+        <Switch
+          style={cardStyles.switch}
+          accessibilityLabel={source.enabled ? "停用" : "启用"}
+          accessibilityHint={saving ? "正在保存" : undefined}
+          value={source.enabled}
+          disabled={saving || running}
+          trackColor={{ true: colors.accent }}
+          onValueChange={(enabled) => props.onEnabledChange(source, enabled)}
         />
       </View>
-      <SourceActionSheet
-        visible={moreOpen}
-        title={source.name}
-        actions={sheetActions}
-        onClose={() => setMoreOpen(false)}
-      />
     </View>
   );
 }
@@ -224,14 +156,14 @@ function FooterAction({
   label,
   accessibilityLabel,
   disabled = false,
-  muted = false,
+  danger = false,
   onPress,
 }: {
   label: string;
   accessibilityLabel?: string;
   disabled?: boolean;
-  /** 次要操作“更多”，使用弱化颜色绘制。 */
-  muted?: boolean;
+  /** 破坏性操作“删除”，使用错误颜色绘制。 */
+  danger?: boolean;
   onPress: () => void;
 }) {
   return (
@@ -247,7 +179,7 @@ function FooterAction({
         pressed && cardStyles.pressed,
       ]}
     >
-      <Text style={[cardStyles.footerText, muted && cardStyles.footerMuted]}>
+      <Text style={[cardStyles.footerText, danger && cardStyles.danger]}>
         {label}
       </Text>
     </Pressable>
@@ -275,17 +207,12 @@ const cardStyles = StyleSheet.create({
     paddingLeft: 14,
     paddingRight: 12,
   },
-  badge: {
-    width: sizes.logo,
-    height: sizes.logo,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.raised,
-  },
-  monogram: { ...type.heading, color: colors.accent },
   text: { flex: 1, minWidth: 0, gap: 2 },
-  title: { ...type.rowTitle, color: colors.text },
+  spacer: { flex: 1 },
+  switch: { marginRight: 8 },
+  titleLine: { flexDirection: "row", alignItems: "baseline", gap: 12 },
+  title: { ...type.rowTitle, color: colors.text, flex: 1, minWidth: 0 },
+  meta: { flexShrink: 0 },
   dimmed: { opacity: 0.45 },
   warnText: { color: colors.warn },
   note: { paddingHorizontal: 14, paddingBottom: 10 },
@@ -314,7 +241,6 @@ const cardStyles = StyleSheet.create({
     justifyContent: "center",
   },
   footerText: { ...type.chip, color: colors.accent, fontWeight: "600" },
-  footerMuted: { color: colors.muted },
-  spacer: { flex: 1 },
+  danger: { color: colors.bad },
   pressed: { opacity: 0.7 },
 });

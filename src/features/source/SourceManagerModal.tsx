@@ -17,18 +17,12 @@ interface ManagerProps {
   onDismissError?: () => void;
   onClose: () => void;
   onAdd: (kind: SourceKind) => void;
-  onRefresh: (source: Source) => void;
   onRename: (source: Source) => void;
   onRemove: (source: Source) => void;
   sourceSaving?: string | null;
   onEnabledChange: (source: Source, enabled: boolean) => void;
   onCheck: (source: Source, force?: boolean) => void;
   onStopCheck: () => void;
-  /** 当前正在通过 iptv-org 数据库查询语言的来源。 */
-  languageLookup?: string | null;
-  languageMessages?: Record<string, string>;
-  onLookupLanguages?: (source: Source) => void;
-  onStopLanguageLookup?: () => void;
 }
 
 /**
@@ -74,16 +68,11 @@ export function SourceManagerModal(props: ManagerProps) {
                   check={check}
                   summary={props.summaries[source.id]}
                   saving={props.sourceSaving === source.id}
-                  languageLookup={props.languageLookup ?? null}
-                  languageMessage={props.languageMessages?.[source.id]}
-                  onRefresh={props.onRefresh}
                   onRename={props.onRename}
                   onRemove={props.onRemove}
                   onEnabledChange={props.onEnabledChange}
                   onCheck={props.onCheck}
                   onStopCheck={props.onStopCheck}
-                  onLookupLanguages={props.onLookupLanguages}
-                  onStopLanguageLookup={props.onStopLanguageLookup}
                 />
               ))}
             </View>

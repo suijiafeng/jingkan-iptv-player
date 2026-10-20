@@ -1,18 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { Repository } from "../../data/repository";
 import type { Source } from "../../domain/types";
 import { SourceFormModal } from "../source/SourceFormModal";
-import { RenameSourceModal } from "../source/RenameSourceModal";
+import { EditSourceModal } from "../source/EditSourceModal";
+import type { SourceEditDeps } from "../source/useSourceEdit";
 import { SourceManagerModal } from "../source/SourceManagerModal";
 import type { SourceImport } from "./useSourceImport";
 import type { useSourceTasks } from "./useSourceTasks";
 
-/**
- * 来源管理及其打开的重命名、添加或刷新表单。对话框都显示在管理页上方，
- * 管理页保持打开，因此离开对话框后直接显露原管理页。
- * Android 同时关闭一个 Modal 并打开另一个时，
- * 可能导致新页面未绘制却仍然拦截触摸。
- */
+/** 来源管理及其打开的对话页，包括将名称和链接一次保存的编辑页，以及添加表单。二者均叠在仍保持打开的管理页之上，退出时只需露出下面的管理页。Android 上若同一时刻关闭一个模态页并打开另一个，新页面可能尚未绘制却已拦截触摸。 */
 export function SourceDialogs({
   repo,
   sources,
@@ -27,6 +23,7 @@ export function SourceDialogs({
   onRemoveSource,
   onSetSourceEnabled,
   changed,
+  editDeps,
 }: {
   repo: Repository;
   sources: Source[];
@@ -41,10 +38,16 @@ export function SourceDialogs({
   onRemoveSource: (source: Source) => void;
   onSetSourceEnabled: (source: Source, enabled: boolean) => Promise<void>;
   changed: () => void;
+  /** 编辑页保存操作使用的联网许可和播放相关接口。 */
+  editDeps: SourceEditDeps;
 }) {
-  const [renameText, setRenameText] = useState("");
   const [sourceSaving, setSourceSaving] = useState<string | null>(null);
-  const backToManagement = () => setRenaming(null);
+
+  // 编辑页从属于来源管理；管理页关闭时它也应关闭，
+  // 例如从编辑页保存更新后，界面切换到了频道列表。
+  useEffect(() => {
+    if (!managing) setRenaming(null);
+  }, [managing, setRenaming]);
   return (
     <>
       <SourceManagerModal
@@ -57,11 +60,9 @@ export function SourceDialogs({
         summaries={sourceTasks.checkSummaries}
         onClose={() => setManaging(false)}
         onAdd={(kind) => importer.startForm(kind, true)}
-        onRefresh={(source) => void importer.refresh(source, true)}
         onRename={(source) => {
           setError("");
           setRenaming(source);
-          setRenameText(source.name);
         }}
         onRemove={onRemoveSource}
         sourceSaving={sourceSaving}
@@ -74,34 +75,13 @@ export function SourceDialogs({
         }}
         onCheck={(source, force) => void sourceTasks.runCheck(source, force)}
         onStopCheck={sourceTasks.stopCheck}
-        languageLookup={sourceTasks.languageLookup}
-        languageMessages={sourceTasks.languageMessages}
-        onLookupLanguages={(source) =>
-          void sourceTasks.runLanguageLookup(source)
-        }
-        onStopLanguageLookup={sourceTasks.stopLanguageLookup}
       />
-      <RenameSourceModal
+      <EditSourceModal
         source={renaming}
-        error={error}
-        onDismissError={() => setError("")}
-        text={renameText}
-        onChangeText={(text) => {
-          setRenameText(text);
-          setError("");
-        }}
-        onSave={() => {
-          setError("");
-          if (renaming)
-            void repo
-              .renameSource(renaming.id, renameText.trim())
-              .then(() => {
-                backToManagement();
-                changed();
-              })
-              .catch(() => setError("名称未保存，请重试"));
-        }}
-        onCancel={backToManagement}
+        repo={repo}
+        close={() => setRenaming(null)}
+        changed={changed}
+        deps={editDeps}
       />
       <SourceFormModal
         form={importer.form}

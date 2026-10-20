@@ -99,14 +99,18 @@ export default function App() {
     playback,
   });
   const { recentBusy, recentEditing, setRecentEditing } = actions;
-  const importer = useSourceImport({
-    repo,
-    setError,
+  // 添加和编辑来源时，用于联网及回传结果的接口。
+  const sourceNetwork = {
     mounted,
     remoteRef: settings.remoteRef,
     guardRemote: settings.guardRemote,
     checkNetwork: settings.checkNetwork,
     reconcilePlayingSources: playback.reconcilePlayingSources,
+  };
+  const importer = useSourceImport({
+    repo,
+    setError,
+    ...sourceNetwork,
     changed,
     onImported: () => {
       // 表单覆盖在管理页上打开；保存列表后显示其频道。
@@ -182,12 +186,13 @@ export default function App() {
         // 先处理当前页面自己的对话框，只有其它层都关闭后才停止播放
         // 处于打开状态。
         if (playing && !playerMini) return false;
-        if (rename) {
-          setRename(null);
-          return true;
-        }
+        // 表单可能位于编辑页上方，因此先处理表单。
         if (importer.form) {
           void importer.backForm();
+          return true;
+        }
+        if (rename) {
+          setRename(null);
           return true;
         }
         if (manage) {
@@ -437,6 +442,7 @@ export default function App() {
         onRemoveSource={(source) => void controls.removeSource(source)}
         onSetSourceEnabled={controls.setSourceEnabled}
         changed={changed}
+        editDeps={sourceNetwork}
       />
       <NetworkConsentDialog
         visible={settings.consentCellular !== null}
