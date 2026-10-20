@@ -109,6 +109,8 @@ export default function App() {
     reconcilePlayingSources: playback.reconcilePlayingSources,
     changed,
     onImported: () => {
+      // 表单覆盖在管理页上打开；保存列表后显示其频道。
+      setManage(false);
       setTab("all");
       setRecentEditing(false);
       filters.reset();

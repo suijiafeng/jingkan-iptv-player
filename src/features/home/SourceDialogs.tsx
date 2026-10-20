@@ -8,8 +8,10 @@ import type { SourceImport } from "./useSourceImport";
 import type { useSourceTasks } from "./useSourceTasks";
 
 /**
- * 来源管理及其打开的对话框：重命名和添加/刷新表单。重命名后返回管理页；
- * 表单替换管理页，取消表单时也返回管理页。
+ * 来源管理及其打开的重命名、添加或刷新表单。对话框都显示在管理页上方，
+ * 管理页保持打开，因此离开对话框后直接显露原管理页。
+ * Android 同时关闭一个 Modal 并打开另一个时，
+ * 可能导致新页面未绘制却仍然拦截触摸。
  */
 export function SourceDialogs({
   repo,
@@ -42,33 +44,24 @@ export function SourceDialogs({
 }) {
   const [renameText, setRenameText] = useState("");
   const [sourceSaving, setSourceSaving] = useState<string | null>(null);
-  const backToManagement = () => {
-    setRenaming(null);
-    setManaging(true);
-  };
+  const backToManagement = () => setRenaming(null);
   return (
     <>
       <SourceManagerModal
         visible={managing}
-        error={error}
+        // 上层对话框已经自行显示共享错误。
+        error={renaming || importer.form ? undefined : error}
         onDismissError={() => setError("")}
         sources={sources}
         check={sourceTasks.check}
         summaries={sourceTasks.checkSummaries}
         onClose={() => setManaging(false)}
-        onAdd={(kind) => {
-          setManaging(false);
-          importer.startForm(kind, true);
-        }}
-        onRefresh={(source) => {
-          setManaging(false);
-          void importer.refresh(source, true);
-        }}
+        onAdd={(kind) => importer.startForm(kind, true)}
+        onRefresh={(source) => void importer.refresh(source, true)}
         onRename={(source) => {
           setError("");
           setRenaming(source);
           setRenameText(source.name);
-          setManaging(false);
         }}
         onRemove={onRemoveSource}
         sourceSaving={sourceSaving}
