@@ -139,7 +139,10 @@ export function ErrorNotice({
     </>
   );
 }
-/** 二级页面左上角固定的“‹ 返回”，只返回一层。 */
+/**
+ * 次级页面固定在左上角的返回控件：圆形按钮，箭头由普通 View 绘制
+ * （无须图标字体），与页面内容对齐。
+ */
 export function BackBar({
   onBack,
   accessibilityLabel = "返回",
@@ -156,23 +159,53 @@ export function BackBar({
         onPress={onBack}
         style={({ pressed }) => [uiStyles.back, pressed && { opacity: 0.6 }]}
       >
-        <Text style={uiStyles.backLabel}>‹ 返回</Text>
+        <View accessible={false} style={uiStyles.arrow}>
+          <View style={uiStyles.arrowHead} />
+          <View style={uiStyles.arrowShaft} />
+        </View>
       </Pressable>
     </View>
   );
 }
+
 const uiStyles = StyleSheet.create({
   backBar: {
     flexDirection: "row",
-    minHeight: sizes.touch,
-    paddingHorizontal: 8,
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
   back: {
-    minHeight: sizes.touch,
-    paddingHorizontal: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+  },
+  arrow: {
+    width: 18,
+    height: 18,
+    alignItems: "flex-start",
     justifyContent: "center",
   },
-  backLabel: { ...type.body, color: colors.text, fontWeight: "600" },
+  // 箭头由旋转方框的两条边及穿过它的箭杆组成。
+  arrowHead: {
+    position: "absolute",
+    left: 2,
+    width: 10,
+    height: 10,
+    borderLeftWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: colors.text,
+    transform: [{ rotate: "45deg" }],
+  },
+  arrowShaft: {
+    marginLeft: 2,
+    width: 15,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: colors.text,
+  },
   button: {
     minHeight: sizes.button,
     borderRadius: 12,
