@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../../theme";
 import type { Channel } from "../../domain/types";
 import { qualityName } from "../../domain/channelSources";
 import { displayStreamAddress } from "../../domain/url";
+import { daysAgo } from "../../domain/timeAgo";
 
 export function SourceList({
   current,
@@ -14,6 +15,8 @@ export function SourceList({
   sources: Channel[];
   onSelect: (source: Channel) => void;
 }) {
+  // 按天计算：以列表打开时的时间为基准已足够精确。
+  const [now] = useState(() => Date.now());
   return (
     <View
       style={styles.sourceList}
@@ -46,7 +49,11 @@ export function SourceList({
               {displayStreamAddress(source.streamUrl)}
             </Text>
             {source.checkStatus === "unreachable" && (
-              <Text style={styles.sourceWarning}>上次检测未连通</Text>
+              // 点击行会开始播放，本身就相当于一次新检测。
+              <Text style={styles.sourceWarning}>
+                {daysAgo(source.checkedAt, now) || "上次"}测试未连通 ·
+                点选可再试
+              </Text>
             )}
           </Pressable>
         );
