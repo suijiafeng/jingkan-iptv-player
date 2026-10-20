@@ -21,7 +21,12 @@ import { needsLanguageLookup } from "./iptvOrgLanguages";
 /** 采用固定行高，使 20,000 条记录的列表无需逐行测量即可滚动。 */
 const ROW_HEIGHT = 56;
 
-/** 保存前的节目单解析结果。完整列出所有频道，列表可滚动且按需渲染；数量和警告放在列表开头，“导入”固定在底部，无需滚动查找。若 iptv-org 频道缺少语言，默认开启的开关会说明：保存后将下载 iptv-org 数据库来补全语言。 */
+/**
+ * 保存前的节目单解析预览。惰性渲染并列出全部频道，支持滚动；
+ * 统计和警告位于列表开头，“导入”固定在底部，无需滚动寻找。
+ * iptv-org 频道缺少语言时，可通过默认开启的开关在保存后补全；
+ * 开关标题注明该操作需联网下载约 8 MB。
+ */
 export function ImportPreviewBody({
   preview,
   header,
@@ -73,14 +78,15 @@ export function ImportPreviewBody({
             {unlabelled > 0 && (
               <View style={previewStyles.fillRow}>
                 <View style={previewStyles.fillText}>
-                  <Text style={styles.body}>自动补全语言</Text>
-                  <Text style={styles.caption}>
-                    导入后从 iptv-org 公开数据库下载约 8 MB 语言数据，为{" "}
-                    {unlabelled} 个未标语言的频道补全
+                  {/* 知情许可提示只放在标题行。 */}
+                  <Text style={styles.body}>
+                    自动补全语言
+                    <Text style={styles.muted}> · 联网约 8 MB</Text>
                   </Text>
                 </View>
                 <Switch
                   accessibilityLabel="导入后自动补全语言"
+                  accessibilityHint="从 iptv-org 公开数据库下载约 8 MB"
                   value={fillLanguages}
                   disabled={busy}
                   onValueChange={onFillLanguages}
