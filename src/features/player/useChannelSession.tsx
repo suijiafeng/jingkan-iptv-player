@@ -25,6 +25,8 @@ import {
   PictureInPictureIcon,
   PlayIcon,
   RefreshIcon,
+  HeadphonesIcon,
+  ScreenIcon,
   VolumeIcon,
 } from "./playerIcons";
 import { OverlayButton, SourceChip } from "./overlayWidgets";
@@ -397,6 +399,16 @@ export function useChannelSession(props: SessionProps) {
       onPress={() => props.onMutedChange(!props.muted)}
     />
   );
+  // 图标表示点击后将切换到的模式：观看时显示耳机，
+  // 收听时显示屏幕图标，画面本身会说明正在听音频。
+  const audioButton = (
+    <OverlayButton
+      label={props.audioOnly ? "看视频" : "听音频"}
+      icon={props.audioOnly ? <ScreenIcon /> : <HeadphonesIcon />}
+      variant="quiet"
+      onPress={props.onToggleAudioOnly}
+    />
+  );
 
   return {
     insets,
@@ -433,6 +445,7 @@ export function useChannelSession(props: SessionProps) {
     favoriteButton,
     pictureInPictureButton,
     muteButton,
+    audioButton,
   };
 }
 

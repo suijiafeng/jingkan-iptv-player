@@ -55,6 +55,8 @@ export function FullscreenBars({
         {/* 来源放在右侧控件组的最前面。 */}
         {props.fullscreen && sourceButton}
         {props.fullscreen && favoriteButton}
+        {/* 与竖屏一样，将收听/观看按钮放在右上角。 */}
+        {props.fullscreen && view.audioButton}
       </View>
       {props.fullscreen && controlsVisible && (
         <View
@@ -74,11 +76,6 @@ export function FullscreenBars({
             </View>
             {/* 音量放在右侧控件组的最前面。 */}
             {view.muteButton}
-            <OverlayButton
-              label={props.audioOnly ? "看视频" : "听音频"}
-              selected={props.audioOnly}
-              onPress={props.onToggleAudioOnly}
-            />
             <OverlayButton
               label="退出横屏"
               icon={<ExitFullscreenIcon size={20} />}

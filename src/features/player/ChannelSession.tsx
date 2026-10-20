@@ -127,6 +127,9 @@ export function ChannelSession(props: SessionProps) {
             testID="audio-stage"
           >
             <Text style={sessionStyles.audioSymbol}>♫</Text>
+            {!props.mini && (
+              <Text style={sessionStyles.audioCaption}>正在听音频</Text>
+            )}
           </View>
         )}
         {/* 整个画面：轻触切换控件显示；全屏时
@@ -279,6 +282,8 @@ export function ChannelSession(props: SessionProps) {
             </View>
             <View style={sessionStyles.portraitTopRight}>
               {!props.audioOnly && view.pictureInPictureButton}
+              {/* 两种模式均在同一角落保留收听/观看切换。 */}
+              {view.audioButton}
             </View>
           </>
         )}
@@ -299,11 +304,6 @@ export function ChannelSession(props: SessionProps) {
           </View>
           <View style={sessionStyles.infoRow}>
             {sourceButton}
-            <OverlayButton
-              label={props.audioOnly ? "看视频" : "听音频"}
-              selected={props.audioOnly}
-              onPress={props.onToggleAudioOnly}
-            />
             {/* 点击后打开的确认框中会说明风险。 */}
             {props.audioOnly &&
               !props.backgroundAllowed &&

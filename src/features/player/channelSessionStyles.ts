@@ -7,10 +7,14 @@ export const sessionStyles = StyleSheet.create({
   audioStage: {
     backgroundColor: colors.surface,
     alignItems: "center",
+    // 位于中央按钮上方；按钮本身在画面中心。
     paddingTop: 12,
     gap: 4,
   },
   audioSymbol: { color: colors.accent, fontSize: 32 },
+  // 停靠窗口不显示中央按钮，因此音符居中放置。
+  miniAudioStage: { justifyContent: "center", paddingTop: 0 },
+  audioCaption: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   fullscreenSources: {
     position: "absolute",
     top: 82,
@@ -32,7 +36,6 @@ export const sessionStyles = StyleSheet.create({
   // 停靠时，画面填满外层浮窗，由外层绘制
   // 边框、关闭键和缩放边缘。
   miniWindow: { flex: 1 },
-  miniAudioStage: { justifyContent: "center", paddingTop: 0 },
   osd: {
     position: "absolute",
     top: 24,
