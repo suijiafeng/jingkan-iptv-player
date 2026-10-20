@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -42,6 +42,8 @@ export interface SessionProps extends PlayerScreenProps {
   sourcesOpen: boolean;
   onSourcesOpenChange: (open: boolean) => void;
   mini: boolean;
+  /** 告知页面：返回时是否应停止，而不是停靠。 */
+  onPausedChange: (paused: boolean) => void;
 }
 
 /** 单频道播放会话：持有控制器和原生播放尝试，并在竖屏、全屏和停靠布局中绘制画面及覆盖控件。 */
@@ -73,6 +75,10 @@ export function ChannelSession(props: SessionProps) {
     sourceButton,
     favoriteButton,
   } = view;
+  const paused = state.phase === "paused";
+  const docks = !!props.onMinimize && !paused;
+  const { onPausedChange } = props;
+  useEffect(() => onPausedChange(paused), [onPausedChange, paused]);
   return (
     <View
       style={
@@ -268,16 +274,17 @@ export function ChannelSession(props: SessionProps) {
               )}
             </View>
             <View style={sessionStyles.portraitTopLeft}>
-              {/* 与返回键相同：回到列表并将播放停靠在小条中，
-                  小条上的 ✕ 才会停止播放。 */}
+              {/* 与返回键一致：回到列表，播放停靠为浮窗，
+                  点击其中的 ✕ 才停止。暂停时没有继续观看的内容，
+                  因此返回会直接停止。 */}
               <OverlayButton
                 label="返回频道列表"
                 icon={<ChevronLeftIcon size={20} />}
                 variant="quiet"
                 accessibilityLabel={
-                  props.onMinimize ? "返回频道列表，继续小窗播放" : "关闭播放器"
+                  docks ? "返回频道列表，继续小窗播放" : "关闭播放器"
                 }
-                onPress={props.onMinimize ?? props.onClose}
+                onPress={(docks && props.onMinimize) || props.onClose}
               />
             </View>
             <View style={sessionStyles.portraitTopRight}>
