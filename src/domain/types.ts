@@ -13,7 +13,10 @@ export interface Source {
   lastSuccessAt: number;
   lastErrorCategory: string | null;
   revision: number;
+  /** 逻辑频道数量，与频道列表的显示方式一致。 */
   channelCount: number;
+  /** 去重后的播放地址数量；频道包含多条线路时可大于 channelCount。 */
+  addressCount: number;
   favoriteCount: number;
   /** 此来源不同播放地址的已保存可用性状态，来自手动检测、自动检测及实际播放；未检测地址不计入可达或不可达任一项。 */
   reachableCount: number;
