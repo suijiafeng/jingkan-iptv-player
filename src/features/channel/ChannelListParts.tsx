@@ -452,7 +452,15 @@ const partStyles = StyleSheet.create({
     backgroundColor: colors.accentSoft,
   },
   sourceText: { ...type.body, color: colors.accent },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 4 },
+  // 48pt 触控区域伸出 32pt 标题行，而不撑大标题行，因此
+  // 切换标签时，最近观看与频道、收藏、设置的标题保持在同一位置。
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    // 标题区：标题行加 4pt 下边距。
+    marginVertical: -(sizes.touch - (type.title.lineHeight + 4)) / 2,
+  },
   headerAction: {
     minHeight: sizes.touch,
     minWidth: sizes.touch,
