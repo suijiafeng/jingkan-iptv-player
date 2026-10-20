@@ -2,16 +2,17 @@ import React from "react";
 import {
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button, ErrorNotice, Heading } from "../../components/ui";
 import type { Source } from "../../domain/types";
 import { colors, styles } from "../../theme";
 import type { Repository } from "../../data/repository";
+import { SourceLanguageSection } from "./SourceLanguageSection";
 import {
   useSourceEdit,
   type SourceEdit,
@@ -19,9 +20,9 @@ import {
 } from "./useSourceEdit";
 
 /**
- * 在同一页面编辑来源名称和链接；本地列表则显示文件，点击可重新选择。
- * 一个“保存”同时应用两项修改。每个来源都会挂载新页面，
- * 因而字段从该来源的值开始。
+ * 在一个页面编辑来源名称、链接（本地列表显示文件，点击可重选），
+ * 以及节目单未标注语言时使用的默认语言。点击一次“保存”统一应用。
+ * 每个来源都挂载新页面，使字段从该来源的原有数据开始。
  */
 export function EditSourceModal({
   source,
@@ -73,7 +74,10 @@ export function EditSourceView({
 }) {
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.content}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.content}
+      >
         <Heading title="编辑节目来源" />
         <ErrorNotice message={edit.error} onDismiss={edit.dismissError} />
         <Text style={styles.caption}>名称</Text>
@@ -119,13 +123,21 @@ export function EditSourceView({
             placeholderTextColor={colors.muted}
           />
         )}
+        {edit.languages && (
+          <SourceLanguageSection
+            languages={edit.languages}
+            groups={edit.groups}
+            disabled={edit.busy}
+            onChange={edit.setLanguages}
+          />
+        )}
         <Button
           label={edit.busy ? "正在保存…" : "保存"}
           disabled={edit.busy || !edit.name.trim()}
           onPress={edit.save}
         />
         <Button label="取消" secondary onPress={edit.cancel} />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

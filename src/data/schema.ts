@@ -7,7 +7,7 @@ import {
 import { RepositoryError, type SqlExecutor } from "./sql";
 import { synchronizeChecks } from "./availability";
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 /**
  * 在调用方的独占事务中，将任意较旧 user_version 的数据库升级至
@@ -33,7 +33,28 @@ export async function migrateSchema(tx: SqlExecutor): Promise<void> {
     );
     await synchronizeChecks(tx);
   }
+  if (current < 9) await migrateV9(tx);
   await tx.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
+}
+
+/** v9：针对节目单和 iptv-org 查询均未标注语言的频道，允许用户手动指定语言；每个来源可设置一项，每个来源内的分组名称也可设置一项。绝不推断；删除来源时一并删除这些选择。 */
+async function migrateV9(tx: SqlExecutor): Promise<void> {
+  const columns = new Set(
+    (await tx.getAllAsync<{ name: string }>("PRAGMA table_info(sources)")).map(
+      (column) => column.name,
+    ),
+  );
+  if (!columns.has("defaultLanguage"))
+    await tx.execAsync(
+      "ALTER TABLE sources ADD COLUMN defaultLanguage TEXT NOT NULL DEFAULT '';",
+    );
+  await tx.execAsync(`
+    CREATE TABLE IF NOT EXISTS source_group_languages (
+      sourceId TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+      groupName TEXT NOT NULL, language TEXT NOT NULL,
+      PRIMARY KEY (sourceId, groupName)
+    );
+  `);
 }
 
 /** v7：来源可以隐藏，而不删除其频道和用户数据。 */

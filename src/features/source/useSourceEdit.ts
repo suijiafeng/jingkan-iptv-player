@@ -8,6 +8,7 @@ import {
 } from "../../data/importIO";
 import { M3UParseError, MAX_MIB, parseM3U } from "../../domain/m3u";
 import type { Source } from "../../domain/types";
+import type { SourceLanguages } from "../../data/sourceLanguages";
 
 /** 编辑页进行联网和回传结果所需的应用接口。 */
 export interface SourceEditDeps {
@@ -19,9 +20,9 @@ export interface SourceEditDeps {
 }
 
 /**
- * 通过一次保存修改来源名称和链接；本地列表则修改其文件。
- * 新链接或新文件先读取，再通过一次事务替换旧频道；失败时保持原数据不变。
- * 未改变的字段不作处理，所以只改名称时绝不联网。
+ * 一次保存中编辑来源名称、链接（本地列表则为文件），以及来源和分组的语言。
+ * 新链接或文件会先读取，再通过一个事务替换旧频道；失败时不改变任何数据。
+ * 未改动的字段保持原样，因此只保存新名称不会联网。
  */
 export function useSourceEdit({
   repo,
@@ -42,10 +43,33 @@ export function useSourceEdit({
     [file, setFile] = useState<{ name: string; content: string } | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  // 读取前为 null；读取失败时，该部分仍保持隐藏。
+  const [languages, setLanguages] = useState<SourceLanguages | null>(null),
+    [savedLanguages, setSavedLanguages] = useState<SourceLanguages | null>(
+      null,
+    ),
+    [groups, setGroups] = useState<string[]>([]);
   const controller = useRef<AbortController | null>(null);
 
   // 离开页面会停止仍在运行的下载或文件读取。
   useEffect(() => () => controller.current?.abort(), []);
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      repo.getSourceLanguages(source.id),
+      repo.listSourceGroups(source.id),
+    ])
+      .then(([stored, names]) => {
+        if (!active) return;
+        setLanguages(stored);
+        setSavedLanguages(stored);
+        setGroups(names);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [repo, source.id]);
 
   const cancel = () => {
     controller.current?.abort();
@@ -140,6 +164,19 @@ export function useSourceEdit({
           return;
         }
       }
+      if (
+        languages &&
+        JSON.stringify(languages) !== JSON.stringify(savedLanguages)
+      ) {
+        try {
+          await repo.setSourceLanguages(source.id, languages);
+          setSavedLanguages(languages);
+        } catch {
+          if (relink || file || newName !== source.name) changed();
+          if (deps.mounted.current) setError("语言未保存，请重试");
+          return;
+        }
+      }
       changed();
       if (!abort.signal.aborted) close();
     } catch (failure) {
@@ -169,6 +206,12 @@ export function useSourceEdit({
       setError("");
     },
     fileName: file?.name ?? (source.kind === "file" ? source.location : ""),
+    languages,
+    groups,
+    setLanguages: (next: SourceLanguages) => {
+      setLanguages(next);
+      setError("");
+    },
     chooseFile: () => void chooseFile(),
     busy,
     error,

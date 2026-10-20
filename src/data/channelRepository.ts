@@ -22,6 +22,13 @@ import {
   toggleFavorite,
 } from "./channelLibrary";
 import { migrateSchema } from "./schema";
+import {
+  queryLanguageLookupTargets,
+  querySourceGroups,
+  readSourceLanguages,
+  writeSourceLanguages,
+  type SourceLanguages,
+} from "./sourceLanguages";
 import { readChecks, writeChecks } from "./availability";
 import {
   assertContent,
@@ -161,6 +168,29 @@ export class Repository {
 
   listGroups(sourceId?: string): Promise<string[]> {
     return queryGroups(this.db, sourceId);
+  }
+
+  /** 来源中的所有分组，不论来源启用与否，都可设置语言。 */
+  listSourceGroups(sourceId: string): Promise<string[]> {
+    return querySourceGroups(this.db, sourceId);
+  }
+
+  getSourceLanguages(sourceId: string): Promise<SourceLanguages> {
+    return readSourceLanguages(this.db, sourceId);
+  }
+
+  /** 用户为来源及其分组指定的语言设置，整份替换。 */
+  setSourceLanguages(
+    sourceId: string,
+    languages: SourceLanguages,
+  ): Promise<void> {
+    return this.transaction((tx) =>
+      writeSourceLanguages(tx, sourceId, languages),
+    );
+  }
+
+  listLanguageLookupTargets(sourceId: string) {
+    return queryLanguageLookupTargets(this.db, sourceId);
   }
 
   async listFacets(sourceId?: string): Promise<ChannelFacetOptions> {
@@ -314,7 +344,11 @@ export class Repository {
 
   /** 结果属于完整的特定 URL；所有相同地址的记录共享状态，刷新后地址已变化的行不受影响。 */
   async saveCheckResults(
-    results: { channelId: string; streamUrl: string; ok: boolean }[],
+    results: {
+      channelId: string;
+      streamUrl: string;
+      ok: boolean;
+    }[],
   ): Promise<void> {
     if (!results.length) return;
     await this.transaction(async (tx) => {
