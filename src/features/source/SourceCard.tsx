@@ -25,7 +25,12 @@ interface Props {
   onStopCheck: () => void;
 }
 
-/** 管理页中的单个来源：同一行左侧显示名称，右侧显示频道数量与更新时间；只有需要注意时，才额外显示一行警告色说明。底栏一行容纳全部操作：左侧依次是“测试连通”“编辑”（名称与链接）和错误色的“删除”，右侧末尾放启用开关。 */
+/**
+ * 来源管理中的一张卡片：首行左侧是名称，右侧是频道数和更新时间；
+ * 只有需要注意时才额外显示一行警告色文字。底部一行容纳全部操作：
+ * 左侧是“检测”“编辑”（名称和链接）以及错误色的“删除”，
+ * 最右侧是启用开关。
+ */
 export function SourceCard({
   source,
   check,
@@ -94,7 +99,7 @@ export function SourceCard({
         <View
           accessible
           accessibilityRole="progressbar"
-          accessibilityLabel={`正在测试连通 ${source.name}`}
+          accessibilityLabel={`正在检测 ${source.name}`}
           accessibilityValue={
             check.total === null
               ? undefined
@@ -105,7 +110,7 @@ export function SourceCard({
           <Text style={styles.caption}>
             {check.total === null
               ? "正在读取待测试频道…"
-              : `正在测试连通 ${check.done}/${check.total}`}
+              : `正在检测 ${check.done}/${check.total}`}
           </Text>
           <View style={cardStyles.progressTrack}>
             <View
@@ -134,8 +139,8 @@ export function SourceCard({
           />
         ) : (
           <FooterAction
-            label="测试连通"
-            accessibilityLabel={`${checked ? "重新测试连通" : "测试连通"} ${source.name}`}
+            label="检测"
+            accessibilityLabel={`${checked ? "重新检测" : "检测"} ${source.name}`}
             disabled={
               !source.enabled || saving || !!check || !source.channelCount
             }
