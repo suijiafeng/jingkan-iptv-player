@@ -174,10 +174,20 @@ export function SettingsScreen(props: Props) {
           }
         />
         <SettingRow
-          title="滑动换台"
+          title="反转换台方向"
+          caption={
+            props.swipeReverse
+              ? "上滑上一台，下滑下一台"
+              : "上滑下一台，下滑上一台"
+          }
           trailing={
             <Switch
-              accessibilityLabel="滑动换台"
+              accessibilityLabel="反转换台方向"
+              accessibilityHint={
+                props.swipeReverse
+                  ? "当前上滑上一台，下滑下一台"
+                  : "当前上滑下一台，下滑上一台"
+              }
               value={props.swipeReverse}
               trackColor={{ true: colors.accent }}
               onValueChange={props.onSwipeReverseChange}
