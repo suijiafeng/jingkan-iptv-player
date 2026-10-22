@@ -105,15 +105,12 @@ export function usePlayback({
       setPlaying(playable);
       // 从频道页或小窗自身列表选择频道时，打开完整播放器。
       setPlayerMini(false);
+      // 列表 Promise 总以已读取到的数据完成，绝不拒绝。
       if (!queueFrom && wholeList)
-        void wholeList
-          .then((complete) => {
-            if (stillWanted() && complete.length)
-              setPlayQueue(complete.filter((queued) => queued.active));
-          })
-          .catch(() => {
-            if (stillWanted()) setError("其余频道未载入，可继续播放当前频道");
-          });
+        void wholeList.then((complete) => {
+          if (stillWanted() && complete.length)
+            setPlayQueue(complete.filter((queued) => queued.active));
+        });
     } catch {
       if (stillWanted()) setError("频道读取未完成，请重试");
     }

@@ -64,8 +64,6 @@ export function useChannelListData({
     [listError, setListError] = useState(""),
     [sources, setSources] = useState<Source[]>([]),
     [channels, setChannels] = useState<Channel[]>([]),
-    // 分页列表的剩余部分仍在加载时，匹配已经显示的行。
-    [channelTotal, setChannelTotal] = useState<number | null>(null),
     [listIncomplete, setListIncomplete] = useState(false),
     [listTailError, setListTailError] = useState(""),
     [recent, setRecent] = useState<Channel[]>([]),
@@ -213,7 +211,6 @@ export function useChannelListData({
       setSources(nextSources);
       setChannels(firstRows);
       publishedRows = firstRows;
-      setChannelTotal(null);
       setListIncomplete(partial);
       setFacets(nextFacets);
       setRecent(recentRows);
@@ -227,9 +224,6 @@ export function useChannelListData({
         });
       }
       if (!partial) return firstRows;
-      const total = await repo.countChannels(filter);
-      if (!current()) return firstRows;
-      setChannelTotal(total);
       const remainingRows = await repo.listChannels({
         ...filter,
         offset: FIRST_PAGE,
@@ -242,7 +236,6 @@ export function useChannelListData({
           ? [...shown, ...remainingRows]
           : allRows,
       );
-      setChannelTotal(null);
       setListIncomplete(false);
       return allRows;
     };
@@ -319,7 +312,6 @@ export function useChannelListData({
     setSources,
     channels,
     setChannels,
-    channelTotal,
     listIncomplete,
     listTailError,
     recent,

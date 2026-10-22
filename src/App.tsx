@@ -279,7 +279,9 @@ export default function App() {
     sourceId,
     facets: list.facets,
     facetSelection: { country, language, content: group },
-    countryHint: regionBasis(region.preference, region.result, country),
+    countryHint: countryBypassed
+      ? "已临时显示全部地区，选择地区可恢复"
+      : regionBasis(region.preference, region.result, country),
     autoCheck,
     recentBusy,
     recentEditing,

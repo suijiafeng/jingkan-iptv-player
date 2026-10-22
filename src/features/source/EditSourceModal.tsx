@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, type MutableRefObject } from "react";
 import {
   Modal,
   Pressable,
@@ -37,16 +37,29 @@ export function EditSourceModal({
   changed: () => void;
   deps: SourceEditDeps;
 }) {
-  return source ? (
-    <EditSourceScreen
-      key={source.id}
-      source={source}
-      repo={repo}
-      close={close}
-      changed={changed}
-      deps={deps}
-    />
-  ) : null;
+  // 内部页面负责未保存内容的放弃确认；系统返回键
+  // 此处仍可处理关闭，而弹层本身保持挂载以完成退出动画。
+  const requestCloseRef = useRef<() => void>(close);
+  return (
+    <Modal
+      testID="source-edit-modal"
+      visible={!!source}
+      animationType="slide"
+      onRequestClose={() => requestCloseRef.current()}
+    >
+      {source && (
+        <EditSourceScreen
+          key={source.id}
+          source={source}
+          repo={repo}
+          close={close}
+          changed={changed}
+          deps={deps}
+          requestCloseRef={requestCloseRef}
+        />
+      )}
+    </Modal>
+  );
 }
 
 function EditSourceScreen(props: {
@@ -55,18 +68,14 @@ function EditSourceScreen(props: {
   close: () => void;
   changed: () => void;
   deps: SourceEditDeps;
+  requestCloseRef: MutableRefObject<() => void>;
 }) {
   const edit = useSourceEdit(props);
-  return (
-    <Modal
-      testID="source-edit-modal"
-      visible
-      animationType="slide"
-      onRequestClose={edit.cancel}
-    >
-      <EditSourceView source={props.source} edit={edit} />
-    </Modal>
-  );
+  const { requestCloseRef } = props;
+  useEffect(() => {
+    requestCloseRef.current = edit.cancel;
+  });
+  return <EditSourceView source={props.source} edit={edit} />;
 }
 
 /** 将页面视图与状态分离，使页面本身能够单独展示。 */
