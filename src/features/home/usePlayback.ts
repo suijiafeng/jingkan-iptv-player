@@ -76,11 +76,11 @@ export function usePlayback({
       mounted.current &&
       task === playGeneration.current &&
       epoch === permissionEpoch.current;
-    // 渐进加载期间点击频道，仍应将完整列表作为队列。
+    // 从当前可见页面开始；补全播放队列不能延迟起播。
     const wholeList = listSettled.current ? null : fullList.current;
     try {
       if (!(await guardRemote()) || epoch !== permissionEpoch.current) return;
-      const queue = queueFrom ?? (wholeList ? await wholeList : channels);
+      const queue = queueFrom ?? channels;
       // 只读取当前频道，使播放器立即打开；加载一万条以上
       // 先加载整个频道目录，在模拟器上曾耗时约 5 秒。
       const fresh = await repo.getChannel(channel.id);
@@ -105,6 +105,15 @@ export function usePlayback({
       setPlaying(playable);
       // 从频道页或小窗自身列表选择频道时，打开完整播放器。
       setPlayerMini(false);
+      if (!queueFrom && wholeList)
+        void wholeList
+          .then((complete) => {
+            if (stillWanted() && complete.length)
+              setPlayQueue(complete.filter((queued) => queued.active));
+          })
+          .catch(() => {
+            if (stillWanted()) setError("其余频道未载入，可继续播放当前频道");
+          });
     } catch {
       if (stillWanted()) setError("频道读取未完成，请重试");
     }
