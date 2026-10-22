@@ -2,7 +2,7 @@ import React from "react";
 import { ScrollView, Switch } from "react-native";
 import { Button, Heading } from "../../components/ui";
 import { colors, styles } from "../../theme";
-import { Chevron, RowAction, SettingRow, SettingSection } from "./SettingRows";
+import { Chevron, SettingRow, SettingSection } from "./SettingRows";
 import type { Repository } from "../../data/repository";
 import { BackupControls } from "./BackupControls";
 import { About } from "./About";
@@ -79,24 +79,26 @@ export function SettingsScreen(props: Props) {
           }
           warn
           trailing={
-            props.revokePending ? (
-              <Button compact label="重试保存撤销" onPress={props.onRevoke} />
-            ) : props.remoteAllowed ? (
-              <RowAction
-                label="撤销"
-                danger
-                accessibilityLabel="撤销联网许可"
-                onPress={props.onRevoke}
-              />
-            ) : (
-              <Button
-                compact
-                label="了解说明并允许"
-                onPress={props.onAllowRemote}
-              />
-            )
+            <Switch
+              accessibilityLabel="节目来源联网"
+              accessibilityHint="开启时需阅读并同意联网说明；关闭时撤销联网许可"
+              value={props.remoteAllowed}
+              disabled={props.revokePending}
+              trackColor={{ true: colors.accent }}
+              onValueChange={(value) =>
+                value ? props.onAllowRemote() : props.onRevoke()
+              }
+            />
           }
         />
+        {props.revokePending && (
+          <SettingRow
+            title="联网关闭尚未保存"
+            trailing={
+              <Button compact label="重试保存撤销" onPress={props.onRevoke} />
+            }
+          />
+        )}
         <SettingRow
           title="频道台标"
           // 只说明该开关目前不能使用的原因。
