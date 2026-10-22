@@ -29,6 +29,7 @@ import {
   type ChannelListItem,
 } from "./channelListItems";
 import { MINI_WINDOW_SPACE } from "./useFloatingWindow";
+import { ChannelLoadNotice } from "../channel/ChannelLoadNotice";
 
 /** 顶部覆盖层与第一条列表行之间的间距。 */
 const LIST_TOP_GAP = 12;
@@ -42,6 +43,7 @@ export interface ChannelListEmptyActions {
   onAddUrl: () => void;
   onAddFile: () => void;
   onShowAll: () => void;
+  onResetFilters: () => void;
   onManageSources: () => void;
 }
 
@@ -59,6 +61,8 @@ export function ChannelListPage({
   onScrollSettled,
   listLoading,
   listError,
+  listIncomplete,
+  listTailError,
   headerProps,
   rows,
   emptyActions,
@@ -78,6 +82,8 @@ export function ChannelListPage({
   onScrollSettled: (offsetY: number) => void;
   listLoading: boolean;
   listError: string;
+  listIncomplete: boolean;
+  listTailError: string;
   headerProps: HeaderProps;
   rows: Channel[];
   emptyActions: ChannelListEmptyActions;
@@ -149,6 +155,15 @@ export function ChannelListPage({
           reserveMiniBar && { paddingBottom: MINI_WINDOW_SPACE },
         ]}
         ItemSeparatorComponent={ListSeparator}
+        ListFooterComponent={
+          rows.length ? (
+            <ChannelLoadNotice
+              loading={listLoading || listIncomplete}
+              error={listLoading ? "" : listTailError}
+              onRetry={emptyActions.onRetry}
+            />
+          ) : undefined
+        }
         renderItem={({ item }) =>
           item === EMPTY_ROW ? (
             <ChannelListEmpty

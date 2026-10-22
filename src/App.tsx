@@ -140,7 +140,8 @@ export default function App() {
         (country !== null || language !== null || group !== null || !!sourceId)
           ? JSON.stringify([sourceId, country, language, group, query])
           : null,
-      listComplete: !list.listLoading && list.channelTotal === null,
+      listComplete:
+        !list.listLoading && !list.listIncomplete && !list.listError,
       channels,
       paused: !!playing || !!sourceTasks.check,
       remoteAllowed: settings.remoteAllowed && !settings.revokePending,
@@ -266,6 +267,11 @@ export default function App() {
   const enabledSources = sources.filter((source) => source.enabled);
   /** 筛选条件变化后，当前标签从顶部重新开始。 */
   const restartList = () => list.scrollToTopOnNextLoad(tab);
+  const openSources = () => {
+    Keyboard.dismiss();
+    setError("");
+    setManage(true);
+  };
   const listHeaderProps: HeaderProps = {
     tab: listTab,
     sources: enabledSources,
@@ -278,6 +284,7 @@ export default function App() {
     recentBusy,
     recentEditing,
     recentCount: list.recent.length,
+    onManageSources: openSources,
     onToggleRecentEditing: () => {
       if (recentBusy) return;
       if (!recentEditing) {
@@ -355,10 +362,7 @@ export default function App() {
             regionBusy={region.busy}
             onRevokeRegion={() => void region.revokeConsent()}
             mobileWarning={settings.mobileWarning}
-            onManageSources={() => {
-              setError("");
-              setManage(true);
-            }}
+            onManageSources={openSources}
             onRevoke={() => void controls.revoke()}
             onAllowRemote={() => void settings.guardRemote()}
             onMobileWarningChange={(value) =>
@@ -389,16 +393,19 @@ export default function App() {
             onScrollSettled={list.saveTabOffset}
             listLoading={list.listLoading}
             listError={list.listError}
+            listIncomplete={list.listIncomplete}
+            listTailError={list.listTailError}
             headerProps={listHeaderProps}
             rows={rows}
             emptyActions={{
               hasSources: sources.length > 0,
               filtered:
                 !!query ||
-                !!sourceId ||
-                group !== null ||
-                language !== null ||
-                country !== null,
+                (tab === "all" &&
+                  (!!sourceId ||
+                    group !== null ||
+                    language !== null ||
+                    country !== null)),
               onRetry: changed,
               onAddUrl: () => importer.startForm("url"),
               onAddFile: () => importer.startForm("file"),
@@ -408,10 +415,14 @@ export default function App() {
                 filters.reset();
                 void region.selectManualCountry(null);
               },
-              onManageSources: () => {
-                setError("");
-                setManage(true);
+              onResetFilters: () => {
+                Keyboard.dismiss();
+                restartList();
+                filters.reset();
+                // 清除结果只是临时操作，保留已保存的地区偏好。
+                if (tab === "all") filters.setCountryBypass(countryKey);
               },
+              onManageSources: openSources,
             }}
             artworkEnabled={settings.artworkEnabled}
             onPlay={onRowPlay}
@@ -488,6 +499,11 @@ export default function App() {
                 ])
               : null,
             loading: list.listLoading,
+            loadingMore: list.listIncomplete && !list.listLoading,
+            loadError: list.listLoading
+              ? ""
+              : list.listError || list.listTailError,
+            onRetry: changed,
             onLocate: () => {
               list.scrollToTopOnNextLoad("all");
               setRecentEditing(false);

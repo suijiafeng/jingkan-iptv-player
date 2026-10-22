@@ -22,6 +22,7 @@ import { filteredGroup } from "../../domain/channelLabels";
 import { sameChannel, type ChannelSheetProps } from "./playerShared";
 import { CloseIcon, LocateIcon } from "./playerIcons";
 import { LoadingTitle } from "./overlayWidgets";
+import { ChannelLoadNotice } from "../channel/ChannelLoadNotice";
 
 /** 记录列表离开时的位置，重新打开后回到相同行。 */
 export interface SavedListPosition {
@@ -179,6 +180,7 @@ export function ChannelPanel(props: ChannelPanelProps) {
           />
         </View>
       )}
+      <ChannelLoadNotice error={sheet.loadError} onRetry={sheet.onRetry} />
       <FlatList
         ref={channelList}
         testID="player-channel-list"
@@ -242,8 +244,11 @@ export function ChannelPanel(props: ChannelPanelProps) {
         updateCellsBatchingPeriod={16}
         windowSize={21}
         removeClippedSubviews={false}
+        ListFooterComponent={
+          <ChannelLoadNotice loading={sheet.loadingMore && !sheet.loadError} />
+        }
         ListEmptyComponent={
-          sheet.loading ? (
+          sheet.loadError ? undefined : sheet.loading ? (
             <View style={styles.emptyLoading} accessibilityLiveRegion="polite">
               <LoadingTitle
                 title="正在载入频道"

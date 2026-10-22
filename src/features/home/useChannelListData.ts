@@ -66,6 +66,8 @@ export function useChannelListData({
     [channels, setChannels] = useState<Channel[]>([]),
     // 分页列表的剩余部分仍在加载时，匹配已经显示的行。
     [channelTotal, setChannelTotal] = useState<number | null>(null),
+    [listIncomplete, setListIncomplete] = useState(false),
+    [listTailError, setListTailError] = useState(""),
     [recent, setRecent] = useState<Channel[]>([]),
     [facets, setFacets] = useState<ChannelFacetOptions>(EMPTY_FACET_OPTIONS),
     [revision, setRevision] = useState(0);
@@ -165,6 +167,8 @@ export function useChannelListData({
     let settle!: (rows: Channel[]) => void;
     const settled = new Promise<Channel[]>((resolve) => (settle = resolve));
     fullList.current = settled;
+    // 后续加载失败不能丢弃用户已经可以使用的页面。
+    let publishedRows: Channel[] | null = null;
     const load = async () => {
       const facetRows =
         tab === "all" ? await repo.listFacetRows(sourceId || undefined) : [];
@@ -204,12 +208,13 @@ export function useChannelListData({
       ]);
       if (!current()) return;
       const partial = paged && firstRows.length === FIRST_PAGE;
-      const total = partial ? await repo.countChannels(filter) : null;
-      if (!current()) return;
       setListError("");
+      setListTailError("");
       setSources(nextSources);
       setChannels(firstRows);
-      setChannelTotal(total);
+      publishedRows = firstRows;
+      setChannelTotal(null);
+      setListIncomplete(partial);
       setFacets(nextFacets);
       setRecent(recentRows);
       setLoadedRequest(loadRequest);
@@ -222,6 +227,9 @@ export function useChannelListData({
         });
       }
       if (!partial) return firstRows;
+      const total = await repo.countChannels(filter);
+      if (!current()) return firstRows;
+      setChannelTotal(total);
       const remainingRows = await repo.listChannels({
         ...filter,
         offset: FIRST_PAGE,
@@ -235,13 +243,20 @@ export function useChannelListData({
           : allRows,
       );
       setChannelTotal(null);
+      setListIncomplete(false);
       return allRows;
     };
     void load()
       .catch(() => {
-        if (!current()) return;
-        setListError("读取失败，资料仍在本机");
-        setLoadedRequest(loadRequest);
+        if (current()) {
+          if (publishedRows !== null)
+            setListTailError("其余频道未能读取，已显示的频道仍可使用");
+          else {
+            setListError("读取失败，资料仍在本机");
+            setLoadedRequest(loadRequest);
+          }
+        }
+        return publishedRows ?? [];
       })
       .then((rows) => {
         if (current()) listSettled.current = true;
@@ -305,6 +320,8 @@ export function useChannelListData({
     channels,
     setChannels,
     channelTotal,
+    listIncomplete,
+    listTailError,
     recent,
     setRecent,
     facets,

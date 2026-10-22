@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   BackHandler,
+  Keyboard,
   Pressable,
   ScrollView,
   Text,
@@ -41,6 +42,8 @@ export interface HeaderProps {
   recentEditing: boolean;
   onToggleRecentEditing: () => void;
   recentCount: number;
+  /** 可从频道页直接进入，无需绕到设置页。 */
+  onManageSources?: () => void;
 }
 
 /** 标题行包括标题、副标题和最近观看操作，随列表滚走；下面的筛选栏固定在顶部。 */
@@ -58,6 +61,21 @@ export function ChannelListTitle(props: HeaderProps) {
           }
         />
       </View>
+      {tab === "all" && props.onManageSources && (
+        <View style={partStyles.headerActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="管理节目来源"
+            onPress={props.onManageSources}
+            style={({ pressed }) => [
+              partStyles.headerAction,
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <Text style={partStyles.actionText}>节目来源</Text>
+          </Pressable>
+        </View>
+      )}
       {tab === "recent" && (
         <View style={partStyles.headerActions}>
           {props.recentEditing && (
@@ -161,6 +179,7 @@ export function ChannelFilterBar(
             value={props.search}
             onChangeText={props.onSearchChange}
             returnKeyType="search"
+            onSubmitEditing={Keyboard.dismiss}
             autoCorrect={false}
           />
           {!!props.search && (
@@ -316,6 +335,7 @@ interface EmptyProps {
   onAddUrl: () => void;
   onAddFile: () => void;
   onShowAll: () => void;
+  onResetFilters: () => void;
   onManageSources: () => void;
 }
 
@@ -362,7 +382,12 @@ export function ChannelListEmpty(props: EmptyProps) {
           <Button label="添加节目单" onPress={props.onAddUrl} />
           <Button label="从文件导入" secondary onPress={props.onAddFile} />
         </>
-      ) : !props.filtered && props.tab === "all" ? (
+      ) : props.filtered ? (
+        <Button
+          label={props.tab === "all" ? "清除搜索与筛选" : "清除搜索条件"}
+          onPress={props.onResetFilters}
+        />
+      ) : props.tab === "all" ? (
         <Button label="管理节目来源" onPress={props.onManageSources} />
       ) : (
         <Button label="查看全部频道" onPress={props.onShowAll} />

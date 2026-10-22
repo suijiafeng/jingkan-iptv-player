@@ -12,6 +12,10 @@ export interface ChannelSheetProps {
   /** 标识当前显示的结果；下一份结果加载期间为 null。 */
   rangeKey: string | null;
   loading: boolean;
+  /** 读取失败不同于资料库为空；已读到的部分行仍保留。 */
+  loadError?: string;
+  loadingMore?: boolean;
+  onRetry?: () => void;
   /** 绕过国家限制显示所有频道，以便列出正在播放的频道。 */
   onLocate: () => void;
 }
