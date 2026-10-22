@@ -8,7 +8,7 @@ import {
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Button, ErrorNotice, Heading } from "../../components/ui";
+import { Button, ErrorNotice, Heading, Notice } from "../../components/ui";
 import type { Source } from "../../domain/types";
 import { colors, styles } from "../../theme";
 import type { Repository } from "../../data/repository";
@@ -37,20 +37,16 @@ export function EditSourceModal({
   changed: () => void;
   deps: SourceEditDeps;
 }) {
-  return (
-    <Modal visible={!!source} animationType="slide" onRequestClose={close}>
-      {source && (
-        <EditSourceScreen
-          key={source.id}
-          source={source}
-          repo={repo}
-          close={close}
-          changed={changed}
-          deps={deps}
-        />
-      )}
-    </Modal>
-  );
+  return source ? (
+    <EditSourceScreen
+      key={source.id}
+      source={source}
+      repo={repo}
+      close={close}
+      changed={changed}
+      deps={deps}
+    />
+  ) : null;
 }
 
 function EditSourceScreen(props: {
@@ -61,7 +57,16 @@ function EditSourceScreen(props: {
   deps: SourceEditDeps;
 }) {
   const edit = useSourceEdit(props);
-  return <EditSourceView source={props.source} edit={edit} />;
+  return (
+    <Modal
+      testID="source-edit-modal"
+      visible
+      animationType="slide"
+      onRequestClose={edit.cancel}
+    >
+      <EditSourceView source={props.source} edit={edit} />
+    </Modal>
+  );
 }
 
 /** 将页面视图与状态分离，使页面本身能够单独展示。 */
@@ -123,6 +128,22 @@ export function EditSourceView({
             placeholderTextColor={colors.muted}
           />
         )}
+        {edit.languagesLoading && (
+          <Text style={styles.muted} accessibilityLiveRegion="polite">
+            正在读取语言设置…
+          </Text>
+        )}
+        {!!edit.languagesError && (
+          <>
+            <Notice title={edit.languagesError} error />
+            <Button
+              label="重试读取语言设置"
+              secondary
+              disabled={edit.busy}
+              onPress={edit.retryLanguages}
+            />
+          </>
+        )}
         {edit.languages && (
           <SourceLanguageSection
             languages={edit.languages}
@@ -132,11 +153,23 @@ export function EditSourceView({
           />
         )}
         <Button
-          label={edit.busy ? "正在保存…" : "保存"}
+          label={
+            edit.committing ? "正在保存…" : edit.busy ? "正在读取…" : "保存"
+          }
           disabled={edit.busy || !edit.name.trim()}
           onPress={edit.save}
         />
-        <Button label="取消" secondary onPress={edit.cancel} />
+        {edit.committing && (
+          <Text style={styles.muted} accessibilityLiveRegion="polite">
+            正在写入本地资料，完成后即可返回
+          </Text>
+        )}
+        <Button
+          label="取消"
+          secondary
+          disabled={edit.committing}
+          onPress={edit.cancel}
+        />
       </ScrollView>
     </SafeAreaView>
   );
