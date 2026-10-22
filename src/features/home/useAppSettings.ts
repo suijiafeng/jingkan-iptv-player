@@ -10,7 +10,7 @@ import type { Tab } from "../channel/ChannelListParts";
 
 /** 布尔设置立即显示新值，保存失败时回退。 */
 export type SavedToggleKey =
-  "mobileWarning" | "swipeReverse" | "miniPlayer" | "backgroundPlayback";
+  "mobileWarning" | "miniPlayer" | "backgroundPlayback";
 
 /**
  * 打开本地数据库，并持有设置与网络许可；
@@ -31,15 +31,12 @@ export function useAppSettings({
     // 默认开启；关闭后再打开时会再次征求许可。
     [backgroundPlayback, setBackgroundPlayback] = useState(true),
     [backgroundSaving, setBackgroundSaving] = useState(false),
-    [swipeReverse, setSwipeReverse] = useState(false),
     // 离开播放器时，将其停靠为小浮窗。
     [miniPlayer, setMiniPlayer] = useState(true),
     [artworkAllowed, setArtworkAllowed] = useState(false),
     [artworkSaving, setArtworkSaving] = useState(false),
     [artworkRevokePending, setArtworkRevokePending] = useState(false),
-    [guideOrigin, setGuideOrigin] = useState<"firstRun" | "settings" | null>(
-      null,
-    ),
+    [guideVisible, setGuideVisible] = useState(false),
     // 一次确认覆盖当前可能计费的连接，重新连上 Wi-Fi 后重置。
     [mobileAccepted, setMobileAcceptedState] = useState(false),
     // 网络许可对话框：隐藏时为 null，否则表示是否同时
@@ -69,7 +66,6 @@ export function useAppSettings({
         const allowed = await opened.getSetting("remoteAllowed", false);
         const warning = await opened.getSetting("mobileWarning", true);
         const background = await opened.getSetting("backgroundPlayback", true);
-        const reverse = await opened.getSetting("swipeReverse", false);
         const docking = await opened.getSetting("miniPlayer", true);
         const artwork = await opened.getSetting("artworkAllowed", false);
         const favorites = await opened.listChannels({ mode: "favorites" });
@@ -79,7 +75,6 @@ export function useAppSettings({
           setRemoteAllowed(allowed);
           setMobileWarning(warning);
           setBackgroundPlayback(background);
-          setSwipeReverse(reverse);
           setMiniPlayer(docking);
           setArtworkAllowed(artwork);
           // 只在真正首次运行时显示；已添加来源的用户跳过
@@ -88,7 +83,7 @@ export function useAppSettings({
             void opened
               .listSources()
               .then((saved) => {
-                if (active && !saved.length) setGuideOrigin("firstRun");
+                if (active && !saved.length) setGuideVisible(true);
               })
               .catch(() => undefined);
           if (!preserveTabOnReload.current)
@@ -218,7 +213,6 @@ export function useAppSettings({
   const toggleSetters: Record<SavedToggleKey, (value: boolean) => void> = {
     mobileWarning: setMobileWarning,
     backgroundPlayback: setBackgroundPlayback,
-    swipeReverse: setSwipeReverse,
     miniPlayer: setMiniPlayer,
   };
   const saveToggle = (key: SavedToggleKey, value: boolean) => {
@@ -263,7 +257,7 @@ export function useAppSettings({
    * 因此不单独报告这个错误。
    */
   const finishGuide = () => {
-    setGuideOrigin(null);
+    setGuideVisible(false);
     void repo?.setSetting("guideSeen", true).catch(() => undefined);
   };
 
@@ -273,7 +267,6 @@ export function useAppSettings({
     setMobileWarning(true);
     setBackgroundPlayback(true);
     setMobileAccepted(false);
-    setSwipeReverse(false);
     setMiniPlayer(true);
     setArtworkAllowed(false);
     setArtworkRevokePending(false);
@@ -297,7 +290,6 @@ export function useAppSettings({
     backgroundSaving,
     mobileAccepted,
     setMobileAccepted,
-    swipeReverse,
     miniPlayer,
     artworkAllowed,
     artworkSaving,
@@ -319,10 +311,7 @@ export function useAppSettings({
     changeBackgroundPlayback,
     withdrawRemote,
     resetToDefaults,
-    guideVisible: guideOrigin !== null,
-    /** 从“设置 › 使用指引”打开时，引导页左上角提供返回。 */
-    guideFromSettings: guideOrigin === "settings",
-    showGuide: () => setGuideOrigin("settings"),
+    guideVisible,
     finishGuide,
   };
 }

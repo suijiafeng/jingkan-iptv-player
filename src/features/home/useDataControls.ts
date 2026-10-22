@@ -62,7 +62,6 @@ export function useDataControls({
       return;
     importer.cancelTask();
     sourceTasks.stopForSource(source.id);
-    playback.forgetSource(source.id);
     repo.cancelRefresh(source.id);
     setError("");
     try {
@@ -93,7 +92,6 @@ export function useDataControls({
     try {
       await repo.setSourceEnabled(source.id, enabled);
       if (!enabled) {
-        playback.forgetSource(source.id);
         filters.forgetSource(source.id);
         try {
           await playback.reconcilePlayingSources();
@@ -146,7 +144,6 @@ export function useDataControls({
       await repo.clearAll();
       settings.resetToDefaults();
       region.reset();
-      playback.forgetHistory();
       sourceTasks.clearCheckSummaries();
       filters.forgetSaved();
       filters.reset();
@@ -167,7 +164,6 @@ export function useDataControls({
     await repo.restoreBackup(text);
     settings.resetToDefaults();
     region.reset();
-    playback.forgetHistory();
     sourceTasks.clearCheckSummaries();
     filters.forgetSaved();
     filters.reset();

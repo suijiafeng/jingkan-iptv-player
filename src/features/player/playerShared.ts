@@ -41,10 +41,6 @@ export interface PlayerScreenProps {
   onMobileAccepted?: () => void;
   /** 继续时若勾选了“不再提醒”，则关闭“移动网络提醒”。 */
   onStopMobileReminders?: () => void;
-  /** 全屏上滑默认切换下一台；true 则反转方向（“我的电视”的“换台反转”）。 */
-  swipeReverse?: boolean;
-  /** 当前频道之前观看的频道，供一键返回。 */
-  previousChannel?: Channel | null;
   artworkEnabled?: boolean;
   error?: string;
   onDismissError?: () => void;

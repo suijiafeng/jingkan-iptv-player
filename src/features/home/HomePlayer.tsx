@@ -21,7 +21,6 @@ export function HomePlayer({
   settings,
   sheet,
   tabsHeight,
-  freshRows,
   error,
   onDismissError,
   onFavorite,
@@ -33,15 +32,13 @@ export function HomePlayer({
   settings: AppSettings;
   sheet: ChannelSheetProps;
   tabsHeight: number;
-  /** 最近读取的行，优先于此前记住的数据。 */
-  freshRows: Channel[];
   error: string;
   onDismissError: () => void;
   onFavorite: (channel: Channel) => void;
   onStarted: (channel: Channel) => void;
   onAvailability: (channel: Channel, ok: boolean) => void;
 }) {
-  const { playerMini, previousChannel } = playback;
+  const { playerMini } = playback;
   // 应用的安全区视图在底部有内边距，而绝对定位子元素会
   // 绝对定位子元素从内边距边缘开始放置，因此窗口也必须避开该安全区。
   const insets = useSafeAreaInsets();
@@ -49,11 +46,6 @@ export function HomePlayer({
     bottomOffset: insets.bottom + tabsHeight + MINI_EDGE,
     topInset: insets.top,
   });
-  // 优先使用新读取的记录；刷新可能已经修改该频道。
-  const shownPrevious = previousChannel
-    ? (freshRows.find((channel) => channel.id === previousChannel.id) ??
-      previousChannel)
-    : null;
   return (
     <Animated.View
       testID="player-container"
@@ -104,8 +96,6 @@ export function HomePlayer({
         onStopMobileReminders={() =>
           settings.saveToggle("mobileWarning", false)
         }
-        swipeReverse={settings.swipeReverse}
-        previousChannel={shownPrevious}
       />
       {playerMini && (
         <FloatingChrome

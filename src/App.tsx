@@ -370,10 +370,6 @@ export default function App() {
             onMobileWarningChange={(value) =>
               settings.saveToggle("mobileWarning", value)
             }
-            swipeReverse={settings.swipeReverse}
-            onSwipeReverseChange={(value) =>
-              settings.saveToggle("swipeReverse", value)
-            }
             miniPlayer={settings.miniPlayer}
             backgroundPlayback={settings.backgroundPlayback}
             backgroundSaving={settings.backgroundSaving}
@@ -384,7 +380,6 @@ export default function App() {
               settings.saveToggle("miniPlayer", value)
             }
             onClearAll={() => void controls.clearAll()}
-            onShowGuide={settings.showGuide}
           />
         ) : (
           <ChannelListPage
@@ -465,7 +460,6 @@ export default function App() {
       />
       <FirstRunGuide
         visible={settings.guideVisible}
-        fromSettings={settings.guideFromSettings}
         onFinish={(exit) => {
           settings.finishGuide();
           if (exit) importer.startForm(exit);
@@ -477,7 +471,6 @@ export default function App() {
           playback={playback}
           settings={settings}
           tabsHeight={tabsHeight}
-          freshRows={[...playback.playQueue, ...channels, ...list.recent]}
           error={error}
           onDismissError={() => setError("")}
           onFavorite={(channel) => void actions.favorite(channel)}

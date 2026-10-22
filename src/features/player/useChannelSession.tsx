@@ -273,7 +273,7 @@ export function useChannelSession(props: SessionProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const zap = (direction: -1 | 1) => {
-    const step = props.swipeReverse ? (-direction as -1 | 1) : direction;
+    const step = direction;
     const target = step === 1 ? next : previous;
     if (target !== null) props.onSelect(props.channels[target]);
     else showOsd(step === 1 ? "已经是最后一个频道" : "已经是第一个频道");

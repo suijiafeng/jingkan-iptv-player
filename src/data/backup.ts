@@ -38,14 +38,17 @@ const CHANNEL_COLUMNS = [
   "qualityLabel",
   "qualityRank",
 ] as const;
-const PREFERENCES = ["mobileWarning", "swipeReverse"] as const;
+const PREFERENCES = ["mobileWarning"] as const;
 /**
  * 这些字段是在版本 1 文件发布后添加的，缺少字段时采用默认值。
  * skipUnreachable 不再是可选设置，始终开启，但仍写入备份，
  * 让旧版应用也能恢复新版备份。
  */
 const OPTIONAL_PREFERENCES = { miniPlayer: true } as const;
-const LEGACY_PREFERENCES = { skipUnreachable: true } as const;
+const LEGACY_PREFERENCES = {
+  skipUnreachable: true,
+  swipeReverse: false,
+} as const;
 type BackupRow = Record<string, SqlValue>;
 export interface LocalBackup {
   format: "jingkan-backup";
@@ -246,9 +249,7 @@ export async function readBackup(
       "SELECT value FROM settings WHERE key = ?",
       [key],
     );
-    preferences[key] =
-      row?.value === "true" ||
-      (row?.value !== "false" && key !== "swipeReverse");
+    preferences[key] = row?.value !== "false";
   }
   for (const [key, fallback] of Object.entries(OPTIONAL_PREFERENCES)) {
     const row = await tx.getFirstAsync<{ value: string }>(

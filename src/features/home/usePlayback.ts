@@ -31,11 +31,8 @@ export function usePlayback({
     // 仅限前台，离开应用仍会暂停）。
     [playerMini, setPlayerMini] = useState(false),
     [playingSources, setPlayingSources] = useState<Channel[]>([]),
-    // 用于“回到上一个频道”：当前频道之前观看的频道。
-    [previousChannel, setPreviousChannel] = useState<Channel | null>(null),
     [playQueue, setPlayQueue] = useState<Channel[]>([]);
-  const playGeneration = useRef(0),
-    lastWatched = useRef<Channel | null>(null);
+  const playGeneration = useRef(0);
 
   /** 刷新或删除后，重新读取当前频道的来源。 */
   const reconcilePlayingSources = async (current = playing) => {
@@ -99,9 +96,6 @@ export function usePlayback({
       setPlayQueue(queue.filter((queued) => queued.active));
       const playable = alternatives[0] ?? representative;
       setPlayingSources(alternatives.length ? alternatives : [representative]);
-      const watchedBefore = playing ?? lastWatched.current;
-      if (watchedBefore && watchedBefore.id !== playable.id)
-        setPreviousChannel(watchedBefore);
       setPlaying(playable);
       // 从频道页或小窗自身列表选择频道时，打开完整播放器。
       setPlayerMini(false);
@@ -123,7 +117,6 @@ export function usePlayback({
   };
 
   const closePlayer = () => {
-    lastWatched.current = playing;
     stopPlayback();
     setPlayerMini(false);
   };
@@ -145,17 +138,6 @@ export function usePlayback({
     setPlaying(source);
   };
 
-  /** 删除的来源不能通过“回到上一个频道”重新出现。 */
-  const forgetSource = (sourceId: string) => {
-    if (previousChannel?.sourceId === sourceId) setPreviousChannel(null);
-    if (lastWatched.current?.sourceId === sourceId) lastWatched.current = null;
-  };
-
-  const forgetHistory = () => {
-    setPreviousChannel(null);
-    lastWatched.current = null;
-  };
-
   /**
    * 将本地行变更应用到播放器持有的频道副本；只涉及播放队列的修改
    * 不改变来源列表。
@@ -174,15 +156,12 @@ export function usePlayback({
     playerMini,
     setPlayerMini,
     playingSources,
-    previousChannel,
     playQueue,
     play,
     reconcilePlayingSources,
     stopPlayback,
     closePlayer,
     selectSource,
-    forgetSource,
-    forgetHistory,
     patchChannels,
   };
 }

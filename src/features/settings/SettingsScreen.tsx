@@ -31,12 +31,9 @@ interface Props {
   onRevoke: () => void;
   onAllowRemote: () => void;
   onMobileWarningChange: (value: boolean) => void;
-  swipeReverse: boolean;
-  onSwipeReverseChange: (value: boolean) => void;
   miniPlayer: boolean;
   onMiniPlayerChange: (value: boolean) => void;
   onClearAll: () => void;
-  onShowGuide?: () => void;
   /** 停靠播放器以小窗形式悬浮在页面底部上方。 */
   reserveMiniBar?: boolean;
 }
@@ -174,27 +171,6 @@ export function SettingsScreen(props: Props) {
           }
         />
         <SettingRow
-          title="反转换台方向"
-          caption={
-            props.swipeReverse
-              ? "上滑上一台，下滑下一台"
-              : "上滑下一台，下滑上一台"
-          }
-          trailing={
-            <Switch
-              accessibilityLabel="反转换台方向"
-              accessibilityHint={
-                props.swipeReverse
-                  ? "当前上滑上一台，下滑下一台"
-                  : "当前上滑下一台，下滑上一台"
-              }
-              value={props.swipeReverse}
-              trackColor={{ true: colors.accent }}
-              onValueChange={props.onSwipeReverseChange}
-            />
-          }
-        />
-        <SettingRow
           title="浮窗播放"
           trailing={
             <Switch
@@ -210,13 +186,6 @@ export function SettingsScreen(props: Props) {
       <SettingSection label="资料与应用">
         {props.repo && props.onRestoreBackup && (
           <BackupControls repo={props.repo} onRestore={props.onRestoreBackup} />
-        )}
-        {props.onShowGuide && (
-          <SettingRow
-            title="使用指引"
-            trailing={<Chevron />}
-            onPress={props.onShowGuide}
-          />
         )}
         <About />
         <SettingRow
