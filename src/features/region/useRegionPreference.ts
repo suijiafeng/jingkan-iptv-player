@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState } from "react-native";
-import { askConsent } from "../common/ConsentDialog";
-import { IP_CONSENT, LOCATION_CONSENT } from "../common/consents";
 import type { Repository } from "../../data/repository";
 import { isCountryCode } from "../../domain/channelFacets";
-import { detectRegion, readDeviceEvidence } from "./native";
+import { readDeviceEvidence } from "./native";
 import {
   DEFAULT_COUNTRY_PREFERENCE,
   NO_REGION,
@@ -26,11 +23,7 @@ export function useRegionPreference(
     ...DEFAULT_COUNTRY_PREFERENCE,
   });
   const [result, setResult] = useState<RegionResult>({ ...NO_REGION });
-  const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
-  const [revokePending, setRevokePending] = useState(false);
-  const revokePendingRef = useRef(false);
-  const readyRef = useRef(false);
   const preferenceRef = useRef(preference);
   const committedPreference = useRef<CountryPreference>({
     ...DEFAULT_COUNTRY_PREFERENCE,
@@ -41,7 +34,6 @@ export function useRegionPreference(
   }, [onError]);
   const generation = useRef(0);
   const initialization = useRef(0);
-  const controller = useRef<AbortController | null>(null);
   const writes = useRef<Promise<unknown>>(Promise.resolve());
 
   const assignPreference = useCallback((next: CountryPreference) => {
@@ -51,9 +43,6 @@ export function useRegionPreference(
 
   const cancel = useCallback(() => {
     generation.current += 1;
-    controller.current?.abort();
-    controller.current = null;
-    setBusy(false);
   }, []);
 
   const save = useCallback(
@@ -73,53 +62,15 @@ export function useRegionPreference(
     [repo],
   );
 
-  const runDetection = useCallback(
-    async (
-      next: CountryPreference,
-      operation: number,
-      requestLocationPermission: boolean,
-    ) => {
-      const request = new AbortController();
-      controller.current = request;
-      setBusy(true);
-      try {
-        const detected = await detectRegion({
-          ipAllowed: next.ipAllowed,
-          locationAllowed: next.locationAllowed,
-          requestLocationPermission,
-          signal: request.signal,
-        });
-        if (generation.current !== operation || request.signal.aborted) return;
-        const saved = { ...next, countryCode: detected.countryCode };
-        if (!(await save(saved, operation))) return;
-        assignPreference(saved);
-        setResult(detected);
-      } catch {
-        if (generation.current === operation && !request.signal.aborted)
-          onErrorRef.current("未能识别地区，可重试或手动选择");
-      } finally {
-        if (generation.current === operation) setBusy(false);
-        if (controller.current === request) controller.current = null;
-      }
-    },
-    [assignPreference, save],
-  );
-
   useEffect(() => {
     const initializationId = ++initialization.current;
-    const operation = ++generation.current;
-    controller.current?.abort();
-    controller.current = null;
-    readyRef.current = false;
-    revokePendingRef.current = false;
+    generation.current += 1;
     void (async () => {
       // 等当前这次处理完成后，再启动异步仓库订阅。
-      // 渲染已经提交；其生命周期与取消识别任务相互独立。
+      // 渲染提交之后才开始；其生命周期与取消排队中的写入彼此独立。
       await Promise.resolve();
       if (initialization.current !== initializationId) return;
       setReady(false);
-      setBusy(false);
-      setRevokePending(false);
       assignPreference({ ...DEFAULT_COUNTRY_PREFERENCE });
       committedPreference.current = { ...DEFAULT_COUNTRY_PREFERENCE };
       setResult({ ...NO_REGION });
@@ -139,18 +90,9 @@ export function useRegionPreference(
               : { ...NO_REGION },
           );
           setReady(true);
-          readyRef.current = true;
-          if (
-            generation.current === operation &&
-            next.mode === "auto" &&
-            (next.ipAllowed || next.locationAllowed) &&
-            AppState.currentState === "active"
-          )
-            await runDetection(next, operation, false);
         } catch {
           if (initialization.current !== initializationId) return;
           setReady(true);
-          readyRef.current = true;
           onErrorRef.current("地区偏好读取未完成，暂显示全部");
         }
       }
@@ -158,17 +100,8 @@ export function useRegionPreference(
     return () => {
       initialization.current += 1;
       generation.current += 1;
-      controller.current?.abort();
-      controller.current = null;
     };
-  }, [repo, assignPreference, runDetection]);
-
-  useEffect(() => {
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state !== "active" && readyRef.current) cancel();
-    });
-    return () => subscription.remove();
-  }, [cancel]);
+  }, [repo, assignPreference]);
 
   const selectManualCountry = useCallback(
     async (value: string | null) => {
@@ -194,11 +127,7 @@ export function useRegionPreference(
           // 上一次写入可能在其 UI 回调失效后才提交。
           // 已被后续选择取代；最新选择保存失败时，应显示 SQLite 实际接受的值。
           const committed = committedPreference.current;
-          assignPreference(
-            revokePendingRef.current
-              ? { ...committed, ipAllowed: false, locationAllowed: false }
-              : committed,
-          );
+          assignPreference(committed);
           setResult(
             committed.mode === "auto"
               ? resolveRegion(readDeviceEvidence())
@@ -211,82 +140,10 @@ export function useRegionPreference(
     [assignPreference, cancel, ready, repo, save],
   );
 
-  const detectWithConsent = useCallback(async () => {
-    if (!ready || !repo || AppState.currentState !== "active") return;
-    if (revokePendingRef.current) {
-      onErrorRef.current("请先在设置中完成撤销识别授权");
-      return;
-    }
-    cancel();
-    const operation = generation.current;
-    setBusy(true);
-    const isCurrent = () =>
-      generation.current === operation && AppState.currentState === "active";
-    try {
-      const previous = preferenceRef.current;
-      const ipChoice = previous.ipAllowed
-        ? "allow"
-        : await askConsent(IP_CONSENT);
-      if (!isCurrent() || ipChoice === "cancel") return;
-      const locationChoice = previous.locationAllowed
-        ? "allow"
-        : await askConsent(LOCATION_CONSENT);
-      if (!isCurrent() || locationChoice === "cancel") return;
-      const next: CountryPreference = {
-        mode: "auto",
-        countryCode: null,
-        ipAllowed: ipChoice === "allow",
-        locationAllowed: locationChoice === "allow",
-      };
-      if (!(await save(next, operation)) || !isCurrent()) return;
-      assignPreference(next);
-      // 切回自动模式后，不能保留先前的手动结果。
-      setResult(resolveRegion(readDeviceEvidence()));
-      await runDetection(next, operation, locationChoice === "allow");
-    } catch {
-      if (isCurrent()) onErrorRef.current("识别授权未保存，请重试");
-    } finally {
-      if (generation.current === operation) setBusy(false);
-    }
-  }, [assignPreference, cancel, ready, repo, runDetection, save]);
-
-  const revokeConsent = useCallback(async () => {
-    cancel();
-    if (!ready || !repo) return;
-    const operation = generation.current;
-    const next = {
-      ...preferenceRef.current,
-      ipAllowed: false,
-      locationAllowed: false,
-    };
-    // 立即停止信任旧许可，即使 SQLite 暂时
-    // 不可用；在移除操作持久化之前保留重试状态。
-    revokePendingRef.current = true;
-    setRevokePending(true);
-    assignPreference(next);
-    setResult(
-      next.mode === "auto"
-        ? resolveRegion(readDeviceEvidence())
-        : { ...NO_REGION },
-    );
-    try {
-      if (await save(next, operation)) {
-        revokePendingRef.current = false;
-        setRevokePending(false);
-      }
-    } catch {
-      if (generation.current === operation)
-        onErrorRef.current("识别已停止，撤销未保存，请重试");
-    }
-  }, [assignPreference, cancel, ready, repo, save]);
-
   const reset = useCallback(() => {
     cancel();
     initialization.current += 1;
-    readyRef.current = true;
     setReady(true);
-    revokePendingRef.current = false;
-    setRevokePending(false);
     assignPreference({ ...DEFAULT_COUNTRY_PREFERENCE });
     committedPreference.current = { ...DEFAULT_COUNTRY_PREFERENCE };
     setResult(resolveRegion(readDeviceEvidence()));
@@ -295,12 +152,8 @@ export function useRegionPreference(
   return {
     preference,
     result,
-    busy,
     ready,
-    revokePending,
     selectManualCountry,
-    detectWithConsent,
-    revokeConsent,
     reset,
     cancel,
   };

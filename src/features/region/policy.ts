@@ -3,13 +3,14 @@ import { countryLabel, isCountryCode } from "../../domain/channelFacets";
 export interface CountryPreference {
   mode: "auto" | "manual";
   countryCode: string | null;
+  /** 历史遗留存储字段；统一规范化为 false，绝不用于请求。 */
   ipAllowed: boolean;
   locationAllowed: boolean;
 }
 
 export interface RegionResult {
   countryCode: string | null;
-  source: "location" | "ip" | "device" | "conflict" | "none";
+  source: "device" | "conflict" | "none";
   /** 结果的判断依据：在国家菜单中用一行简短文字说明。 */
   message: string;
 }
@@ -118,52 +119,15 @@ export function parseCountryPreference(value: unknown): CountryPreference {
   return {
     mode,
     countryCode,
-    ipAllowed: input.ipAllowed === true,
-    locationAllowed: input.locationAllowed === true,
+    ipAllowed: false,
+    locationAllowed: false,
   };
 }
 
-export function resolveRegion(
-  device: DeviceEvidence,
-  ipCountry: string | null = null,
-  locationCountry: string | null = null,
-): RegionResult {
-  const location = isCountryCode(locationCountry) ? locationCountry : null;
-  const ip = isCountryCode(ipCountry) ? ipCountry : null;
+/** 推荐地区只参考本机设置，忽略旧的联网或定位授权。 */
+export function resolveRegion(device: DeviceEvidence): RegionResult {
   const region = isCountryCode(device.region) ? device.region : null;
   const zone = timeZoneCountry(device.timeZone);
-  if (location && ip && location !== ip)
-    return {
-      countryCode: null,
-      source: "conflict",
-      message: "手机位置与网络位置不一致",
-    };
-  if (location)
-    return {
-      countryCode: location,
-      source: "location",
-      message: `依据：手机位置${ip ? "、访问 IP" : ""}`,
-    };
-  if (ip) {
-    // 语言刻意不作为位置依据；使用中文界面并不
-    // 不能仅据此认定为中国，且设备地区与时区本就是相关设置。
-    if ((region && region !== ip) || (zone && zone !== ip))
-      return {
-        countryCode: null,
-        source: "conflict",
-        message: "网络位置与手机地区或时区不一致",
-      };
-    if (region === ip || zone === ip)
-      return {
-        countryCode: ip,
-        source: "ip",
-        message: "依据：访问 IP、手机地区或时区",
-      };
-    return {
-      ...NO_REGION,
-      message: "仅依据网络位置，结果可能不准确",
-    };
-  }
   if (region && zone === region)
     return {
       countryCode: region,

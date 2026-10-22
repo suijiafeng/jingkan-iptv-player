@@ -203,8 +203,6 @@ try {
           "WAKE_LOCK",
           "FOREGROUND_SERVICE",
           "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-          "ACCESS_COARSE_LOCATION",
-          "ACCESS_FINE_LOCATION",
         ].map((name) => `android.permission.${name}`),
       );
       allowed.add(

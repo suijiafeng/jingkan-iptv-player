@@ -36,32 +36,3 @@ export const BACKGROUND_CONSENT: ConsentRequest<"deny" | "allow"> = {
   ],
   dismissValue: "deny",
 };
-
-type RegionChoice = "cancel" | "skip" | "allow";
-const REGION_ACTIONS: ConsentRequest<RegionChoice>["actions"] = [
-  { label: "取消", value: "cancel" },
-  { label: "跳过", value: "skip" },
-  { label: "允许", value: "allow" },
-];
-
-export const IP_CONSENT: ConsentRequest<RegionChoice> = {
-  title: "使用访问 IP 辅助识别？",
-  points: ["ipapi.co 会看到你的 IP", "应用不保存 IP", "与节目来源联网许可分开"],
-  details:
-    "应用将访问 ipapi.co 的 HTTPS 国家/地区查询接口。该服务商会看到本次访问 IP，并用它返回国家/地区；应用不保存 IP。此许可只用于国家/地区识别，与节目来源联网许可独立。可跳过并使用手机设置或可选定位。",
-  actions: REGION_ACTIONS,
-  dismissValue: "cancel",
-};
-
-export const LOCATION_CONSENT: ConsentRequest<RegionChoice> = {
-  title: "使用手机位置辅助识别？",
-  points: [
-    "仅在前台取一次大致位置",
-    "系统地理编码服务可能联网处理",
-    "不保存坐标，没有后台定位",
-  ],
-  details:
-    "仅在前台获取一次大致位置，并使用手机系统的反向地理编码服务查询国家/地区；系统服务可能联网处理位置。坐标不会发给 IP 查询服务，也不会保存。接下来可在系统提示中选择大致位置或拒绝。不启用后台定位，可跳过。",
-  actions: REGION_ACTIONS,
-  dismissValue: "cancel",
-};

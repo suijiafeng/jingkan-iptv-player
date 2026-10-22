@@ -356,13 +356,6 @@ export default function App() {
             artworkRevokePending={settings.artworkRevokePending}
             onRetryArtworkRevoke={() => void settings.changeArtwork(false)}
             onArtworkChange={(value) => void settings.changeArtwork(value)}
-            regionConsented={
-              region.preference.ipAllowed ||
-              region.preference.locationAllowed ||
-              region.revokePending
-            }
-            regionBusy={region.busy}
-            onRevokeRegion={() => void region.revokeConsent()}
             mobileWarning={settings.mobileWarning}
             onManageSources={openSources}
             onRevoke={() => void controls.revoke()}

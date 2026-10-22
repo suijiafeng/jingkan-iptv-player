@@ -33,27 +33,15 @@
         "android.permission.FOREGROUND_SERVICE_LOCATION",
         "android.permission.ACTIVITY_RECOGNITION",
         "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
-        "android.permission.RECEIVE_BOOT_COMPLETED"
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "plugins": [
       "expo-router",
       "expo-sqlite",
       "expo-localization",
-      [
-        "expo-location",
-        {
-          "isAndroidBackgroundLocationEnabled": false,
-          "isAndroidForegroundServiceEnabled": false,
-          "isAndroidMotionActivityEnabled": false,
-          "locationAlwaysAndWhenInUsePermission": false,
-          "locationAlwaysPermission": false,
-          "locationWhenInUsePermission": "允许静看 TV 在使用时识别国家/地区，位置不会保存。",
-          "locationFullAccuracyPermission": false,
-          "motionUsagePermission": false,
-          "isIosReducedAccuracyByDefault": true
-        }
-      ],
       [
         "expo-video",
         {

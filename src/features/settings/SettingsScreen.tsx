@@ -24,9 +24,6 @@ interface Props {
   artworkRevokePending: boolean;
   onRetryArtworkRevoke: () => void;
   onArtworkChange: (value: boolean) => void;
-  regionConsented: boolean;
-  regionBusy: boolean;
-  onRevokeRegion: () => void;
   onManageSources: () => void;
   onRevoke: () => void;
   onAllowRemote: () => void;
@@ -140,22 +137,6 @@ export function SettingsScreen(props: Props) {
             />
           }
         />
-        {props.regionConsented && (
-          <SettingRow
-            title="国家/地区识别"
-            status={{ label: "已授权", tone: "muted" }}
-            trailing={
-              <RowAction
-                label={props.regionBusy ? "停止并撤销" : "撤销"}
-                danger
-                accessibilityLabel={
-                  props.regionBusy ? "停止并撤销识别授权" : "撤销识别授权"
-                }
-                onPress={props.onRevokeRegion}
-              />
-            }
-          />
-        )}
       </SettingSection>
       <SettingSection label="播放">
         <SettingRow
