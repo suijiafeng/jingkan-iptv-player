@@ -74,10 +74,14 @@ export function useSourceImport({
     setForm(initialForm(kind));
     setFormError("");
   };
-  const updateForm = (patch: Partial<SourceFormState>) =>
+  const updateForm = (patch: Partial<SourceFormState>) => {
+    // 错误只属于产生它的输入类型；另一个页面
+    // 从干净状态开始。
+    if (patch.kind !== undefined) setFormError("");
     setForm((current) =>
       current ? { ...current, ...patch, preview: null } : current,
     );
+  };
   /** 预览中的语言开关；与 updateForm 不同，它不会清除预览。 */
   const setFillLanguages = (fillLanguages: boolean) =>
     setForm((current) => (current ? { ...current, fillLanguages } : current));

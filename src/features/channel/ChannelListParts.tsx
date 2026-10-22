@@ -57,7 +57,7 @@ export function ChannelListTitle(props: HeaderProps) {
       <View style={{ flex: 1 }}>
         <Heading
           title={
-            tab === "all" ? "频道" : tab === "favorites" ? "收藏" : "最近观看"
+            tab === "all" ? "频道" : tab === "favorites" ? "收藏" : "最近"
           }
         />
       </View>
@@ -478,7 +478,7 @@ const partStyles = StyleSheet.create({
   },
   sourceText: { ...type.body, color: colors.accent },
   // 48pt 触控区域伸出 32pt 标题行，而不撑大标题行，因此
-  // 切换标签时，最近观看与频道、收藏、设置的标题保持在同一位置。
+  // 切换标签时，最近与频道、收藏、设置的标题保持在同一位置。
   headerActions: {
     flexDirection: "row",
     alignItems: "center",

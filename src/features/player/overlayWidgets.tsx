@@ -171,7 +171,7 @@ export function SourceChip({
     >
       <Text style={styles.chipText} numberOfLines={1}>
         {/* 明确标签按钮将打开的内容：当前频道的来源列表。 */}
-        <Text style={styles.chipLead}>视频来源：</Text>
+        <Text style={styles.chipLead}>线路：</Text>
         {position}/{count}
       </Text>
     </Pressable>

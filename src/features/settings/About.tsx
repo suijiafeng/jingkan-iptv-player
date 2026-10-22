@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import { BackBar, Heading } from "../../components/ui";
-import { colors, sizes, styles } from "../../theme";
+import { colors, sizes, styles, type } from "../../theme";
 import { RISK } from "../common/confirm";
 import { Chevron, SettingRow } from "./SettingRows";
 
@@ -55,7 +55,7 @@ const SECTIONS: { title: string; paragraphs: string[] }[] = [
     title: "使用",
     paragraphs: [
       "使用“添加节目单”导入可信链接或本地文件；本地文件支持 UTF-8 或 GBK 编码的 M3U、TXT 节目单。",
-      "同一频道的不同地址列在“视频来源”里，默认先播排在第一的。播放失败会依次试其他来源；少数原因不明的错误需手动重试。重试按钮上的小圆点表示上次测试未连通。",
+      "同一频道的不同地址列在“线路”里，默认先播排在第一的。播放失败会依次试其他线路；少数原因不明的错误需手动重试。重试按钮上的小圆点表示上次测试未连通。",
       "直播通常不支持拖动，仅对支持回看的流显示时间轴。",
     ],
   },
@@ -94,7 +94,9 @@ function Section({
         ]}
       >
         <Text style={[styles.body, aboutStyles.sectionTitle]}>{title}</Text>
-        <Text style={aboutStyles.arrow}>{open ? "▴" : "▾"}</Text>
+        <Text style={aboutStyles.arrow} accessible={false}>
+          {open ? "▲" : "▼"}
+        </Text>
       </Pressable>
       {open &&
         paragraphs.map((paragraph) => (
@@ -155,5 +157,5 @@ const aboutStyles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: { flex: 1, fontWeight: "600" },
-  arrow: { color: colors.muted },
+  arrow: { ...type.body, color: colors.muted, paddingLeft: 12 },
 });

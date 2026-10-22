@@ -359,8 +359,8 @@ export function useChannelSession(props: SessionProps) {
       count={props.sources.length}
       accessibilityLabel={
         props.sources.length > 1
-          ? `视频来源：${qualityName(props.channel)} · ${props.channel.sourceName}，共 ${props.sources.length} 个，点击切换`
-          : `视频来源：${qualityName(props.channel)} · ${props.channel.sourceName}，点击查看地址`
+          ? `线路：${qualityName(props.channel)} · ${props.channel.sourceName}，共 ${props.sources.length} 个，点击切换`
+          : `线路：${qualityName(props.channel)} · ${props.channel.sourceName}，点击查看地址`
       }
       solid={!props.fullscreen}
       onPress={() => setSourcesOpen(!sourcesOpen)}
