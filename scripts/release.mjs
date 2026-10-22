@@ -8,6 +8,7 @@ import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
+const { prepareVersion } = require("./release-version.cjs");
 const args = new Set(process.argv.slice(2));
 const test = args.has("--test"),
   check = args.has("--check");
@@ -107,11 +108,6 @@ try {
       `发布预检通过：${config.version} (${config.android.versionCode})，${revision.slice(0, 8)}。`,
     );
   } else {
-    const output = path.join(
-      root,
-      "release",
-      `${config.version}-${config.android.versionCode}-${test ? "test" : "release"}-${revision.slice(0, 8)}-${Date.now()}`,
-    );
     const lockDirectory = path.join(root, ".expo", "jingkan-release.lock");
     fs.mkdirSync(path.dirname(lockDirectory), { recursive: true });
     assert(
@@ -119,7 +115,34 @@ try {
       "另一个发布构建正在运行；确认没有进程后再移除 .expo/jingkan-release.lock。",
     );
     fs.mkdirSync(lockDirectory);
+    let versionUpdate;
+    let output;
+    let completed = false;
     try {
+      // 取得锁后重新检查：其它发布任务可能已经完成，
+      // 初次预检与取得此锁之间。
+      assert(
+        test || !run("git", ["status", "--porcelain"]).trim(),
+        "工作区已变化，请先审阅并提交后重新发布。",
+      );
+      assert(
+        run("git", ["rev-parse", "HEAD"]).trim() === revision,
+        "预检后代码提交发生变化，请重新发布。",
+      );
+      if (!test) {
+        versionUpdate = prepareVersion(root);
+        versionUpdate.apply();
+        config.version = versionUpdate.version;
+        config.android.versionCode = versionUpdate.versionCode;
+        console.log(
+          `自动升版：${config.version} (${config.android.versionCode})`,
+        );
+      }
+      output = path.join(
+        root,
+        "release",
+        `${config.version}-${config.android.versionCode}-${test ? "test" : "release"}-${revision.slice(0, 8)}-${Date.now()}`,
+      );
       for (const script of ["check", "build:bundle", "prebuild"])
         run("npm", ["run", script], { stdio: "inherit" });
       run(
@@ -137,6 +160,7 @@ try {
         run("git", ["rev-parse", "HEAD"]).trim() === revision,
         "构建过程中代码提交发生变化，请重新构建。",
       );
+      versionUpdate?.verify();
       // 检查前先复制，避免并行的手动 Gradle 命令替换
       // 验证之后的 APK，从而悄悄改变交付产物。
       fs.mkdirSync(output, { recursive: true });
@@ -229,7 +253,8 @@ try {
             versionCode: config.android.versionCode,
             package: config.android.package,
             revision,
-            dirty,
+            dirty: dirty || !!versionUpdate,
+            automaticVersion: !!versionUpdate,
             test,
             architecture: "arm64-v8a",
             sha256: digest,
@@ -332,15 +357,33 @@ try {
         "\nApache License 2.0 (AndroidX / Media3)\n",
         fs.readFileSync(require.resolve("xcode/LICENSE"), "utf8"),
       );
+      versionUpdate?.verify();
+      if (versionUpdate)
+        fs.writeFileSync(
+          path.join(output, "VERSION_CONFIG.json"),
+          JSON.stringify(versionUpdate.snapshot, null, 2) + "\n",
+        );
       fs.writeFileSync(
         path.join(output, "THIRD_PARTY_NOTICES.txt"),
         notices.join("\n"),
       );
+      completed = true;
+      if (versionUpdate)
+        console.log(
+          "升版配置已保留，请审阅并提交 app.json、package.json、package-lock.json。",
+        );
       console.log(
         `已生成${test ? "测试" : "正式签名"}候选发行目录：${output}\nSHA-256: ${digest}\n真机播放验收结果需另行记录。`,
       );
     } finally {
-      fs.rmdirSync(lockDirectory);
+      try {
+        if (!completed) {
+          if (output) fs.rmSync(output, { recursive: true, force: true });
+          versionUpdate?.restore();
+        }
+      } finally {
+        fs.rmdirSync(lockDirectory);
+      }
     }
   }
 } catch (error) {
