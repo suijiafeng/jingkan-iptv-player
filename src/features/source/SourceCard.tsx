@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { daysAgo } from "../../domain/timeAgo";
 import type { Source } from "../../domain/types";
 import { colors, sizes, styles, type } from "../../theme";
@@ -28,6 +35,8 @@ export function SourceCard({
 }: Props) {
   // 按天显示即可，使用管理页打开时的时间已足够精确。
   const [now] = useState(() => Date.now());
+  const { width, fontScale } = useWindowDimensions();
+  const stacked = width / Math.max(1, fontScale) < 340;
   const running = check?.sourceId === source.id;
   const checked = !!summary || typeof source.lastCheckedAt === "number";
   const unreachable = summary ? summary.unreachable : source.unreachableCount;
@@ -53,19 +62,28 @@ export function SourceCard({
     <View style={cardStyles.card}>
       <View style={cardStyles.head}>
         <View style={[cardStyles.text, !source.enabled && cardStyles.dimmed]}>
-          {/* 名称在左，数量信息占据同一行右侧。名称过长时显示省略号，数量始终保留。 */}
-          <View style={cardStyles.titleLine}>
-            <Text style={cardStyles.title} numberOfLines={1}>
+          {/* 字体较大时，名称单独占一行，不要把几乎全部空间
+              都让给频道数量。 */}
+          <View
+            style={[cardStyles.titleLine, stacked && cardStyles.stackedTitle]}
+          >
+            <Text
+              style={[cardStyles.title, stacked && cardStyles.stackedName]}
+              numberOfLines={stacked ? 2 : 1}
+            >
               {source.name}
             </Text>
-            <Text style={[styles.caption, cardStyles.meta]} numberOfLines={1}>
+            <Text
+              style={[styles.caption, cardStyles.meta]}
+              numberOfLines={stacked ? undefined : 1}
+            >
               {meta}
             </Text>
           </View>
           {!!attention && (
             <Text
               style={[styles.caption, cardStyles.warnText]}
-              numberOfLines={1}
+              numberOfLines={stacked ? 2 : 1}
             >
               {attention}
             </Text>
@@ -76,7 +94,7 @@ export function SourceCard({
         <View
           accessible
           accessibilityRole="progressbar"
-          accessibilityLabel="正在测试连通"
+          accessibilityLabel={`正在测试连通 ${source.name}`}
           accessibilityValue={
             check.total === null
               ? undefined
@@ -109,11 +127,15 @@ export function SourceCard({
           保留在原位并置灰，不将其隐藏。 */}
       <View style={cardStyles.footer}>
         {running ? (
-          <FooterAction label="停止测试" onPress={props.onStopCheck} />
+          <FooterAction
+            label="停止测试"
+            accessibilityLabel={`停止测试 ${source.name}`}
+            onPress={props.onStopCheck}
+          />
         ) : (
           <FooterAction
             label="测试连通"
-            accessibilityLabel={checked ? "重新测试连通" : "测试连通"}
+            accessibilityLabel={`${checked ? "重新测试连通" : "测试连通"} ${source.name}`}
             disabled={
               !source.enabled || saving || !!check || !source.channelCount
             }
@@ -124,21 +146,22 @@ export function SourceCard({
         )}
         <FooterAction
           label="编辑"
+          accessibilityLabel={`编辑 ${source.name}`}
           disabled={saving}
           onPress={() => props.onRename(source)}
         />
         <FooterAction
           label="删除"
+          accessibilityLabel={`删除 ${source.name}`}
           danger
           disabled={saving}
           onPress={() => props.onRemove(source)}
         />
-        <View style={cardStyles.spacer} />
         {/* 开关位于行的末尾，让上方文字可以
             使用卡片的完整宽度。 */}
         <Switch
           style={cardStyles.switch}
-          accessibilityLabel={source.enabled ? "停用" : "启用"}
+          accessibilityLabel={`${source.enabled ? "停用" : "启用"} ${source.name}`}
           accessibilityHint={saving ? "正在保存" : undefined}
           value={source.enabled}
           disabled={saving || running}
@@ -207,9 +230,10 @@ const cardStyles = StyleSheet.create({
     paddingRight: 12,
   },
   text: { flex: 1, minWidth: 0, gap: 2 },
-  spacer: { flex: 1 },
-  switch: { marginRight: 8 },
+  switch: { marginLeft: "auto", marginRight: 8 },
   titleLine: { flexDirection: "row", alignItems: "baseline", gap: 12 },
+  stackedTitle: { flexDirection: "column", alignItems: "stretch", gap: 2 },
+  stackedName: { flex: 0 },
   title: { ...type.rowTitle, color: colors.text, flex: 1, minWidth: 0 },
   meta: { flexShrink: 0 },
   dimmed: { opacity: 0.45 },
@@ -229,6 +253,7 @@ const cardStyles = StyleSheet.create({
   },
   footer: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     paddingHorizontal: 4,
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -236,6 +261,7 @@ const cardStyles = StyleSheet.create({
   },
   footerAction: {
     minHeight: sizes.touch,
+    maxWidth: "100%",
     paddingHorizontal: 12,
     justifyContent: "center",
   },

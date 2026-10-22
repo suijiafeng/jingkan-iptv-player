@@ -1,5 +1,11 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { colors, sizes, styles, type } from "../../theme";
 
 /** 分组卡片上方的说明标题。 */
@@ -61,11 +67,20 @@ export function SettingRow({
   /** 当前不适用时淡化显示，与禁用的开关一致。 */
   dimmed?: boolean;
 }) {
+  const { width, fontScale } = useWindowDimensions();
+  // 控件占据大半行时，仍保持标题和状态可读。
+  const stacked = width / Math.max(1, fontScale) < 340;
   const body = (
     <>
-      <View style={rowStyles.text}>
+      <View style={[rowStyles.text, stacked && rowStyles.stackedText]}>
         <View style={rowStyles.titleLine}>
-          <Text style={[styles.body, danger && rowStyles.dangerTitle]}>
+          <Text
+            style={[
+              styles.body,
+              rowStyles.title,
+              danger && rowStyles.dangerTitle,
+            ]}
+          >
             {title}
           </Text>
           {status && (
@@ -80,20 +95,38 @@ export function SettingRow({
           </Text>
         )}
       </View>
-      {value && <Text style={rowStyles.value}>{value}</Text>}
-      {trailing}
+      {(value || trailing) && (
+        <View
+          style={[rowStyles.controls, stacked && rowStyles.stackedControls]}
+        >
+          {value && <Text style={rowStyles.value}>{value}</Text>}
+          {trailing && <View style={rowStyles.trailing}>{trailing}</View>}
+        </View>
+      )}
     </>
   );
   if (!onPress)
     return (
-      <View style={[rowStyles.row, dimmed && rowStyles.dimmed]}>{body}</View>
+      <View
+        style={[
+          rowStyles.row,
+          stacked && rowStyles.stackedRow,
+          dimmed && rowStyles.dimmed,
+        ]}
+      >
+        {body}
+      </View>
     );
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? title}
       onPress={onPress}
-      style={({ pressed }) => [rowStyles.row, pressed && rowStyles.pressed]}
+      style={({ pressed }) => [
+        rowStyles.row,
+        stacked && rowStyles.stackedRow,
+        pressed && rowStyles.pressed,
+      ]}
     >
       {body}
     </Pressable>
@@ -170,10 +203,31 @@ const rowStyles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   dimmed: { opacity: 0.4 },
   text: { flex: 1, minWidth: 0, gap: 2 },
-  titleLine: { flexDirection: "row", alignItems: "center", gap: 8 },
+  stackedRow: { flexDirection: "column", alignItems: "stretch", gap: 8 },
+  stackedText: { flex: 0 },
+  titleLine: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
+  title: { flexShrink: 1 },
+  controls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    maxWidth: "100%",
+  },
+  trailing: { maxWidth: "100%", flexShrink: 1 },
+  stackedControls: {
+    alignSelf: "flex-end",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    maxWidth: "100%",
+  },
   dangerTitle: { color: colors.bad },
   warnCaption: { color: colors.warn },
-  value: { ...type.body, color: colors.muted },
+  value: { ...type.body, color: colors.muted, flexShrink: 1 },
   pill: {
     ...type.caption,
     borderRadius: 999,

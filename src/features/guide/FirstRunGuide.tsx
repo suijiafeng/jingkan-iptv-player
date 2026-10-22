@@ -1,5 +1,12 @@
 import React from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BackBar, Button } from "../../components/ui";
 import type { SourceKind } from "../../domain/types";
@@ -46,20 +53,25 @@ export function FirstRunGuide({
             </Pressable>
           </View>
         )}
-        <View style={guideStyles.page}>
-          <Text accessibilityRole="header" style={guideStyles.title}>
-            静看 TV
-          </Text>
-          <Text style={guideStyles.body}>播放你自己添加的节目单。</Text>
-        </View>
-        <View style={guideStyles.footer}>
-          <Button label="添加节目单链接" onPress={() => onFinish("url")} />
-          <Button
-            label="从文件导入"
-            secondary
-            onPress={() => onFinish("file")}
-          />
-        </View>
+        <ScrollView
+          style={guideStyles.scroller}
+          contentContainerStyle={guideStyles.content}
+        >
+          <View style={guideStyles.page}>
+            <Text accessibilityRole="header" style={guideStyles.title}>
+              静看 TV
+            </Text>
+            <Text style={guideStyles.body}>播放你自己添加的节目单。</Text>
+          </View>
+          <View style={guideStyles.footer}>
+            <Button label="添加节目单链接" onPress={() => onFinish("url")} />
+            <Button
+              label="从文件导入"
+              secondary
+              onPress={() => onFinish("file")}
+            />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </Modal>
   );
@@ -79,7 +91,15 @@ const guideStyles = StyleSheet.create({
   },
   textActionLabel: { ...type.body, color: colors.muted },
   pressed: { opacity: 0.6 },
-  page: { flex: 1, paddingHorizontal: 28, paddingTop: 96, gap: 12 },
+  scroller: { flex: 1 },
+  content: { flexGrow: 1 },
+  page: {
+    flexGrow: 1,
+    paddingHorizontal: 28,
+    paddingTop: 64,
+    paddingBottom: 40,
+    gap: 12,
+  },
   title: { ...styles.title, fontSize: 28, lineHeight: 36 },
   body: { color: colors.muted, fontSize: 16, lineHeight: 24 },
   footer: { paddingHorizontal: 20, paddingBottom: 20, gap: 12 },

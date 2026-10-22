@@ -5,9 +5,11 @@ import {
   StyleSheet,
   Switch,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Button } from "../../components/ui";
+import { channelRowHeight } from "../../components/ChannelRow";
 import { displayGroups } from "../../domain/channelLabels";
 import {
   IMPORT_ISSUE_LABELS,
@@ -17,9 +19,6 @@ import {
 import { colors, sizes, styles, type } from "../../theme";
 import type { SourceFormState } from "./form";
 import { needsLanguageLookup } from "./iptvOrgLanguages";
-
-/** 采用固定行高，使 20,000 条记录的列表无需逐行测量即可滚动。 */
-const ROW_HEIGHT = 56;
 
 /**
  * 保存前的节目单解析预览。惰性渲染并列出全部频道，支持滚动；
@@ -45,6 +44,8 @@ export function ImportPreviewBody({
   onSave: () => void;
   onBack: () => void;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const rowHeight = channelRowHeight(fontScale);
   const [skippedOpen, setSkippedOpen] = useState(false);
   const { stats } = preview;
   const skipped = stats.duplicates + stats.ignored;
@@ -58,10 +59,12 @@ export function ImportPreviewBody({
         testID="import-preview-list"
         data={preview.channels}
         keyExtractor={(channel) => channel.identityKey}
-        renderItem={({ item }) => <PreviewRow channel={item} />}
+        renderItem={({ item }) => (
+          <PreviewRow channel={item} height={rowHeight} />
+        )}
         getItemLayout={(_rows, index) => ({
-          length: ROW_HEIGHT,
-          offset: ROW_HEIGHT * index,
+          length: rowHeight,
+          offset: rowHeight * index,
           index,
         })}
         initialNumToRender={20}
@@ -134,9 +137,15 @@ export function ImportPreviewBody({
   );
 }
 
-function PreviewRow({ channel }: { channel: ParsedChannel }) {
+function PreviewRow({
+  channel,
+  height,
+}: {
+  channel: ParsedChannel;
+  height: number;
+}) {
   return (
-    <View style={previewStyles.row}>
+    <View style={[previewStyles.row, { height }]}>
       <View style={previewStyles.titleLine}>
         <Text style={previewStyles.name} numberOfLines={1}>
           {channel.name}
@@ -171,7 +180,6 @@ const previewStyles = StyleSheet.create({
     justifyContent: "space-between",
   },
   row: {
-    height: ROW_HEIGHT,
     justifyContent: "center",
     gap: 2,
     borderBottomWidth: StyleSheet.hairlineWidth,
