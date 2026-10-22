@@ -134,6 +134,7 @@ export async function checkAvailability(
       ? await checkChannels(selected, {
           signal: options.signal,
           concurrency: options.concurrency?.(),
+          now: options.now,
           onResult: (result) => {
             unsaved.push(result);
             if (unsaved.length < CHECK_SAVE_BATCH) return;

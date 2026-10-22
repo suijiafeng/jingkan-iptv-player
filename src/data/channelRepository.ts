@@ -348,12 +348,20 @@ export class Repository {
       channelId: string;
       streamUrl: string;
       ok: boolean;
+      observedAt?: number;
       languages?: string[];
     }[],
   ): Promise<void> {
     if (!results.length) return;
+    // 未显式传入观测记录的兼容调用方，仍会捕获
+    // 在等待另一项已排队的数据库事务之前，先记录观察时间。
+    const receivedAt = this.now();
+    const observations = results.map((result) => ({
+      ...result,
+      observedAt: result.observedAt ?? receivedAt,
+    }));
     await this.transaction(async (tx) => {
-      await writeChecks(tx, results, this.now());
+      await writeChecks(tx, observations, this.now());
     });
   }
 

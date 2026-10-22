@@ -20,7 +20,7 @@ export async function readChecks(
       ...(await db.getAllAsync<StoredCheck>(
         `SELECT streamUrl, checkStatus, checkedAt FROM (
         SELECT streamUrl, checkStatus, checkedAt,
-          ROW_NUMBER() OVER (PARTITION BY streamUrl ORDER BY checkedAt DESC, checkStatus DESC, id) AS rank
+          ROW_NUMBER() OVER (PARTITION BY streamUrl ORDER BY checkedAt DESC, (checkStatus = 'ok') DESC, id) AS rank
         FROM channels WHERE streamUrl IN (${batch.map(() => "?").join(",")})
           AND checkStatus IS NOT NULL AND checkedAt IS NOT NULL
       ) WHERE rank = 1`,
@@ -40,7 +40,7 @@ export async function synchronizeChecks(
     `UPDATE channels AS c SET (checkStatus, checkedAt) = (
       SELECT known.checkStatus, known.checkedAt FROM channels known
       WHERE known.streamUrl = c.streamUrl AND known.checkStatus IS NOT NULL AND known.checkedAt IS NOT NULL
-      ORDER BY known.checkedAt DESC, known.checkStatus DESC, known.id LIMIT 1
+      ORDER BY known.checkedAt DESC, (known.checkStatus = 'ok') DESC, known.id LIMIT 1
     ) WHERE ${sourceId === undefined ? "" : "c.sourceId = ? AND "}EXISTS (
       SELECT 1 FROM channels known WHERE known.streamUrl = c.streamUrl
         AND known.checkStatus IS NOT NULL AND known.checkedAt IS NOT NULL
@@ -67,29 +67,43 @@ export async function synchronizeStreamLanguages(
   );
 }
 
-/**
- * 按地址记录可达性。只有检测读取了主播放列表时，才用声明的音轨语言
- * 替换已保存的语言；其他情况保留最后已知的语言。
- */
+/** 按观察发生的顺序记录地址可达性，而非按保存顺序。同一时间戳下，无论哪次保存先到，成功结果优先。只有检测读取过主清单时，才替换已保存的音轨语言；否则保留上次已知的语言。 */
 export async function writeChecks(
   db: SqlExecutor,
-  results: { streamUrl: string; ok: boolean; languages?: string[] }[],
+  results: {
+    streamUrl: string;
+    ok: boolean;
+    observedAt: number;
+    languages?: string[];
+  }[],
   now: number,
 ): Promise<void> {
-  for (const result of new Map(
-    results.map((item) => [item.streamUrl, item]),
-  ).values())
+  for (const result of results) {
+    // 时钟回拨会使来自旧时钟、仍在途中的观测结果
+    // 无法确定；丢弃这些结果，等待新的明确检测重新观测。
+    if (!Number.isFinite(result.observedAt) || result.observedAt > now)
+      continue;
+    const status = result.ok ? "ok" : "unreachable";
     await db.runAsync(
-      result.languages
-        ? "UPDATE channels SET checkStatus = ?, checkedAt = ?, streamLanguages = ? WHERE streamUrl = ?"
-        : "UPDATE channels SET checkStatus = ?, checkedAt = ? WHERE streamUrl = ?",
+      `UPDATE channels SET checkStatus = ?, checkedAt = ?${result.languages ? ", streamLanguages = ?" : ""}
+      WHERE streamUrl = ? AND (
+        checkedAt IS NULL OR checkedAt > ? OR checkedAt < ? OR
+        (checkedAt = ? AND (checkStatus IS NULL OR checkStatus <> 'ok' OR ? = 'ok'))
+      )`,
       [
-        result.ok ? "ok" : "unreachable",
-        now,
+        status,
+        result.observedAt,
         ...(result.languages
           ? [normalizeLanguages(result.languages.join(";")).join(";")]
           : []),
         result.streamUrl,
+        // 保存在未来的时间戳也属于原先的时钟；
+        // 回拨后产生的新观测可以覆盖它。
+        now,
+        result.observedAt,
+        result.observedAt,
+        status,
       ],
     );
+  }
 }

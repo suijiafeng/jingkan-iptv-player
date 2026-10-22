@@ -110,9 +110,10 @@ export function useChannelActions({
   /** 实际播放成功，比单独的 HTTP 可用性探测更有说服力。 */
   const recordAvailability = async (target: Channel, ok: boolean) => {
     if (!repo) return;
+    const observedAt = Date.now();
     try {
       await repo.saveCheckResults([
-        { channelId: target.id, streamUrl: target.streamUrl, ok },
+        { channelId: target.id, streamUrl: target.streamUrl, ok, observedAt },
       ]);
       const [saved] = await repo.getCheckResults([target.streamUrl]);
       if (!mounted.current || !saved) return;

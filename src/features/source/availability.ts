@@ -24,6 +24,8 @@ export interface CheckResult {
   channelId: string;
   streamUrl: string;
   ok: boolean;
+  /** 本次探测开始的时间，防止迟到批次覆盖更新的播放结果。 */
+  observedAt?: number;
   /** 流声明的音轨语言；未声明时缺省。 */
   languages?: string[];
 }
@@ -34,6 +36,8 @@ export async function checkChannels(
   options: {
     signal: AbortSignal;
     concurrency?: number;
+    /** 观测时钟：每次请求开始前取值，而非请求结束时。 */
+    now?: () => number;
     onProgress?: (done: number, total: number) => void;
     /** 每个结果一到达就回调，最终返回列表中使用的也是同一对象。 */
     onResult?: (result: CheckResult) => void;
@@ -49,6 +53,7 @@ export async function checkChannels(
   const worker = async () => {
     while (!options.signal.aborted && next < targets.length) {
       const target = targets[next++];
+      const observedAt = (options.now ?? Date.now)();
       const answer = await check(target.streamUrl, options.signal);
       if (options.signal.aborted) return;
       const { ok, languages } =
@@ -59,6 +64,7 @@ export async function checkChannels(
         channelId: target.id,
         streamUrl: target.streamUrl,
         ok,
+        observedAt,
         ...(languages ? { languages } : {}),
       };
       results.push(result);
