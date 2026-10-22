@@ -193,6 +193,13 @@ function FooterAction({
   danger?: boolean;
   onPress: () => void;
 }) {
+  const { fontScale } = useWindowDimensions();
+  // 这些标签使用中日韩字符：每个字预留一字宽，再给小图标
+  // 留白，否则 Android 字体回退或取整可能让最后一个字换行
+  // 在部分设备上会超出 Yoga 测量得到的文字宽度。
+  const minWidth = Math.ceil(
+    (type.chip.fontSize * label.length + 4) * Math.max(1, fontScale) + 24,
+  );
   return (
     <Pressable
       accessibilityRole="button"
@@ -202,11 +209,15 @@ function FooterAction({
       onPress={onPress}
       style={({ pressed }) => [
         cardStyles.footerAction,
+        { minWidth },
         disabled && cardStyles.dimmed,
         pressed && cardStyles.pressed,
       ]}
     >
-      <Text style={[cardStyles.footerText, danger && cardStyles.danger]}>
+      <Text
+        numberOfLines={1}
+        style={[cardStyles.footerText, danger && cardStyles.danger]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -266,8 +277,10 @@ const cardStyles = StyleSheet.create({
   },
   footerAction: {
     minHeight: sizes.touch,
+    flexShrink: 0,
     maxWidth: "100%",
     paddingHorizontal: 12,
+    paddingVertical: 4,
     justifyContent: "center",
   },
   footerText: { ...type.chip, color: colors.accent, fontWeight: "600" },
