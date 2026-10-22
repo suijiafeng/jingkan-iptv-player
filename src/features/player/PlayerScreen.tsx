@@ -9,6 +9,7 @@ import {
   Alert,
   BackHandler,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -228,7 +229,17 @@ export function PlayerScreen(props: PlayerScreenProps) {
             importantForAccessibility="no"
             onPress={() => setSourcesOpen(false)}
           />
-          <View style={screenStyles.sourceSheet} testID="source-sheet">
+          <View
+            style={[
+              screenStyles.sourceSheet,
+              {
+                paddingBottom: 20 + insets.bottom,
+                paddingLeft: 12 + insets.left,
+                paddingRight: 12 + insets.right,
+              },
+            ]}
+            testID="source-sheet"
+          >
             <View style={screenStyles.sheetGrab} />
             <View style={screenStyles.sheetHeading}>
               <View style={screenStyles.flex}>
@@ -245,14 +256,20 @@ export function PlayerScreen(props: PlayerScreenProps) {
                 <CloseIcon />
               </Pressable>
             </View>
-            <SourceList
-              current={props.channel}
-              sources={props.sources}
-              onSelect={(source) => {
-                setSourcesOpen(false);
-                onManualSelect(source);
-              }}
-            />
+            <ScrollView
+              testID="source-sheet-scroll"
+              style={screenStyles.sourceScroll}
+              keyboardShouldPersistTaps="handled"
+            >
+              <SourceList
+                current={props.channel}
+                sources={props.sources}
+                onSelect={(source) => {
+                  setSourcesOpen(false);
+                  onManualSelect(source);
+                }}
+              />
+            </ScrollView>
           </View>
         </View>
       )}
@@ -320,6 +337,7 @@ const screenStyles = StyleSheet.create({
     borderTopRightRadius: 28,
     backgroundColor: colors.surface,
   },
+  sourceScroll: { flexShrink: 1 },
   sheetGrab: {
     alignSelf: "center",
     width: 40,
