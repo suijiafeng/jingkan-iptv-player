@@ -17,6 +17,7 @@ interface ManagerProps {
   error?: string;
   onDismissError?: () => void;
   onClose: () => void;
+  onDismiss: () => void;
   onAdd: (kind: SourceKind) => void;
   onRename: (source: Source) => void;
   onRemove: (source: Source) => void;
@@ -39,6 +40,7 @@ export function SourceManagerModal(props: ManagerProps) {
       visible={props.visible}
       animationType="slide"
       onRequestClose={props.onClose}
+      onDismiss={props.onDismiss}
     >
       <SafeAreaView style={styles.screen}>
         <BackBar title="节目来源" onBack={props.onClose} />

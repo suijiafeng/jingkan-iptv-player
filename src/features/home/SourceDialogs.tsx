@@ -61,6 +61,7 @@ export function SourceDialogs({
       onPreview={() => void importer.preview()}
       onSave={() => void importer.save()}
       onBack={() => void importer.backForm()}
+      onDismiss={importer.onFormDismiss}
     />
   );
   return (
@@ -74,6 +75,7 @@ export function SourceDialogs({
         check={sourceTasks.check}
         summaries={sourceTasks.checkSummaries}
         onClose={() => setManaging(false)}
+        onDismiss={importer.onManagementDismiss}
         onAdd={(kind) => importer.startForm(kind, true)}
         onRename={(source) => {
           setError("");

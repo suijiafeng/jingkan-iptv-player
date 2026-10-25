@@ -29,6 +29,8 @@ interface Props {
   onSave: () => void;
   /** 逐级返回：预览 → 编辑；编辑 → 离开，未保存时先确认。 */
   onBack: () => void;
+  /** 原生弹层关闭完成后，才能关闭承载它的管理页。 */
+  onDismiss: () => void;
 }
 
 /** 添加或刷新节目单的表单：输入 → 预览 → 明确保存。 */
@@ -42,9 +44,15 @@ export function SourceFormModal({
   onPreview,
   onSave,
   onBack,
+  onDismiss,
 }: Props) {
   return (
-    <ScreenModal visible={!!form} animationType="slide" onRequestClose={onBack}>
+    <ScreenModal
+      visible={!!form}
+      animationType="slide"
+      onRequestClose={onBack}
+      onDismiss={onDismiss}
+    >
       <SafeAreaView style={styles.screen}>
         {/* 预览返回编辑，编辑则离开表单。 */}
         {form && (

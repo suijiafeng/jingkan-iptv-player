@@ -5,6 +5,7 @@ import {
   useState,
   type MutableRefObject,
 } from "react";
+import { Platform } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import type { Repository } from "../../data/repository";
 import type { Source, SourceKind } from "../../domain/types";
@@ -56,7 +57,12 @@ export function useSourceImport({
   const controller = useRef<AbortController | null>(null),
     generation = useRef(0),
     saving = useRef(false),
-    fromManagement = useRef(false);
+    fromManagement = useRef(false),
+    pendingImport = useRef<{
+      sourceId: string;
+      fillLanguages: boolean;
+    } | null>(null),
+    pendingLanguageSource = useRef<string | null>(null);
 
   useEffect(() => () => controller.current?.abort(), []);
 
@@ -67,6 +73,27 @@ export function useSourceImport({
     setBusy(false);
   }, []);
   const taskRunning = useCallback(() => controller.current !== null, []);
+
+  /** iOS 先结束内层表单的原生关闭动画，再退出下方管理页。 */
+  const onFormDismiss = () => {
+    const imported = pendingImport.current;
+    pendingImport.current = null;
+    if (!imported || !mounted.current) return;
+    const waitForManagement = Platform.OS === "ios" && fromManagement.current;
+    fromManagement.current = false;
+    // 语言补全可能请求联网许可，也要等下方管理页关闭后再呈现。
+    if (imported.fillLanguages && waitForManagement)
+      pendingLanguageSource.current = imported.sourceId;
+    onImported();
+    if (imported.fillLanguages && !waitForManagement)
+      onFillLanguages(imported.sourceId);
+  };
+
+  const onManagementDismiss = () => {
+    const sourceId = pendingLanguageSource.current;
+    pendingLanguageSource.current = null;
+    if (sourceId && mounted.current) onFillLanguages(sourceId);
+  };
 
   const startForm = (kind: SourceKind, openedFromManagement = false) => {
     fromManagement.current = openedFromManagement;
@@ -238,15 +265,16 @@ export function useSourceImport({
           content: submitted.kind === "file" ? submitted.content : undefined,
         }));
       }
+      pendingImport.current = {
+        sourceId,
+        fillLanguages:
+          submitted.fillLanguages &&
+          submitted.preview!.channels.some(needsLanguageLookup),
+      };
       setForm(null);
-      fromManagement.current = false;
-      onImported();
       changed();
-      if (
-        submitted.fillLanguages &&
-        submitted.preview!.channels.some(needsLanguageLookup)
-      )
-        onFillLanguages(sourceId);
+      // Android 不提供 onDismiss，保存后的跳转直接执行。
+      if (Platform.OS !== "ios") onFormDismiss();
     } catch {
       setFormError("保存失败，原数据未变");
     } finally {
@@ -306,6 +334,8 @@ export function useSourceImport({
     chooseFile,
     preview,
     save,
+    onFormDismiss,
+    onManagementDismiss,
     refresh,
     cancelTask,
     taskRunning,
