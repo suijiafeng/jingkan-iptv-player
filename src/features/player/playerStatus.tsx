@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { showToast } from "../../components/Toast";
 import { PlayIcon } from "./playerIcons";
-import { colors } from "../../theme";
+import { colors, type } from "../../theme";
 import type { PlaybackSnapshot } from "./playbackController";
 import { descriptions, SLOW_START_SECONDS } from "./playerShared";
 
@@ -255,20 +255,20 @@ const statusStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    height: 34,
+    minHeight: 34,
     paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 17,
     borderWidth: 1,
     borderColor: "#F1F5F552",
   },
-  chipText: { color: colors.text, fontSize: 13, lineHeight: 20 },
+  chipText: { ...type.chip, color: colors.text },
   pressed: { opacity: 0.7 },
   disabled: { opacity: 0.4 },
   prompt: { alignItems: "center", gap: 14, paddingHorizontal: 16 },
   promptText: {
+    ...type.body,
     color: colors.text,
-    fontSize: 14,
-    lineHeight: 20,
     textAlign: "center",
   },
   checkRow: {
@@ -297,5 +297,5 @@ const statusStyles = StyleSheet.create({
     borderColor: colors.ink,
     transform: [{ rotate: "45deg" }],
   },
-  checkText: { color: "#F1F5F5BF", fontSize: 12, lineHeight: 18 },
+  checkText: { ...type.muted, color: "#F1F5F5BF" },
 });

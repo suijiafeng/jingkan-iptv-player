@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { colors } from "../../theme";
+import { colors, type } from "../../theme";
 import { MediaStatus, OverlayButton } from "./overlayWidgets";
 import { ChevronLeftIcon, ExitFullscreenIcon, MenuIcon } from "./playerIcons";
 import type { SessionProps } from "./ChannelSession";
@@ -123,9 +123,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   title: {
+    ...type.heading,
     color: colors.text,
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: "600",
   },
 });

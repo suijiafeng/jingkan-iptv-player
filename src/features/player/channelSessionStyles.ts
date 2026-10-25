@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { colors } from "../../theme";
+import { colors, type } from "../../theme";
 
 /** ChannelSession 的样式：竖屏、全屏及停靠小窗布局。 */
 export const sessionStyles = StyleSheet.create({
@@ -23,8 +23,8 @@ export const sessionStyles = StyleSheet.create({
     paddingVertical: 4,
     backgroundColor: "#0B1115B3",
   },
-  miniTitleText: { color: colors.text, fontSize: 12, lineHeight: 16 },
-  audioCaption: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  miniTitleText: { ...type.caption, color: colors.text },
+  audioCaption: { ...type.muted, color: colors.muted },
   fullscreenSources: {
     position: "absolute",
     top: 82,
@@ -59,10 +59,8 @@ export const sessionStyles = StyleSheet.create({
   // 拖动调整亮度或音量时，在画面中央显示。
   adjustOsd: { top: "45%" },
   osdText: {
+    ...type.heading,
     color: colors.text,
-    fontSize: 18,
-    lineHeight: 27,
-    fontWeight: "600",
   },
   portraitInfo: {
     paddingHorizontal: 16,
@@ -79,15 +77,12 @@ export const sessionStyles = StyleSheet.create({
     gap: 8,
   },
   infoTitle: {
+    ...type.heading,
     color: colors.text,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: "600",
   },
   infoSubtitle: {
+    ...type.muted,
     color: colors.muted,
-    fontSize: 12,
-    lineHeight: 18,
     marginTop: 2,
   },
   portraitBottom: {
@@ -132,5 +127,5 @@ export const sessionStyles = StyleSheet.create({
     backgroundColor: "#000000",
     overflow: "hidden",
   },
-  warning: { color: colors.warn, fontSize: 12, lineHeight: 18 },
+  warning: { ...type.muted, color: colors.warn },
 });

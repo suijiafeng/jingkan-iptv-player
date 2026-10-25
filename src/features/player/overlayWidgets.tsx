@@ -8,7 +8,7 @@ import {
   type StyleProp,
   type TextStyle,
 } from "react-native";
-import { colors } from "../../theme";
+import { colors, type } from "../../theme";
 import { LIVE_EDGE_MARGIN_S, type MediaHandle } from "./mediaHandle";
 
 /** 每 DOTS_CYCLE_MS 循环一次 ""、"."、".."、"..."。 */
@@ -288,7 +288,11 @@ export function MediaStatus({
   };
   return (
     <View style={styles.timelineRow} testID="media-timeline">
-      {!!label && <Text style={styles.timelineText}>{label}</Text>}
+      {!!label && (
+        <Text style={styles.timelineText} numberOfLines={1}>
+          {label}
+        </Text>
+      )}
       <View
         style={styles.timelineTrack}
         onLayout={({ nativeEvent }) => setWidth(nativeEvent.layout.width)}
@@ -357,28 +361,27 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    height: 28,
+    minHeight: 32,
     paddingHorizontal: 10,
-    borderRadius: 14,
+    paddingVertical: 4,
+    borderRadius: 16,
     backgroundColor: "#FFFFFF24",
   },
   backToLiveText: {
+    ...type.muted,
     color: colors.text,
-    fontSize: 12,
-    lineHeight: 18,
     fontWeight: "500",
   },
   liveText: {
+    ...type.muted,
     color: colors.text,
     letterSpacing: 0.7,
-    fontSize: 12,
-    lineHeight: 18,
     fontWeight: "600",
   },
   loadingTitle: { flexDirection: "row", justifyContent: "center" },
   loadingDots: { width: 22, textAlign: "left" },
   overlayButton: {
-    height: 38,
+    minHeight: 38,
     minWidth: 38,
     paddingHorizontal: 14,
     borderRadius: 999,
@@ -419,7 +422,7 @@ const styles = StyleSheet.create({
   },
   chipSolid: { backgroundColor: colors.raised },
   chipDisabled: { opacity: 0.7 },
-  chipText: { color: colors.text, fontSize: 12, lineHeight: 18 },
+  chipText: { ...type.muted, color: colors.text },
   chipLead: { color: colors.muted },
   shade: { position: "absolute", left: 0, right: 0 },
   shadeTop: {
@@ -435,10 +438,8 @@ const styles = StyleSheet.create({
   overlayButtonDisabled: { opacity: 0.4 },
   overlayButtonSolid: { backgroundColor: colors.raised },
   overlayButtonText: {
+    ...type.chip,
     color: colors.text,
-    fontSize: 13,
-    lineHeight: 20,
-    fontWeight: "500",
   },
   pressed: { opacity: 0.7 },
   timelineBar: {
@@ -450,11 +451,11 @@ const styles = StyleSheet.create({
   timelineFill: { height: 4, backgroundColor: colors.accent },
   timelineRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   timelineText: {
+    ...type.caption,
     color: "#FFFFFFCC",
-    fontSize: 11,
-    lineHeight: 16,
     fontVariant: ["tabular-nums"],
     minWidth: 64,
+    flexShrink: 1,
   },
   timelineThumb: {
     position: "absolute",
@@ -465,5 +466,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: colors.text,
   },
-  timelineTrack: { flex: 1, height: 32, justifyContent: "center" },
+  timelineTrack: {
+    flex: 1,
+    minWidth: 32,
+    height: 32,
+    justifyContent: "center",
+  },
 });

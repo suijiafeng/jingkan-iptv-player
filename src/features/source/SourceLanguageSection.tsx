@@ -5,7 +5,7 @@ import { ScreenModal } from "../common/ScreenModal";
 import { BackBar } from "../../components/ui";
 import { languageLabel } from "../../domain/channelFacets";
 import type { SourceLanguages } from "../../data/sourceLanguages";
-import { colors, styles } from "../../theme";
+import { colors, styles, type } from "../../theme";
 import { Chevron, SettingRow, SettingSection } from "../settings/SettingRows";
 
 /** 优先提供的语言；与语言菜单一样，中文变体排在最前。 */
@@ -157,5 +157,10 @@ function LanguagePicker({
 }
 
 const pickerStyles = StyleSheet.create({
-  check: { color: colors.accent, fontWeight: "700", paddingHorizontal: 4 },
+  check: {
+    ...type.body,
+    color: colors.accent,
+    fontWeight: "700",
+    paddingHorizontal: 4,
+  },
 });

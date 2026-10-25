@@ -15,22 +15,22 @@ export const colors = {
   warn: "#F3C58B",
   bad: "#FFB4AC",
 };
-/** 各页面共用从播放器确定的字号体系；频道页与播放器面板会并排出现，因此文字尺寸必须一致。 */
+/** 以 16 号正文为基准；频道页与播放器面板共享字号和行高，文字继续跟随系统字体缩放。 */
 export const type = {
   /** 页面标题：频道、设置、管理节目来源。 */
   title: { fontSize: 22, lineHeight: 28, fontWeight: "700" },
   /** 分区标题和卡片标题。 */
-  heading: { fontSize: 16, lineHeight: 22, fontWeight: "600" },
+  heading: { fontSize: 18, lineHeight: 26, fontWeight: "600" },
   /** 正文、输入框和主按钮。 */
-  body: { fontSize: 14, lineHeight: 20 },
+  body: { fontSize: 16, lineHeight: 24 },
   /** 标题或列表行下方的次要说明。 */
-  muted: { fontSize: 12, lineHeight: 18 },
+  muted: { fontSize: 14, lineHeight: 20 },
   /** 紧凑标签：频道行的分组或筛选维度名称。 */
-  caption: { fontSize: 11, lineHeight: 16 },
+  caption: { fontSize: 13, lineHeight: 18 },
   /** 筛选标签或页签。 */
-  chip: { fontSize: 13, lineHeight: 20, fontWeight: "500" },
+  chip: { fontSize: 14, lineHeight: 20, fontWeight: "500" },
   /** 频道行的名称。 */
-  rowTitle: { fontSize: 15, lineHeight: 20, fontWeight: "500" },
+  rowTitle: { fontSize: 16, lineHeight: 24, fontWeight: "500" },
 } satisfies Record<string, TextStyle>;
 /** 页面、弹层和播放器共享的控件高度，单位 dp。 */
 export const sizes = {
@@ -44,7 +44,7 @@ export const sizes = {
   touch: 48,
   /** 列表行中的频道台标或首字标识。 */
   logo: 40,
-  /** 频道行：40dp 台标，上下各 8dp 留白。 */
+  /** 频道行的最小高度；实际高度还会根据文字行高和系统字体缩放增加。 */
   row: 56,
 };
 export const styles = StyleSheet.create({
@@ -63,7 +63,7 @@ export const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: colors.raised,
     color: colors.text,
-    fontSize: type.body.fontSize,
+    ...type.body,
   },
   card: {
     backgroundColor: colors.surface,

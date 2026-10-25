@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { colors } from "../../theme";
+import { colors, type } from "../../theme";
 import type { Channel } from "../../domain/types";
 import { qualityName } from "../../domain/channelSources";
 import { displayStreamAddress } from "../../domain/url";
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.raised,
   },
   sourceRowSelected: { borderColor: colors.accent },
-  sourceText: { color: colors.text, fontSize: 14, lineHeight: 21 },
-  sourceAddress: { color: colors.muted, fontSize: 11, lineHeight: 16 },
-  sourceWarning: { color: colors.warn, fontSize: 11, lineHeight: 16 },
+  sourceText: { ...type.body, color: colors.text },
+  sourceAddress: { ...type.caption, color: colors.muted },
+  sourceWarning: { ...type.caption, color: colors.warn },
 });

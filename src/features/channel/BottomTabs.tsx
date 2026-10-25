@@ -95,6 +95,6 @@ const tabStyles = StyleSheet.create({
     justifyContent: "center",
   },
   iconPillOn: { borderRadius: 14, backgroundColor: colors.raised },
-  label: type.caption,
+  label: type.body,
   labelOn: { fontWeight: "600" },
 });

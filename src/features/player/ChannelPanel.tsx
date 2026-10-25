@@ -16,7 +16,7 @@ import {
 } from "../../components/ChannelRow";
 import { ChannelFilterBar } from "../channel/ChannelListParts";
 import { Button, Notice } from "../../components/ui";
-import { colors } from "../../theme";
+import { colors, type } from "../../theme";
 import type { Channel } from "../../domain/types";
 import { filteredGroup } from "../../domain/channelLabels";
 import { sameChannel, type ChannelSheetProps } from "./playerShared";
@@ -291,9 +291,8 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   headingTitle: {
+    ...type.body,
     color: colors.text,
-    fontSize: 14,
-    lineHeight: 20,
     fontWeight: "600",
   },
   headingAction: {
@@ -304,7 +303,12 @@ const styles = StyleSheet.create({
   },
   list: { flex: 1 },
   listContent: { gap: CHANNEL_ROW_GAP },
-  empty: { color: colors.muted, paddingVertical: 24, textAlign: "center" },
+  empty: {
+    ...type.body,
+    color: colors.muted,
+    paddingVertical: 24,
+    textAlign: "center",
+  },
   emptyLoading: { paddingVertical: 24 },
-  emptyLoadingText: { color: colors.muted },
+  emptyLoadingText: { ...type.body, color: colors.muted },
 });

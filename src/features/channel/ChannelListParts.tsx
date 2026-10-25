@@ -508,7 +508,7 @@ const partStyles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     color: colors.text,
-    fontSize: type.body.fontSize,
+    ...type.body,
   },
   clearSearch: {
     minWidth: sizes.field,

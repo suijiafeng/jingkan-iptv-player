@@ -37,6 +37,8 @@ function Monogram({ title }: { title: string }) {
   const mark = channelMonogram(title);
   return (
     <Text
+      // 首字属于固定方框内的装饰标识；实际频道名称在列表中独立缩放。
+      allowFontScaling={false}
       style={[
         styles.heading,
         logoStyles.monogram,
