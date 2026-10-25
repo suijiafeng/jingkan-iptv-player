@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text } from "react-native";
+import { ScrollView, StyleSheet, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BackBar, Heading } from "../../components/ui";
+import { ScreenModal } from "../common/ScreenModal";
+import { BackBar } from "../../components/ui";
 import { languageLabel } from "../../domain/channelFacets";
 import type { SourceLanguages } from "../../data/sourceLanguages";
 import { colors, styles } from "../../theme";
@@ -126,11 +127,14 @@ function LanguagePicker({
       ? [current, ...COMMON_LANGUAGES]
       : [...COMMON_LANGUAGES];
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <ScreenModal
+      visible={visible}
+      animationType="slide"
+      onRequestClose={onClose}
+    >
       <SafeAreaView style={styles.screen}>
-        <BackBar onBack={onClose} />
+        <BackBar title={title} onBack={onClose} />
         <ScrollView contentContainerStyle={styles.content}>
-          <Heading title={title} />
           <SettingSection>
             {["", ...codes].map((code) => (
               <SettingRow
@@ -148,7 +152,7 @@ function LanguagePicker({
           </SettingSection>
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </ScreenModal>
   );
 }
 

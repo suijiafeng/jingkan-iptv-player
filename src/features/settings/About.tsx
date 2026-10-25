@@ -1,15 +1,9 @@
 import React, { useState } from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenModal } from "../common/ScreenModal";
 import Constants from "expo-constants";
-import { BackBar, Heading } from "../../components/ui";
+import { BackBar } from "../../components/ui";
 import { colors, sizes, styles, type } from "../../theme";
 import { RISK } from "../common/confirm";
 import { Chevron, SettingRow } from "./SettingRows";
@@ -118,7 +112,7 @@ export function About() {
         trailing={<Chevron />}
         onPress={() => setOpen(true)}
       />
-      <Modal
+      <ScreenModal
         visible={open}
         animationType="slide"
         onRequestClose={() => setOpen(false)}
@@ -127,9 +121,9 @@ export function About() {
           style={styles.screen}
           edges={["top", "bottom", "left", "right"]}
         >
-          <BackBar onBack={() => setOpen(false)} />
+          <BackBar title="静看 TV" onBack={() => setOpen(false)} />
           <ScrollView contentContainerStyle={styles.content}>
-            <Heading title="静看 TV" subtitle={versionLabel()} />
+            <Text style={styles.muted}>{versionLabel()}</Text>
             <Text style={styles.body}>安静地看，资料自己保管。</Text>
             <View>
               {SECTIONS.map((section) => (
@@ -138,7 +132,7 @@ export function About() {
             </View>
           </ScrollView>
         </SafeAreaView>
-      </Modal>
+      </ScreenModal>
     </>
   );
 }

@@ -15,7 +15,6 @@ import {
 } from "./features/region/useRegionPreference";
 import { ErrorNotice } from "./components/ui";
 import { ToastHost } from "./components/Toast";
-import { NetworkConsentDialog } from "./features/common/NetworkConsentDialog";
 import { ConsentHost } from "./features/common/ConsentDialog";
 import { styles as theme } from "./theme";
 import { useAutoAvailabilityCheck } from "./features/channel/useAutoAvailabilityCheck";
@@ -445,11 +444,6 @@ export default function App() {
         onSetSourceEnabled={controls.setSourceEnabled}
         changed={changed}
         editDeps={sourceNetwork}
-      />
-      <NetworkConsentDialog
-        visible={settings.consentCellular !== null}
-        cellular={!!settings.consentCellular}
-        onAnswer={settings.answerConsent}
       />
       <FirstRunGuide
         visible={settings.guideVisible}

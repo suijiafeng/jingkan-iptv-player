@@ -48,6 +48,21 @@ export function SourceDialogs({
   useEffect(() => {
     if (!managing) setRenaming(null);
   }, [managing, setRenaming]);
+  // iOS 只能从下方页面呈现新页面，因此从其中打开的页面
+  // 管理页位于它的内部。
+  const sourceForm = (
+    <SourceFormModal
+      form={importer.form}
+      busy={importer.busy}
+      error={importer.formError || error}
+      onUpdate={importer.updateForm}
+      onFillLanguages={importer.setFillLanguages}
+      onChooseFile={() => void importer.chooseFile()}
+      onPreview={() => void importer.preview()}
+      onSave={() => void importer.save()}
+      onBack={() => void importer.backForm()}
+    />
+  );
   return (
     <>
       <SourceManagerModal
@@ -75,25 +90,17 @@ export function SourceDialogs({
         }}
         onCheck={(source, force) => void sourceTasks.runCheck(source, force)}
         onStopCheck={sourceTasks.stopCheck}
-      />
-      <EditSourceModal
-        source={renaming}
-        repo={repo}
-        close={() => setRenaming(null)}
-        changed={changed}
-        deps={editDeps}
-      />
-      <SourceFormModal
-        form={importer.form}
-        busy={importer.busy}
-        error={importer.formError || error}
-        onUpdate={importer.updateForm}
-        onFillLanguages={importer.setFillLanguages}
-        onChooseFile={() => void importer.chooseFile()}
-        onPreview={() => void importer.preview()}
-        onSave={() => void importer.save()}
-        onBack={() => void importer.backForm()}
-      />
+      >
+        <EditSourceModal
+          source={renaming}
+          repo={repo}
+          close={() => setRenaming(null)}
+          changed={changed}
+          deps={editDeps}
+        />
+        {managing && sourceForm}
+      </SourceManagerModal>
+      {!managing && sourceForm}
     </>
   );
 }

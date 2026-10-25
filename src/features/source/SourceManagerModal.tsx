@@ -1,7 +1,8 @@
-import React from "react";
-import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { type ReactNode } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BackBar, ErrorNotice, Heading } from "../../components/ui";
+import { ScreenModal } from "../common/ScreenModal";
+import { BackBar, ErrorNotice } from "../../components/ui";
 import type { Source, SourceKind } from "../../domain/types";
 import { colors, styles, type } from "../../theme";
 import { Chevron, SettingRow, SettingSection } from "../settings/SettingRows";
@@ -23,6 +24,8 @@ interface ManagerProps {
   onEnabledChange: (source: Source, enabled: boolean) => void;
   onCheck: (source: Source, force?: boolean) => void;
   onStopCheck: () => void;
+  /** 从这里打开的页面；iOS 只能从当前弹层呈现它们。 */
+  children?: ReactNode;
 }
 
 /**
@@ -32,17 +35,16 @@ interface ManagerProps {
 export function SourceManagerModal(props: ManagerProps) {
   const { check, sources } = props;
   return (
-    <Modal
+    <ScreenModal
       visible={props.visible}
       animationType="slide"
       onRequestClose={props.onClose}
     >
       <SafeAreaView style={styles.screen}>
-        <BackBar onBack={props.onClose} />
+        <BackBar title="节目来源" onBack={props.onClose} />
         <ScrollView
           contentContainerStyle={[styles.content, managerStyles.content]}
         >
-          <Heading title="节目来源" />
           <ErrorNotice message={props.error} onDismiss={props.onDismissError} />
           {/* 在表单内选择链接或文件，不要重复选择两次。 */}
           <SettingSection label="添加">
@@ -79,7 +81,8 @@ export function SourceManagerModal(props: ManagerProps) {
           )}
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+      {props.children}
+    </ScreenModal>
   );
 }
 

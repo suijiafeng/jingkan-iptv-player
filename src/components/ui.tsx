@@ -143,11 +143,14 @@ export function ErrorNotice({
  * 次级页面固定在左上角的返回控件：圆形按钮，箭头由普通 View 绘制
  * （无须图标字体），与页面内容对齐。
  */
+/** 页面顶部栏：普通返回箭头，其后是页面标题。 */
 export function BackBar({
   onBack,
+  title,
   accessibilityLabel = "返回",
 }: {
   onBack: () => void;
+  title?: string;
   accessibilityLabel?: string;
 }) {
   return (
@@ -159,11 +162,17 @@ export function BackBar({
         onPress={onBack}
         style={({ pressed }) => [uiStyles.back, pressed && { opacity: 0.6 }]}
       >
-        <View accessible={false} style={uiStyles.arrow}>
-          <View style={uiStyles.arrowHead} />
-          <View style={uiStyles.arrowShaft} />
-        </View>
+        <View accessible={false} style={uiStyles.chevron} />
       </Pressable>
+      {title !== undefined && (
+        <Text
+          accessibilityRole="header"
+          numberOfLines={1}
+          style={[styles.title, uiStyles.backTitle]}
+        >
+          {title}
+        </Text>
+      )}
     </View>
   );
 }
@@ -171,41 +180,29 @@ export function BackBar({
 const uiStyles = StyleSheet.create({
   backBar: {
     flexDirection: "row",
-    paddingHorizontal: 20,
+    alignItems: "center",
+    gap: 4,
+    paddingLeft: 8,
+    paddingRight: 20,
     paddingTop: 8,
   },
   back: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: sizes.touch,
+    height: sizes.touch,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
   },
-  arrow: {
-    width: 18,
-    height: 18,
-    alignItems: "flex-start",
-    justifyContent: "center",
-  },
-  // 箭头由旋转方框的两条边及穿过它的箭杆组成。
-  arrowHead: {
-    position: "absolute",
-    left: 2,
-    width: 10,
-    height: 10,
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
+  // 箭头：旋转正方形的两条边框。
+  chevron: {
+    marginLeft: 6,
+    width: 13,
+    height: 13,
+    borderLeftWidth: 2.5,
+    borderBottomWidth: 2.5,
     borderColor: colors.text,
     transform: [{ rotate: "45deg" }],
   },
-  arrowShaft: {
-    marginLeft: 2,
-    width: 15,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: colors.text,
-  },
+  backTitle: { flex: 1 },
   button: {
     minHeight: sizes.button,
     borderRadius: 12,

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, type MutableRefObject } from "react";
 import {
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,7 +7,8 @@ import {
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Button, ErrorNotice, Heading, Notice } from "../../components/ui";
+import { ScreenModal } from "../common/ScreenModal";
+import { BackBar, Button, ErrorNotice, Notice } from "../../components/ui";
 import type { Source } from "../../domain/types";
 import { colors, styles } from "../../theme";
 import type { Repository } from "../../data/repository";
@@ -41,7 +41,7 @@ export function EditSourceModal({
   // 此处仍可处理关闭，而弹层本身保持挂载以完成退出动画。
   const requestCloseRef = useRef<() => void>(close);
   return (
-    <Modal
+    <ScreenModal
       testID="source-edit-modal"
       visible={!!source}
       animationType="slide"
@@ -58,7 +58,7 @@ export function EditSourceModal({
           requestCloseRef={requestCloseRef}
         />
       )}
-    </Modal>
+    </ScreenModal>
   );
 }
 
@@ -88,11 +88,11 @@ export function EditSourceView({
 }) {
   return (
     <SafeAreaView style={styles.screen}>
+      <BackBar title="编辑节目来源" onBack={edit.cancel} />
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}
       >
-        <Heading title="编辑节目来源" />
         <ErrorNotice message={edit.error} onDismiss={edit.dismissError} />
         <Text style={styles.caption}>名称</Text>
         <TextInput

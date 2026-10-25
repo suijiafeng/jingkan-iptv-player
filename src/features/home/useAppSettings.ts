@@ -4,6 +4,7 @@ import { openRepository, Repository } from "../../data/repository";
 import { ImportIOError } from "../../data/importIO";
 import { confirm } from "../common/confirm";
 import { askConsent } from "../common/ConsentDialog";
+import { networkConsentRequest } from "../common/NetworkConsentDialog";
 import { ARTWORK_CONSENT, BACKGROUND_CONSENT } from "../common/consents";
 import { isOffline, mightUseMobileData } from "../player/playbackController";
 import type { Tab } from "../channel/ChannelListParts";
@@ -38,12 +39,8 @@ export function useAppSettings({
     [artworkRevokePending, setArtworkRevokePending] = useState(false),
     [guideVisible, setGuideVisible] = useState(false),
     // 一次确认覆盖当前可能计费的连接，重新连上 Wi-Fi 后重置。
-    [mobileAccepted, setMobileAcceptedState] = useState(false),
-    // 网络许可对话框：隐藏时为 null，否则表示是否同时
-    // 同时作为移动数据使用确认。
-    [consentCellular, setConsentCellular] = useState<boolean | null>(null);
+    [mobileAccepted, setMobileAcceptedState] = useState(false);
   const mounted = useRef(true),
-    consentAnswer = useRef<((allowed: boolean) => void) | null>(null),
     // 供同一任务中紧接知情确认执行的检查读取，早于
     // 重新渲染才会让它们拿到新状态。
     mobileAcceptedRef = useRef(false),
@@ -126,11 +123,8 @@ export function useAppSettings({
       !!network &&
       !isOffline(network) &&
       mightUseMobileData(network);
-    const accepted = await new Promise<boolean>((resolve) => {
-      consentAnswer.current?.(false);
-      consentAnswer.current = resolve;
-      setConsentCellular(cellular);
-    });
+    const accepted =
+      (await askConsent(networkConsentRequest(cellular))) === "allow";
     if (
       !accepted ||
       !repo ||
@@ -297,14 +291,6 @@ export function useAppSettings({
     /** 只有台标专属许可和当前联网许可同时有效时，才加载台标。 */
     artworkEnabled: artworkAllowed && remoteAllowed && !revokePending,
     guardRemote,
-    /** 是否显示许可对话框，以及是否显示移动数据说明行。 */
-    consentCellular,
-    answerConsent: (allowed: boolean) => {
-      const answer = consentAnswer.current;
-      consentAnswer.current = null;
-      setConsentCellular(null);
-      answer?.(allowed);
-    },
     checkNetwork,
     changeArtwork,
     saveToggle,

@@ -121,6 +121,24 @@ const subscribe = (listener: () => void) => {
 const getSnapshot = () => pending;
 
 /**
+ * 已打开的页面弹层，最新的放在末尾。iOS 从根视图控制器呈现每个 Modal，
+ * 页面已经打开时无法再从根控制器呈现第二个，因此问题显示在最新页面中，
+ * 而不是应用根节点。
+ */
+let layers: readonly object[] = [];
+const getLayers = () => layers;
+
+/** 标记一个页面弹层已打开，并返回用于标记其关闭的函数。 */
+export function openLayer(layer: object) {
+  layers = [...layers, layer];
+  emit();
+  return () => {
+    layers = layers.filter((open) => open !== layer);
+    emit();
+  };
+}
+
+/**
  * 通过应用的 ConsentHost 提出一个分层许可问题。
  * 新问题会替换尚未回答的旧问题，旧问题按关闭处理。
  */
@@ -150,10 +168,11 @@ export function answerConsent(value: string) {
 /** 当前显示的问题；没有时为 null。 */
 export const currentConsent = () => pending?.request ?? null;
 
-/** 显示 askConsent 提出的问题，在应用根节点只挂载一次。 */
-export function ConsentHost() {
+/** 显示 askConsent 当前提出的问题：未打开页面模态层时使用根宿主，否则使用最新页面内的宿主。 */
+export function ConsentHost({ layer }: { layer?: object }) {
   const shown = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  if (!shown) return null;
+  const open = useSyncExternalStore(subscribe, getLayers, getLayers);
+  if (!shown || (open.at(-1) ?? undefined) !== layer) return null;
   return (
     <ConsentDialog visible request={shown.request} onAnswer={answerConsent} />
   );

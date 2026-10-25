@@ -2,7 +2,6 @@ import React from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -12,7 +11,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BackBar, Button, Heading, Notice } from "../../components/ui";
+import { ScreenModal } from "../common/ScreenModal";
+import { BackBar, Button, Notice } from "../../components/ui";
 import { colors, styles } from "../../theme";
 import type { SourceFormState } from "./form";
 import { ImportPreviewBody } from "./ImportPreview";
@@ -44,10 +44,21 @@ export function SourceFormModal({
   onBack,
 }: Props) {
   return (
-    <Modal visible={!!form} animationType="slide" onRequestClose={onBack}>
+    <ScreenModal visible={!!form} animationType="slide" onRequestClose={onBack}>
       <SafeAreaView style={styles.screen}>
         {/* 预览返回编辑，编辑则离开表单。 */}
-        {form && <BackBar onBack={onBack} />}
+        {form && (
+          <BackBar
+            title={
+              form.preview
+                ? `${form.preview.stats.valid} 个频道`
+                : form.refresh
+                  ? "刷新节目单"
+                  : "添加节目单"
+            }
+            onBack={onBack}
+          />
+        )}
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -57,12 +68,7 @@ export function SourceFormModal({
             // 嵌套在表单 ScrollView 中的列表无法做到这一点。
             <ImportPreviewBody
               preview={form.preview}
-              header={
-                <>
-                  <Heading title={`${form.preview.stats.valid} 个频道`} />
-                  {error && <Notice title={error} error />}
-                </>
-              }
+              header={<>{error && <Notice title={error} error />}</>}
               busy={busy}
               fillLanguages={form.fillLanguages}
               onFillLanguages={onFillLanguages}
@@ -76,7 +82,6 @@ export function SourceFormModal({
             >
               {form && (
                 <>
-                  <Heading title={form.refresh ? "刷新节目单" : "添加节目单"} />
                   {error && <Notice title={error} error />}
                   <>
                     {!form.refresh && (
@@ -163,7 +168,7 @@ export function SourceFormModal({
           )}
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </Modal>
+    </ScreenModal>
   );
 }
 

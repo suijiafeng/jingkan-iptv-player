@@ -1,13 +1,7 @@
 import React from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { ScreenModal } from "../common/ScreenModal";
 import { Button } from "../../components/ui";
 import type { SourceKind } from "../../domain/types";
 import { colors, sizes, styles, type } from "../../theme";
@@ -24,7 +18,8 @@ export function FirstRunGuide({
   onFinish: (exit: GuideExit) => void;
 }) {
   return (
-    <Modal
+    <ScreenModal
+      sheet={false}
       visible={visible}
       animationType="fade"
       onRequestClose={() => onFinish(null)}
@@ -66,7 +61,7 @@ export function FirstRunGuide({
           </View>
         </ScrollView>
       </SafeAreaView>
-    </Modal>
+    </ScreenModal>
   );
 }
 
