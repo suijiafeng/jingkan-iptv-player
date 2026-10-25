@@ -9,6 +9,21 @@
     "orientation": "default",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.jingkan.personal",
+      "buildNumber": "5",
+      "supportsTablet": true,
+      "appleTeamId": "V49UK4S3UP",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        },
+        "UIBackgroundModes": ["audio"]
+      }
+    },
     "android": {
       "package": "com.jingkan.personal",
       "versionCode": 4,
