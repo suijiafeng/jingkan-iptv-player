@@ -52,7 +52,7 @@ export function BottomTabs({
               key={selected ? "selected" : "idle"}
               style={[tabStyles.iconPill, selected && tabStyles.iconPillOn]}
             >
-              <Icon color={tint} filled={selected} size={20} />
+              <Icon color={tint} filled={selected} size={24} />
             </View>
             <Text
               style={[
@@ -95,6 +95,6 @@ const tabStyles = StyleSheet.create({
     justifyContent: "center",
   },
   iconPillOn: { borderRadius: 14, backgroundColor: colors.raised },
-  label: type.body,
+  label: type.tabLabel,
   labelOn: { fontWeight: "600" },
 });

@@ -26,9 +26,11 @@ export const type = {
   /** 标题或列表行下方的次要说明。 */
   muted: { fontSize: 14, lineHeight: 20 },
   /** 紧凑标签：频道行的分组或筛选维度名称。 */
-  caption: { fontSize: 13, lineHeight: 18 },
+  caption: { fontSize: 12, lineHeight: 18 },
   /** 筛选标签或页签。 */
   chip: { fontSize: 14, lineHeight: 20, fontWeight: "500" },
+  /** 底部导航文字，与正文字号独立调整。 */
+  tabLabel: { fontSize: 14, lineHeight: 20 },
   /** 频道行的名称。 */
   rowTitle: { fontSize: 16, lineHeight: 24, fontWeight: "500" },
 } satisfies Record<string, TextStyle>;
