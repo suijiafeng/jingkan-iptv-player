@@ -15,6 +15,8 @@ import { resolveContentType } from "./streamFormat";
 interface Props {
   audioOnly?: boolean;
   muted?: boolean;
+  /** 播放器音量，范围为 0 到 1；由全屏右侧边缘拖动设置。 */
+  volume?: number;
   backgroundAllowed?: boolean;
   title?: string;
   uri: string;
@@ -49,12 +51,14 @@ export function NativeAttempt({
   backgroundAllowed = false,
   title = "静看",
   muted = false,
+  volume = 1,
   audioOnly = false,
 }: Props) {
   const [player, setPlayer] = useState<VideoPlayer | null>(null);
   const view = useRef<VideoView>(null);
   const backgroundPolicy = useRef(backgroundAllowed);
   const mutePolicy = useRef(muted);
+  const volumePolicy = useRef(volume);
   const audioPolicy = useRef(audioOnly);
   const pipActive = useRef(false);
   const exitPictureInPicture = useRef<(() => void) | null>(null);
@@ -85,6 +89,15 @@ export function NativeAttempt({
       controller.nativeStatus(attemptId, "error");
     }
   }, [muted, controller, attemptId]);
+  useEffect(() => {
+    volumePolicy.current = volume;
+    if (!currentInstance.current) return;
+    try {
+      currentInstance.current.volume = volume;
+    } catch {
+      controller.nativeStatus(attemptId, "error");
+    }
+  }, [volume, controller, attemptId]);
   useEffect(() => {
     backgroundPolicy.current = backgroundAllowed;
     if (!currentInstance.current) return;
@@ -120,6 +133,7 @@ export function NativeAttempt({
       currentInstance.current = instance;
       ownedPlayer.audioMixingMode = "doNotMix";
       ownedPlayer.muted = mutePolicy.current;
+      ownedPlayer.volume = volumePolicy.current;
       ownedPlayer.staysActiveInBackground = backgroundPolicy.current;
       ownedPlayer.showNowPlayingNotification = backgroundPolicy.current;
       ownedPlayer.allowsExternalPlayback = false;

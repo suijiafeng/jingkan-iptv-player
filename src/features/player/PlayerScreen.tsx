@@ -34,6 +34,7 @@ import { SourceList } from "./SourceList";
 import { backDestination } from "./playbackController";
 import type { PlayerScreenProps } from "./playerShared";
 import { useSourceFailover } from "./useSourceFailover";
+import { restoreBrightness } from "./edgeAdjust";
 
 export type { ChannelSheetProps, PlayerScreenProps } from "./playerShared";
 
@@ -52,6 +53,7 @@ export function PlayerScreen(props: PlayerScreenProps) {
   const [controlsShown, setControlsShown] = useState(true);
   // 跨频道及同频道的不同来源保留音频播放意图。
   const [muted, setMuted] = useState(false);
+  const [volume, setVolume] = useState(1);
   const [audioOnly, setAudioOnly] = useState(false);
   const requestBackgroundPlayback = () => {
     Alert.alert(
@@ -95,6 +97,8 @@ export function PlayerScreen(props: PlayerScreenProps) {
   );
   const orientationQueue = useRef<Promise<unknown>>(Promise.resolve());
   const mounted = useRef(true);
+  // 全屏拖动设置的亮度只在全屏期间保留。
+  useEffect(() => (fullscreen ? restoreBrightness : undefined), [fullscreen]);
 
   useEffect(() => {
     mounted.current = true;
@@ -196,6 +200,8 @@ export function PlayerScreen(props: PlayerScreenProps) {
         onRequestBackgroundPlayback={requestBackgroundPlayback}
         muted={muted}
         onMutedChange={setMuted}
+        volume={volume}
+        onVolumeChange={setVolume}
         channels={activeChannels}
         failover={failover}
         onSelectSource={onManualSelect}

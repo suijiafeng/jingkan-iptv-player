@@ -86,8 +86,6 @@ export const CONTROLS_FIRST_HIDE_MS = 6000;
 export const OSD_MS = 2500;
 /** 超过这段时间仍无画面时，建议换台（规范要求在 15 秒提示）。 */
 export const SLOW_START_SECONDS = 15;
-/** 全屏滑动换台所需的最小垂直距离，单位为 dp。 */
-export const SWIPE_MIN_DP = 60;
 export const TAP_SLOP_DP = 12;
 export const sameChannel = (left: Channel, right: Channel) =>
   (left.groupKey ?? left.id) === (right.groupKey ?? right.id);

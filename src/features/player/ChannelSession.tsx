@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -14,11 +14,8 @@ import { FullscreenBars } from "./FullscreenBars";
 import { MediaStatus, OverlayButton, Shade } from "./overlayWidgets";
 import { ChevronLeftIcon, FullscreenIcon } from "./playerIcons";
 import { SourceList } from "./SourceList";
-import {
-  SWIPE_MIN_DP,
-  TAP_SLOP_DP,
-  type PlayerScreenProps,
-} from "./playerShared";
+import { type PlayerScreenProps } from "./playerShared";
+import { useEdgeAdjust } from "./edgeAdjust";
 import { useChannelSession } from "./useChannelSession";
 import type { FailoverView } from "./useSourceFailover";
 import { sessionStyles } from "./channelSessionStyles";
@@ -32,6 +29,9 @@ export interface SessionProps extends PlayerScreenProps {
   onRequestBackgroundPlayback: () => void;
   muted: boolean;
   onMutedChange: (muted: boolean) => void;
+  /** 由页面持有的播放器音量，切换频道后仍保留。 */
+  volume: number;
+  onVolumeChange: (volume: number) => void;
   /** 一次播放失败后，自动切换当前频道的其它播放地址。 */
   failover: FailoverView;
   fullscreen: boolean;
@@ -52,8 +52,6 @@ export interface SessionProps extends PlayerScreenProps {
 /** 单频道播放会话：持有控制器和原生播放尝试，并在竖屏、全屏和停靠布局中绘制画面及覆盖控件。 */
 export function ChannelSession(props: SessionProps) {
   const view = useChannelSession(props);
-  // 本次画面拖动的起点（全屏换台）。
-  const gesture = useRef<{ x: number; y: number } | null>(null);
   // 提前根据窗口计算竖屏画面的尺寸，使页面
   // 原生播放器尚在创建或尚未开始播放时，页面也不会
   // 即使尚未播放也保持尺寸稳定；仅设置 aspectRatio 会等待布局。
@@ -72,12 +70,17 @@ export function ChannelSession(props: SessionProps) {
     waiting,
     title,
     osd,
-    zap,
     centerStatus,
     retained,
     sourceButton,
     favoriteButton,
   } = view;
+  const edgeAdjust = useEdgeAdjust({
+    fullscreen: props.fullscreen,
+    volume: props.volume,
+    onVolumeChange: props.onVolumeChange,
+    onTap: () => setControlsShown(!controlsVisible),
+  });
   const [miniTitleShown, setMiniTitleShown] = useState(false);
   useEffect(() => {
     if (!miniTitleShown) return;
@@ -121,6 +124,7 @@ export function ChannelSession(props: SessionProps) {
             backgroundAllowed={props.backgroundAllowed}
             title={title}
             muted={props.muted}
+            volume={props.volume}
             audioOnly={props.audioOnly}
           />
         )}
@@ -147,8 +151,7 @@ export function ChannelSession(props: SessionProps) {
             )}
           </View>
         )}
-        {/* 整个画面：轻触切换控件显示；全屏时
-            垂直滑动还可切换频道。 */}
+        {/* 整个画面负责触摸：轻触切换覆盖控件；全屏时上下拖动左半边调亮度，右半边调音量。 */}
         {!props.mini && (
           <View
             testID={
@@ -156,7 +159,7 @@ export function ChannelSession(props: SessionProps) {
             }
             style={StyleSheet.absoluteFill}
             accessible
-            accessibilityRole={props.fullscreen ? "adjustable" : "button"}
+            accessibilityRole="button"
             accessibilityLabel={
               props.fullscreen
                 ? `${title}，轻触显示操作`
@@ -169,42 +172,22 @@ export function ChannelSession(props: SessionProps) {
                 name: "activate",
                 label: controlsVisible ? "隐藏播放操作" : "显示播放操作",
               },
-              ...(props.fullscreen
-                ? [
-                    { name: "increment", label: "下一台" },
-                    { name: "decrement", label: "上一台" },
-                  ]
-                : []),
             ]}
             onAccessibilityAction={({ nativeEvent }) => {
               if (nativeEvent.actionName === "activate")
                 setControlsShown(!controlsVisible);
-              else if (nativeEvent.actionName === "increment") zap(1);
-              else if (nativeEvent.actionName === "decrement") zap(-1);
             }}
-            onStartShouldSetResponder={() => true}
-            onResponderGrant={({ nativeEvent }) => {
-              gesture.current = { x: nativeEvent.pageX, y: nativeEvent.pageY };
-            }}
-            onResponderTerminate={() => {
-              gesture.current = null;
-            }}
-            onResponderRelease={({ nativeEvent }) => {
-              const start = gesture.current;
-              gesture.current = null;
-              if (!start) return;
-              const dx = nativeEvent.pageX - start.x;
-              const dy = nativeEvent.pageY - start.y;
-              if (
-                props.fullscreen &&
-                Math.abs(dy) >= SWIPE_MIN_DP &&
-                Math.abs(dy) > Math.abs(dx) * 1.5
-              )
-                zap(dy < 0 ? 1 : -1);
-              else if (Math.abs(dx) < TAP_SLOP_DP && Math.abs(dy) < TAP_SLOP_DP)
-                setControlsShown(!controlsVisible);
-            }}
+            {...edgeAdjust.handlers}
           />
+        )}
+        {props.fullscreen && edgeAdjust.label && !props.sheetOpen && (
+          <View
+            style={[sessionStyles.osd, sessionStyles.adjustOsd]}
+            pointerEvents="none"
+            testID="adjust-osd"
+          >
+            <Text style={sessionStyles.osdText}>{edgeAdjust.label}</Text>
+          </View>
         )}
         {props.fullscreen && osd && !props.sheetOpen && (
           <View

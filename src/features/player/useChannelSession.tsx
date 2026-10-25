@@ -272,12 +272,6 @@ export function useChannelSession(props: SessionProps) {
     // 只在进入此频道会话时执行。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const zap = (direction: -1 | 1) => {
-    const step = direction;
-    const target = step === 1 ? next : previous;
-    if (target !== null) props.onSelect(props.channels[target]);
-    else showOsd(step === 1 ? "已经是最后一个频道" : "已经是第一个频道");
-  };
 
   const description =
     starting && props.failover.connectingTitle
@@ -445,7 +439,6 @@ export function useChannelSession(props: SessionProps) {
     selectNext,
     title,
     osd,
-    zap,
     description,
     pausedBody,
     showsPlay,

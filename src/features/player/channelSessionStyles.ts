@@ -56,6 +56,8 @@ export const sessionStyles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: "#0A1214D9",
   },
+  // 拖动调整亮度或音量时，在画面中央显示。
+  adjustOsd: { top: "45%" },
   osdText: {
     color: colors.text,
     fontSize: 18,

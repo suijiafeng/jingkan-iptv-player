@@ -6,7 +6,12 @@ import { ChevronLeftIcon, ExitFullscreenIcon, MenuIcon } from "./playerIcons";
 import type { SessionProps } from "./ChannelSession";
 import type { SessionView } from "./useChannelSession";
 
-/** 仅用于全屏。顶部依次放返回、标题，右侧按钮组先放线路标签（位于其弹出面板上方），再放收藏。底部依次放时间轴或直播标识，右侧按钮组先放音量，再放音频模式、退出横屏和频道列表。播放/暂停位于画面中央，上下滑动用于换台。 */
+/**
+ * 仅用于全屏。顶栏依次放返回、标题，然后是右侧控件组中的来源按钮
+ * （位于线路浮层上方）和收藏。底栏放时间轴或直播标记，右侧控件组
+ * 先放音量，再放纯音频、退出横屏和频道列表。播放/暂停位于画面中央；
+ * 纵向拖动左侧调亮度，右侧调音量。
+ */
 export function FullscreenBars({
   view,
   session: props,
