@@ -42,6 +42,7 @@ export function SettingSection({
  */
 export function SettingRow({
   title,
+  icon,
   caption,
   status,
   value,
@@ -53,6 +54,8 @@ export function SettingRow({
   warn = false,
 }: {
   title: string;
+  /** 标题左侧的装饰图标，不单独响应操作或朗读。 */
+  icon?: React.ReactNode;
   caption?: string;
   status?: { label: string; tone: "accent" | "muted" | "warn" };
   /** 当前值以弱化颜色显示在末尾控件之前，例如“2 份”。 */
@@ -72,28 +75,40 @@ export function SettingRow({
   const stacked = width / Math.max(1, fontScale) < 340;
   const body = (
     <>
-      <View style={[rowStyles.text, stacked && rowStyles.stackedText]}>
-        <View style={rowStyles.titleLine}>
-          <Text
-            style={[
-              styles.body,
-              rowStyles.title,
-              danger && rowStyles.dangerTitle,
-            ]}
+      <View style={[rowStyles.leading, stacked && rowStyles.stackedLeading]}>
+        {icon && (
+          <View
+            pointerEvents="none"
+            accessible={false}
+            importantForAccessibility="no-hide-descendants"
+            style={rowStyles.icon}
           >
-            {title}
-          </Text>
-          {status && (
-            <Text style={[rowStyles.pill, rowStyles[`pill_${status.tone}`]]}>
-              {status.label}
+            {icon}
+          </View>
+        )}
+        <View style={rowStyles.text}>
+          <View style={rowStyles.titleLine}>
+            <Text
+              style={[
+                styles.body,
+                rowStyles.title,
+                danger && rowStyles.dangerTitle,
+              ]}
+            >
+              {title}
+            </Text>
+            {status && (
+              <Text style={[rowStyles.pill, rowStyles[`pill_${status.tone}`]]}>
+                {status.label}
+              </Text>
+            )}
+          </View>
+          {caption && (
+            <Text style={[styles.caption, warn && rowStyles.warnCaption]}>
+              {caption}
             </Text>
           )}
         </View>
-        {caption && (
-          <Text style={[styles.caption, warn && rowStyles.warnCaption]}>
-            {caption}
-          </Text>
-        )}
       </View>
       {(value || trailing) && (
         <View
@@ -202,9 +217,17 @@ const rowStyles = StyleSheet.create({
   },
   pressed: { opacity: 0.7 },
   dimmed: { opacity: 0.4 },
+  leading: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  icon: { width: 20, alignItems: "center", justifyContent: "center" },
   text: { flex: 1, minWidth: 0, gap: 2 },
   stackedRow: { flexDirection: "column", alignItems: "stretch", gap: 8 },
-  stackedText: { flex: 0 },
+  stackedLeading: { flex: 0 },
   titleLine: {
     flexDirection: "row",
     flexWrap: "wrap",

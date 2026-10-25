@@ -7,6 +7,7 @@ import type { Repository } from "../../data/repository";
 import { BackupControls } from "./BackupControls";
 import { About } from "./About";
 import { MINI_WINDOW_SPACE } from "../home/useFloatingWindow";
+import { SettingIcon } from "./SettingIcon";
 
 interface Props {
   repo?: Repository | null;
@@ -53,6 +54,7 @@ export function SettingsScreen(props: Props) {
       <SettingSection label="节目来源">
         <SettingRow
           title="管理节目来源"
+          icon={<SettingIcon name="sources" />}
           value={
             props.sourceCount === undefined
               ? undefined
@@ -65,6 +67,7 @@ export function SettingsScreen(props: Props) {
       <SettingSection label="联网与隐私">
         <SettingRow
           title="节目来源联网"
+          icon={<SettingIcon name="network" />}
           status={
             props.revokePending
               ? { label: "撤销未保存", tone: "warn" }
@@ -94,6 +97,7 @@ export function SettingsScreen(props: Props) {
         {props.revokePending && (
           <SettingRow
             title="联网关闭尚未保存"
+            icon={<SettingIcon name="network" />}
             trailing={
               <Button compact label="重试保存撤销" onPress={props.onRevoke} />
             }
@@ -101,6 +105,7 @@ export function SettingsScreen(props: Props) {
         )}
         <SettingRow
           title="频道台标"
+          icon={<SettingIcon name="artwork" />}
           // 只说明该开关目前不能使用的原因。
           caption={props.remoteAllowed ? undefined : "需先允许节目来源联网"}
           dimmed={artworkDisabled}
@@ -117,6 +122,7 @@ export function SettingsScreen(props: Props) {
         {props.artworkRevokePending && (
           <SettingRow
             title="台标关闭尚未保存"
+            icon={<SettingIcon name="artwork" />}
             status={{ label: "待重试", tone: "warn" }}
             trailing={
               <Button
@@ -130,6 +136,7 @@ export function SettingsScreen(props: Props) {
         )}
         <SettingRow
           title="移动网络提醒"
+          icon={<SettingIcon name="mobile" />}
           trailing={
             <Switch
               accessibilityLabel="移动网络提醒"
@@ -143,6 +150,7 @@ export function SettingsScreen(props: Props) {
       <SettingSection label="播放">
         <SettingRow
           title="后台播放"
+          icon={<SettingIcon name="background" />}
           trailing={
             <Switch
               accessibilityLabel="后台播放"
@@ -155,6 +163,7 @@ export function SettingsScreen(props: Props) {
         />
         <SettingRow
           title="浮窗播放"
+          icon={<SettingIcon name="floating" />}
           trailing={
             <Switch
               accessibilityLabel="浮窗播放"
@@ -173,6 +182,7 @@ export function SettingsScreen(props: Props) {
         <About />
         <SettingRow
           title="清除所有数据"
+          icon={<SettingIcon name="clear" color={colors.bad} />}
           danger
           onPress={props.onClearAll}
         />

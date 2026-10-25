@@ -7,6 +7,7 @@ import type { Repository } from "../../data/repository";
 import { BackupError, MAX_BACKUP_BYTES, parseBackup } from "../../data/backup";
 import { confirm } from "../common/confirm";
 import { RowAction, SettingRow } from "./SettingRows";
+import { SettingIcon } from "./SettingIcon";
 
 /** 一行备份设置：末尾提供“导出”和“恢复”，结果显示在下方。 */
 export function BackupControls({
@@ -104,6 +105,7 @@ export function BackupControls({
   return (
     <SettingRow
       title="备份"
+      icon={<SettingIcon name="backup" />}
       caption={busy ? "正在处理备份…" : message || undefined}
       trailing={
         <View style={backupStyles.actions}>

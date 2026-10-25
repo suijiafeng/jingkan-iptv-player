@@ -7,6 +7,7 @@ import { BackBar } from "../../components/ui";
 import { colors, sizes, styles, type } from "../../theme";
 import { RISK } from "../common/confirm";
 import { Chevron, SettingRow } from "./SettingRows";
+import { SettingIcon } from "./SettingIcon";
 
 export const versionLabel = () =>
   `版本 ${Constants.expoConfig?.version ?? "未知"}`;
@@ -93,6 +94,7 @@ export function About() {
     <>
       <SettingRow
         title="关于静看 TV"
+        icon={<SettingIcon name="about" />}
         value={Constants.expoConfig?.version}
         trailing={<Chevron />}
         onPress={() => setOpen(true)}
