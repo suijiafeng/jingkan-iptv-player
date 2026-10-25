@@ -1,7 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   FlatList,
-  Keyboard,
   Pressable,
   StyleSheet,
   Text,
@@ -20,7 +19,7 @@ import { colors, type } from "../../theme";
 import type { Channel } from "../../domain/types";
 import { filteredGroup } from "../../domain/channelLabels";
 import { sameChannel, type ChannelSheetProps } from "./playerShared";
-import { CloseIcon, LocateIcon } from "./playerIcons";
+import { CloseIcon } from "./playerIcons";
 import { LoadingTitle } from "./overlayWidgets";
 import { ChannelLoadNotice } from "../channel/ChannelLoadNotice";
 
@@ -39,7 +38,7 @@ export interface ListPositionStore {
 interface ChannelPanelProps {
   sheet: ChannelSheetProps;
   channel: Channel;
-  /** 全屏时显示带关闭按钮的标题；竖屏时将定位按钮放在行内。 */
+  /** 全屏时显示带关闭按钮的标题；竖屏不显示标题栏。 */
   fullscreen: boolean;
   onClose?: () => void;
   /** 用户选中的频道，以及当前可见、可播放行组成的播放队列。 */
@@ -67,7 +66,6 @@ export function ChannelPanel(props: ChannelPanelProps) {
   const scrollTarget = useRef<{ index: number; retries: number } | null>(null);
   // 列表最近一次布局的高度；首次布局前为 0。
   const listHeight = useRef(0);
-  const [locateRequest, setLocateRequest] = useState(0);
   // 只保留一行标签；国家和语言沿用页面的选择，并且
   // 在这里保持折叠；已有搜索条件时显示搜索文本，以便
   // 以便清除。
@@ -76,7 +74,6 @@ export function ChannelPanel(props: ChannelPanelProps) {
     scope,
     sheet.filters.facetSelection.content,
   );
-  const lastLocateRequest = useRef(0);
   const currentIndex = shownChannels.findIndex((row) =>
     sameChannel(row, channel),
   );
@@ -95,13 +92,7 @@ export function ChannelPanel(props: ChannelPanelProps) {
 
   useEffect(() => {
     const previous = savedPosition.get();
-    const forceLocate = lastLocateRequest.current !== locateRequest;
-    lastLocateRequest.current = locateRequest;
-    if (
-      !forceLocate &&
-      previous?.range === range &&
-      previous.channelId === channel.id
-    ) {
+    if (previous?.range === range && previous.channelId === channel.id) {
       channelList.current?.scrollToOffset({
         offset: previous.offset,
         animated: false,
@@ -123,24 +114,7 @@ export function ChannelPanel(props: ChannelPanelProps) {
       if (scrollRetry.current !== null) clearTimeout(scrollRetry.current);
       scrollTarget.current = null;
     };
-  }, [savedPosition, range, channel.id, currentIndex, locateRequest]);
-
-  const locateButton = (
-    <Pressable
-      style={styles.headingAction}
-      accessibilityRole="button"
-      accessibilityLabel="定位当前频道"
-      accessibilityState={{ disabled: !channel.active }}
-      disabled={!channel.active}
-      onPress={() => {
-        Keyboard.dismiss();
-        if (currentIndex < 0) sheet.onLocate();
-        setLocateRequest((value) => value + 1);
-      }}
-    >
-      <LocateIcon color={colors.accent} />
-    </Pressable>
-  );
+  }, [savedPosition, range, channel.id, currentIndex]);
 
   return (
     <>
@@ -150,7 +124,6 @@ export function ChannelPanel(props: ChannelPanelProps) {
             频道列表
           </Text>
           <View style={styles.flex} />
-          {locateButton}
           <Pressable
             style={styles.headingAction}
             accessibilityRole="button"

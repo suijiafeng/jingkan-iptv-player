@@ -16,8 +16,6 @@ export interface ChannelSheetProps {
   loadError?: string;
   loadingMore?: boolean;
   onRetry?: () => void;
-  /** 绕过国家限制显示所有频道，以便列出正在播放的频道。 */
-  onLocate: () => void;
 }
 
 export interface PlayerScreenProps {

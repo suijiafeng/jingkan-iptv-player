@@ -486,13 +486,6 @@ export default function App() {
               ? ""
               : list.listError || list.listTailError,
             onRetry: changed,
-            onLocate: () => {
-              list.scrollToTopOnNextLoad("all");
-              setRecentEditing(false);
-              if (tab !== "all") changeTab("all");
-              filters.reset();
-              filters.setCountryBypass(countryKey);
-            },
           }}
         />
       )}
