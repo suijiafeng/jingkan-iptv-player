@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type MutableRefObject,
-} from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import * as DocumentPicker from "expo-document-picker";
 import type { Repository } from "../../data/repository";
 import {
@@ -14,7 +8,6 @@ import {
 } from "../../data/importIO";
 import { M3UParseError, MAX_MIB, parseM3U } from "../../domain/m3u";
 import type { Source } from "../../domain/types";
-import type { SourceLanguages } from "../../data/sourceLanguages";
 import { confirm } from "../common/confirm";
 
 /** 编辑页进行联网和回传结果所需的应用接口。 */
@@ -27,9 +20,9 @@ export interface SourceEditDeps {
 }
 
 /**
- * 一次保存中编辑来源名称、链接（本地列表则为文件），以及来源和分组的语言。
+ * 一次保存中编辑来源名称、链接（本地列表则为文件）。
  * 新链接或文件会先读取，再通过一个事务替换旧频道；失败时不改变任何数据。
- * 未改动的字段保持原样，因此只保存新名称不会联网。
+ * 未改动的字段与已有语言配置保持原样，因此只保存新名称不会联网。
  */
 export function useSourceEdit({
   repo,
@@ -51,18 +44,9 @@ export function useSourceEdit({
     [busy, setBusy] = useState(false),
     [committing, setCommitting] = useState(false),
     [error, setError] = useState("");
-  // 读取前为 null；读取失败时，该部分仍保持隐藏。
-  const [languages, setLanguages] = useState<SourceLanguages | null>(null),
-    [savedLanguages, setSavedLanguages] = useState<SourceLanguages | null>(
-      null,
-    ),
-    [groups, setGroups] = useState<string[]>([]),
-    [languagesLoading, setLanguagesLoading] = useState(true),
-    [languagesError, setLanguagesError] = useState("");
   const controller = useRef<AbortController | null>(null),
     alive = useRef(true),
     generation = useRef(0),
-    languageGeneration = useRef(0),
     commitPending = useRef(false),
     confirmPending = useRef(false),
     refreshing = useRef(false);
@@ -71,7 +55,6 @@ export function useSourceEdit({
   useEffect(() => {
     alive.current = true;
     generation.current++;
-    languageGeneration.current++;
     return () => {
       alive.current = false;
       controller.current?.abort();
@@ -80,41 +63,10 @@ export function useSourceEdit({
     };
   }, [repo, source.id]);
 
-  const loadLanguages = useCallback(async () => {
-    const task = ++languageGeneration.current;
-    setLanguagesLoading(true);
-    setLanguagesError("");
-    try {
-      const [stored, names] = await Promise.all([
-        repo.getSourceLanguages(source.id),
-        repo.listSourceGroups(source.id),
-      ]);
-      if (!alive.current || task !== languageGeneration.current) return;
-      setLanguages(stored);
-      setSavedLanguages(stored);
-      setGroups(names);
-    } catch {
-      if (alive.current && task === languageGeneration.current)
-        setLanguagesError("语言设置读取未完成，可重试；其他项目仍可编辑");
-    } finally {
-      if (alive.current && task === languageGeneration.current)
-        setLanguagesLoading(false);
-    }
-  }, [repo, source.id]);
-  useEffect(() => {
-    // 组件提交渲染后才启动仓库读取；生命周期被重放时会使
-    // 其响应通过 languageGeneration 进行失效判断。
-    void Promise.resolve().then(() => {
-      if (alive.current) void loadLanguages();
-    });
-  }, [loadLanguages]);
-
   const dirty =
     name !== source.name ||
     (source.kind === "url" && url !== source.location) ||
-    file !== null ||
-    (languages !== null &&
-      JSON.stringify(languages) !== JSON.stringify(savedLanguages));
+    file !== null;
 
   const cancel = async () => {
     // SQLite 提交不能被 AbortSignal 取消；让页面保持
@@ -261,24 +213,6 @@ export function useSourceEdit({
           return;
         }
       }
-      if (
-        languages &&
-        JSON.stringify(languages) !== JSON.stringify(savedLanguages)
-      ) {
-        try {
-          await repo.setSourceLanguages(source.id, languages);
-          if (current()) setSavedLanguages(languages);
-        } catch {
-          if (relink || file || newName !== source.name) changed();
-          if (current())
-            setError(
-              relink || file || newName !== source.name
-                ? "其他修改已保存，语言未保存，请重试"
-                : "语言未保存，请重试",
-            );
-          return;
-        }
-      }
       changed();
       if (current()) close();
     } catch (failure) {
@@ -317,15 +251,6 @@ export function useSourceEdit({
       setError("");
     },
     fileName: file?.name ?? (source.kind === "file" ? source.location : ""),
-    languages,
-    groups,
-    languagesLoading,
-    languagesError,
-    retryLanguages: () => void loadLanguages(),
-    setLanguages: (next: SourceLanguages) => {
-      setLanguages(next);
-      setError("");
-    },
     chooseFile: () => void chooseFile(),
     busy,
     committing,

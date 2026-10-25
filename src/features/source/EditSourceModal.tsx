@@ -8,11 +8,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ScreenModal } from "../common/ScreenModal";
-import { BackBar, Button, ErrorNotice, Notice } from "../../components/ui";
+import { BackBar, Button, ErrorNotice } from "../../components/ui";
 import type { Source } from "../../domain/types";
 import { colors, styles } from "../../theme";
 import type { Repository } from "../../data/repository";
-import { SourceLanguageSection } from "./SourceLanguageSection";
 import {
   useSourceEdit,
   type SourceEdit,
@@ -20,8 +19,8 @@ import {
 } from "./useSourceEdit";
 
 /**
- * 在一个页面编辑来源名称、链接（本地列表显示文件，点击可重选），
- * 以及节目单未标注语言时使用的默认语言。点击一次“保存”统一应用。
+ * 在一个页面编辑来源名称、链接（本地列表显示文件，点击可重选）。
+ * 点击一次“保存”统一应用。
  * 每个来源都挂载新页面，使字段从该来源的原有数据开始。
  */
 export function EditSourceModal({
@@ -135,30 +134,6 @@ export function EditSourceView({
             onChangeText={edit.setUrl}
             placeholder="https://example.com/channels.m3u"
             placeholderTextColor={colors.muted}
-          />
-        )}
-        {edit.languagesLoading && (
-          <Text style={styles.muted} accessibilityLiveRegion="polite">
-            正在读取语言设置…
-          </Text>
-        )}
-        {!!edit.languagesError && (
-          <>
-            <Notice title={edit.languagesError} error />
-            <Button
-              label="重试读取语言设置"
-              secondary
-              disabled={edit.busy}
-              onPress={edit.retryLanguages}
-            />
-          </>
-        )}
-        {edit.languages && (
-          <SourceLanguageSection
-            languages={edit.languages}
-            groups={edit.groups}
-            disabled={edit.busy}
-            onChange={edit.setLanguages}
           />
         )}
         <Button
