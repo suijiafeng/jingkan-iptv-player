@@ -250,9 +250,10 @@ export function PlayerScreen(props: PlayerScreenProps) {
             <View style={screenStyles.sheetHeading}>
               <View style={screenStyles.flex}>
                 <Text accessibilityRole="header" style={theme.heading}>
-                  线路
+                  选择线路
                 </Text>
               </View>
+              <Text style={theme.caption}>共 {props.sources.length} 条</Text>
               <Pressable
                 style={screenStyles.sheetAction}
                 accessibilityRole="button"
@@ -335,20 +336,20 @@ const screenStyles = StyleSheet.create({
   },
   sourceSheet: {
     width: "100%",
-    maxHeight: "70%",
+    maxHeight: "60%",
     paddingHorizontal: 12,
     paddingBottom: 20,
     gap: 8,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     backgroundColor: colors.surface,
   },
   sourceScroll: { flexShrink: 1 },
   sheetGrab: {
     alignSelf: "center",
-    width: 40,
+    width: 32,
     height: 4,
-    marginTop: 10,
+    marginTop: 8,
     marginBottom: 4,
     borderRadius: 4,
     backgroundColor: colors.line,

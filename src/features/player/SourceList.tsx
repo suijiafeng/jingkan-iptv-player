@@ -26,14 +26,14 @@ export function SourceList({
       accessibilityRole="list"
       testID="source-list"
     >
-      {sources.map((source) => {
+      {sources.map((source, index) => {
         const selected = source.id === current.id;
         return (
           <Pressable
             key={source.id}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            accessibilityLabel={`${qualityName(source)}${manySources ? `，${source.sourceName}` : ""}${selected ? "，当前来源" : ""}`}
+            accessibilityLabel={`线路 ${index + 1}，${qualityName(source)}${manySources ? `，${source.sourceName}` : ""}${selected ? "，当前来源" : ""}`}
             style={({ pressed }) => [
               styles.sourceRow,
               selected && styles.sourceRowSelected,
@@ -45,11 +45,11 @@ export function SourceList({
               style={[styles.sourceText, selected && styles.accent]}
               numberOfLines={1}
             >
-              {selected ? "●" : "○"} {qualityName(source)}
+              {selected ? "●" : "○"} 线路 {index + 1} · {qualityName(source)}
               {manySources ? ` · ${source.sourceName}` : ""}
             </Text>
-            {/* 完整地址，但隐藏查询参数；其中常含访问令牌。 */}
-            <Text style={styles.sourceAddress} numberOfLines={3}>
+            {/* 地址隐藏可能含令牌的查询参数；长地址最多显示两行，保持列表紧凑。 */}
+            <Text style={styles.sourceAddress} numberOfLines={2}>
               {displayStreamAddress(source.streamUrl)}
             </Text>
             {source.checkStatus === "unreachable" && (
