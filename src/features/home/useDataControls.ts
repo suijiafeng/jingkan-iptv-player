@@ -133,9 +133,9 @@ export function useDataControls({
     if (
       !repo ||
       !(await confirm(
-        "清空全部本地资料？",
+        "清除所有数据？",
         "节目单、收藏、观看记录与设置都会删除，无法在应用内恢复。你原来的文件不受影响。",
-        "全部清空",
+        "清除",
       ))
     )
       return;

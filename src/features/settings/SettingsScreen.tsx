@@ -172,7 +172,7 @@ export function SettingsScreen(props: Props) {
         )}
         <About />
         <SettingRow
-          title="清空全部本地资料"
+          title="清除所有数据"
           danger
           onPress={props.onClearAll}
         />
