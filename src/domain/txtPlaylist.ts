@@ -13,7 +13,7 @@ export type TxtLine =
 const GENRE_MARK = /^#genre#$/i;
 /** 用于开始另一个绝对地址的“#”，而不是 URL 片段。 */
 const ALTERNATIVE_SEPARATOR = /#(?=[a-z][a-z0-9+.-]*:\/\/)/i;
-/** 末尾的 "$label" 备注，前提是备注不可能属于路径或查询参数。 */
+/** 无查询参数或片段的地址才识别末尾备注，避免截断令牌。 */
 const LINE_LABEL = /\$[^/?=&]*$/;
 /** 频道行：名称、逗号，以及后面的带协议地址。 */
 const CHANNEL_LINE = /^[^#,\n][^,\n]*,\s*[a-z][a-z0-9+.-]*:\/\//im;
@@ -34,7 +34,10 @@ export function parseTxtLine(line: string): TxtLine {
   if (GENRE_MARK.test(rest)) return { kind: "group", name };
   const urls = rest
     .split(ALTERNATIVE_SEPARATOR)
-    .map((address) => address.replace(LINE_LABEL, "").trim())
+    .map((address) => {
+      const trimmed = address.trim();
+      return /[?#]/.test(trimmed) ? trimmed : trimmed.replace(LINE_LABEL, "");
+    })
     .filter(Boolean);
   return urls.length ? { kind: "channel", name, urls } : { kind: "invalid" };
 }

@@ -176,9 +176,14 @@ export function parseBackup(text: string): LocalBackup {
       const groupKey = channelGroupKey(sourceId, identityKey, tvgId);
       if (row.groupKey !== groupKey) throw new BackupError();
       groupKeys.add(groupKey);
+      let logoUrl: string | null = null;
       if (row.logoUrl !== null) {
-        const logo = normalizeRemoteUrl(string(row.logoUrl));
-        if (!logo) throw new BackupError();
+        const logo = string(row.logoUrl, true);
+        try {
+          logoUrl = normalizeRemoteUrl(logo);
+        } catch {
+          // 台标是可选信息；旧资料中的相对或不安全地址不应阻断备份。
+        }
       }
       for (const key of ["countries", "languages", "lookupLanguages"])
         string(row[key], true);
@@ -187,7 +192,7 @@ export function parseBackup(text: string): LocalBackup {
       if (row.active !== 0 && row.active !== 1) throw new BackupError();
       if (row.qualityLabel !== null) string(row.qualityLabel);
       if (row.qualityRank !== null) integer(row.qualityRank);
-      return select(row, CHANNEL_COLUMNS);
+      return select({ ...row, logoUrl }, CHANNEL_COLUMNS);
     });
     const favoriteKeys = new Set<string>();
     const favorites = rows(data.favorites).map((row) => {

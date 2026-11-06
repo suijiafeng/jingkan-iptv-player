@@ -35,6 +35,7 @@
   },
   "main": "expo-router/entry",
   "scripts": {
+    "test": "node --test --test-isolation=none tests/*.test.cjs",
     "start": "expo start",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",

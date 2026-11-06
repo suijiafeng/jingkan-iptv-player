@@ -485,8 +485,10 @@ export class Repository {
     return this.serialize(async () => {
       let text = "";
       await this.db.withExclusiveTransactionAsync(async (tx) => {
-        text = JSON.stringify(await readBackup(tx, this.now()));
-        parseBackup(text);
+        const backup = await readBackup(tx, this.now());
+        // 输出通过兼容校验后的数据，移除旧资料中无效的可选台标。
+        const validated = parseBackup(JSON.stringify(backup));
+        text = JSON.stringify({ ...backup, channels: validated.channels });
       });
       return text;
     });
