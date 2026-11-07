@@ -1,3 +1,4 @@
+import { t } from "../i18n/core";
 import React, { Component, type ReactNode } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -38,13 +39,15 @@ export class AppErrorBoundary extends Component<
             contentContainerStyle={recoveryStyles.content}
             keyboardShouldPersistTaps="handled"
           >
-            <Heading title="静看 TV" />
+            <Heading title={t("静看 TV")} />
             <Notice
-              title="页面暂时无法显示"
-              body="请重新打开页面。节目源与收藏保留在本机，重试不会清空资料。"
+              title={t("页面暂时无法显示")}
+              body={t(
+                "请重新打开页面。节目源与收藏保留在本机，重试不会清空资料。",
+              )}
               error
             />
-            <Button label="重新打开页面" onPress={this.retry} />
+            <Button label={t("重新打开页面")} onPress={this.retry} />
           </ScrollView>
         </SafeAreaView>
       );

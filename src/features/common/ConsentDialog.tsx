@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useState, useSyncExternalStore } from "react";
 import {
   Modal,
@@ -54,18 +55,18 @@ export function ConsentDialog({
       <View style={dialogStyles.scrim}>
         <View
           accessibilityViewIsModal
-          accessibilityLabel={request.title}
+          accessibilityLabel={t(request.title)}
           style={dialogStyles.panel}
         >
           <Text accessibilityRole="header" style={dialogStyles.title}>
-            {request.title}
+            {t(request.title)}
           </Text>
           <ScrollView contentContainerStyle={dialogStyles.body}>
             {request.points.map((point) => (
-              <View key={point} style={dialogStyles.point}>
+              <View key={t(point)} style={dialogStyles.point}>
                 <View style={dialogStyles.bullet} />
                 <Text style={[styles.body, dialogStyles.pointText]}>
-                  {point}
+                  {t(point)}
                 </Text>
               </View>
             ))}
@@ -76,12 +77,12 @@ export function ConsentDialog({
               style={dialogStyles.detailsToggle}
             >
               <Text style={dialogStyles.detailsToggleText}>
-                {detailsOpen ? "收起说明" : "完整说明 ›"}
+                {detailsOpen ? t("收起说明") : t("完整说明 ›")}
               </Text>
             </Pressable>
             {detailsOpen && (
               <Text style={[styles.muted, dialogStyles.details]}>
-                {request.details}
+                {t(request.details)}
               </Text>
             )}
           </ScrollView>
@@ -93,7 +94,7 @@ export function ConsentDialog({
                 secondary={
                   action.secondary ?? index < request.actions.length - 1
                 }
-                label={action.label}
+                label={t(action.label)}
                 onPress={() => answer(action.value)}
               />
             ))}

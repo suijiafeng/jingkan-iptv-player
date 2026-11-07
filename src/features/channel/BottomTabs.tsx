@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
@@ -36,7 +37,7 @@ export function BottomTabs({
           <Pressable
             key={key}
             accessibilityRole="tab"
-            accessibilityLabel={label}
+            accessibilityLabel={t(label)}
             accessibilityState={{ selected }}
             onPress={() => {
               if (!selected) onChange(key);
@@ -61,7 +62,7 @@ export function BottomTabs({
                 selected && tabStyles.labelOn,
               ]}
             >
-              {label}
+              {t(label)}
             </Text>
           </Pressable>
         );

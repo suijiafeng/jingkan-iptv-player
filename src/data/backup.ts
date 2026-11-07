@@ -1,3 +1,4 @@
+import { t } from "../i18n/core";
 import { normalizeRemoteUrl } from "../domain/url";
 import { channelGroupKey } from "../domain/channelSources";
 import { utf8ByteLength } from "../domain/m3u";
@@ -63,7 +64,7 @@ export interface LocalBackup {
 }
 export class BackupError extends Error {
   constructor(
-    message = "备份格式无效或数据不完整，请选择静看 TV 导出的备份。",
+    message = t("备份格式无效或数据不完整，请选择静看 TV 导出的备份。"),
   ) {
     super(message);
   }
@@ -120,11 +121,11 @@ function select(
 /** 严格限制大小并带版本的本地数据；不从文件执行 SQL 或任意设置。 */
 export function parseBackup(text: string): LocalBackup {
   if (text.length > MAX_BACKUP_BYTES || utf8ByteLength(text) > MAX_BACKUP_BYTES)
-    throw new BackupError("备份文件超过 32 MB。");
+    throw new BackupError(t("备份文件超过 32 MB。"));
   try {
     const data = object(JSON.parse(text));
     if (data.format !== "jingkan-backup" || data.version !== 1)
-      throw new BackupError("备份版本不受支持，请更新静看 TV 后重试。");
+      throw new BackupError(t("备份版本不受支持，请更新静看 TV 后重试。"));
     const sourceIds = new Set<string>();
     const sources = rows(data.sources).map((row) => {
       const id = string(row.id);

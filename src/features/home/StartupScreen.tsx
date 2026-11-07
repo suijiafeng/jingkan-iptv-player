@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React from "react";
 import { ActivityIndicator, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,11 +16,11 @@ export function StartupScreen({
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.content}>
-        <Heading title="静看 TV" subtitle="只留下你想看的频道" />
+        <Heading title={t("静看 TV")} subtitle={t("只留下你想看的频道")} />
         {error ? (
           <>
             <Notice title={error} error />
-            <Button label="重新打开本地资料" onPress={onRetry} />
+            <Button label={t("重新打开本地资料")} onPress={onRetry} />
           </>
         ) : (
           <ActivityIndicator color={colors.accent} />

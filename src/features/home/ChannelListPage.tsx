@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/react";
 import React, { useMemo, useState, type RefObject } from "react";
 import {
   Animated,
@@ -98,14 +99,15 @@ export function ChannelListPage({
   /** 底部留白，防止最后几行被停靠播放器遮挡。 */
   reserveMiniBar: boolean;
 }) {
+  const { locale } = useLanguage();
   // 频道行会随字体缩放而增高；参见 channelRowHeight。
   const { fontScale } = useWindowDimensions();
   const [headerHeight, setHeaderHeight] = useState(0),
     [titleSpace, setTitleSpace] = useState(0);
   const listData: ChannelListItem[] = rows.length ? rows : [EMPTY_ROW];
   const rowState = useMemo(
-    () => ({ headerProps, currentChannel }),
-    [headerProps, currentChannel],
+    () => ({ headerProps, currentChannel, locale, recentBusy }),
+    [headerProps, currentChannel, locale, recentBusy],
   );
   const listTop = headerHeight + LIST_TOP_GAP;
   const hiddenGroup = filteredGroup(
@@ -171,20 +173,21 @@ export function ChannelListPage({
             />
           ) : undefined
         }
-        renderItem={({ item }) =>
-          item === EMPTY_ROW ? (
-            <ChannelListEmpty
-              tab={headerProps.tab}
-              loading={listLoading}
-              error={listError}
-              {...emptyActions}
-            />
-          ) : (
+        renderItem={({ item }) => {
+          if (item === EMPTY_ROW)
+            return (
+              <ChannelListEmpty
+                tab={headerProps.tab}
+                loading={listLoading}
+                error={listError}
+                {...emptyActions}
+              />
+            );
+          const channel = item as Channel;
+          return (
             <ChannelRow
-              channel={item as Channel}
-              current={
-                !!currentChannel && sameChannel(item as Channel, currentChannel)
-              }
+              channel={channel}
+              current={!!currentChannel && sameChannel(channel, currentChannel)}
               artworkEnabled={artworkEnabled}
               onPlay={onPlay}
               onFavorite={onFavorite}
@@ -192,8 +195,8 @@ export function ChannelListPage({
               recentBusy={recentBusy}
               hiddenGroup={hiddenGroup}
             />
-          )
-        }
+          );
+        }}
       />
       <Animated.View
         testID="channel-header-overlay"

@@ -1,4 +1,6 @@
-import { splitGroups, UNGROUPED } from "./channelLabels";
+import { getLocale, compareLabels, t } from "../i18n/core";
+import { COUNTRY_NAMES_EN, LANGUAGE_NAMES_EN } from "../i18n/displayNamesEn";
+import { groupLabel, splitGroups, UNGROUPED } from "./channelLabels";
 import type { Channel } from "./types";
 import { ISO639_3_NAMES, ISO639_3_ONLY, ISO639_3_TO_1 } from "./iso639";
 import { COUNTRY_NAMES_ZH, LANGUAGE_NAMES_ZH } from "./displayNamesZh";
@@ -342,15 +344,23 @@ export function normalizeLanguages(raw: string | null | undefined): string[] {
 }
 
 export function countryLabel(value: string): string {
+  if (getLocale() === "en")
+    return value
+      ? ((COUNTRY_NAMES_EN as Record<string, string>)[value] ?? value)
+      : t("未标注");
   return !value
-    ? "未标注"
+    ? t("未标注")
     : (COUNTRY_NAMES_ZH[value] ??
         displayName("region", value) ??
         COUNTRY_FALLBACK[value] ??
         value);
 }
 export function languageLabel(value: string): string {
-  if (!value) return "未标注";
+  if (getLocale() === "en")
+    return value
+      ? ((LANGUAGE_NAMES_EN as Record<string, string>)[value] ?? value)
+      : t("未标注");
+  if (!value) return t("未标注");
   // 优先使用静态名称：Android 上的 Hermes 没有 Intl.DisplayNames 数据。
   return (
     LANGUAGE_NAMES_ZH[value] ??
@@ -362,13 +372,13 @@ export function languageLabel(value: string): string {
   );
 }
 export function facetLabel(kind: FacetKind, value: string | null): string {
-  if (value === null) return "全部";
-  if (!value || (kind === "content" && value === UNGROUPED)) return "未标注";
+  if (value === null) return t("全部");
+  if (!value || (kind === "content" && value === UNGROUPED)) return t("未标注");
   return kind === "country"
     ? countryLabel(value)
     : kind === "language"
       ? languageLabel(value)
-      : value;
+      : groupLabel(value);
 }
 
 export type FacetChannel = Pick<
@@ -380,7 +390,7 @@ function contentValues(channel: FacetChannel): string[] {
     value === UNGROUPED ? "" : value,
   );
 }
-const facetOrder = new Intl.Collator("zh-Hans-CN");
+
 // 固定在较长菜单（超过 200 种语言、160 个国家）的顶部，按
 // 按此顺序优先显示；其余按中文排序，未标注项放最后。
 const PINNED: Partial<Record<FacetKind, readonly string[]>> = {
@@ -389,7 +399,7 @@ const PINNED: Partial<Record<FacetKind, readonly string[]>> = {
   language: ["zh", "yue", "en"],
 };
 function sortOptions(values: Set<string>, kind: FacetKind): string[] {
-  const pinned = PINNED[kind] ?? [];
+  const pinned = getLocale() === "zh-Hans" ? (PINNED[kind] ?? []) : [];
   const rank = (value: string) => {
     const index = pinned.indexOf(value);
     return index >= 0 ? index : pinned.length;
@@ -402,7 +412,7 @@ function sortOptions(values: Set<string>, kind: FacetKind): string[] {
       : !right
         ? -1
         : rank(left) - rank(right) ||
-          facetOrder.compare(facetLabel(kind, left), facetLabel(kind, right)),
+          compareLabels(facetLabel(kind, left), facetLabel(kind, right)),
   );
 }
 /**

@@ -1,3 +1,4 @@
+import { t } from "../i18n/core";
 import React, { useRef, useState } from "react";
 import {
   Keyboard,
@@ -118,7 +119,7 @@ export function FacetFilters({
             key={kind}
             testID={`${testID}-${kind}`}
             accessibilityRole="button"
-            accessibilityLabel={`${LABELS[kind]}：${facetLabel(kind, selected[kind])}`}
+            accessibilityLabel={`${t(LABELS[kind])}: ${facetLabel(kind, selected[kind])}`}
             accessibilityState={{ expanded: open === kind }}
             onPress={() => toggle(kind)}
             style={({ pressed }) => [
@@ -128,7 +129,7 @@ export function FacetFilters({
             ]}
           >
             <Text numberOfLines={1} style={styles.triggerText}>
-              <Text style={styles.dimension}>{LABELS[kind]} </Text>
+              <Text style={styles.dimension}>{t(LABELS[kind])} </Text>
               <Text style={styles.value}>
                 {facetLabel(kind, selected[kind])}
               </Text>
@@ -153,7 +154,7 @@ export function FacetFilters({
               <Pressable
                 style={StyleSheet.absoluteFill}
                 accessibilityRole="button"
-                accessibilityLabel="关闭筛选菜单"
+                accessibilityLabel={t("关闭筛选菜单")}
                 onPress={dismiss}
               />
               <View
@@ -193,7 +194,7 @@ export function FacetFilters({
                         key={value === null ? "all" : `value:${value}`}
                         testID={`${testID}-option-${index}`}
                         accessibilityRole="button"
-                        accessibilityLabel={`${label}${value === "全部" ? "（内容分类）" : ""}`}
+                        accessibilityLabel={`${label}${value === "全部" ? t("（内容分类）") : ""}`}
                         accessibilityState={{ selected: isSelected }}
                         onPress={() => choose(value)}
                         style={({ pressed }) => [
@@ -209,7 +210,7 @@ export function FacetFilters({
                           ]}
                         >
                           {label}
-                          {value === "全部" ? "（内容分类）" : ""}
+                          {value === "全部" ? t("（内容分类）") : ""}
                         </Text>
                         {isSelected && <Text style={styles.chosenText}>✓</Text>}
                       </Pressable>

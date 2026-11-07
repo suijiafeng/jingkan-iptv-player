@@ -1,3 +1,4 @@
+import { t } from "../i18n/core";
 import type {
   ImportIssue,
   ImportIssueReason,
@@ -39,16 +40,19 @@ export class M3UParseError extends Error {
   constructor(public readonly code: M3UErrorCode) {
     super(
       {
-        empty: "文件内容为空。",
-        missing_header:
+        empty: t("文件内容为空。"),
+        missing_header: t(
           "无法识别节目单格式，请使用 M3U 或“频道名,地址”格式的 TXT。",
-        invalid_encoding: "无法识别文件编码，请另存为 UTF-8 后导入。",
-        too_large: `节目单超过 ${MAX_MIB} MB，请拆分后导入。`,
-        line_too_long: "节目单中有过长的行，无法导入。",
-        too_many_entries: "节目单超过 20,000 条，请拆分后导入。",
-        hls_playlist: "这是单个频道的播放地址，请改用节目单链接。",
-        no_channels: "节目单中没有可导入的有效频道。",
-        cancelled: "已取消导入。",
+        ),
+        invalid_encoding: t("无法识别文件编码，请另存为 UTF-8 后导入。"),
+        too_large: t("节目单超过 {value0} MB，请拆分后导入。", {
+          value0: MAX_MIB,
+        }),
+        line_too_long: t("节目单中有过长的行，无法导入。"),
+        too_many_entries: t("节目单超过 20,000 条，请拆分后导入。"),
+        hls_playlist: t("这是单个频道的播放地址，请改用节目单链接。"),
+        no_channels: t("节目单中没有可导入的有效频道。"),
+        cancelled: t("已取消导入。"),
       }[code],
     );
     this.name = "M3UParseError";

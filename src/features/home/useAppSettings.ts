@@ -1,3 +1,9 @@
+import {
+  t,
+  LANGUAGE_SETTING,
+  parseLanguagePreference,
+  setLanguagePreference,
+} from "../../i18n/core";
 import { useEffect, useRef, useState } from "react";
 import * as Network from "expo-network";
 import { openRepository, Repository } from "../../data/repository";
@@ -60,6 +66,7 @@ export function useAppSettings({
     let active = true;
     openRepository()
       .then(async (opened) => {
+        const language = await opened.getSetting(LANGUAGE_SETTING, "system");
         const allowed = await opened.getSetting("remoteAllowed", false);
         const warning = await opened.getSetting("mobileWarning", true);
         const background = await opened.getSetting("backgroundPlayback", true);
@@ -68,6 +75,7 @@ export function useAppSettings({
         const favorites = await opened.listChannels({ mode: "favorites" });
         const guideSeen = await opened.getSetting("guideSeen", false);
         if (active) {
+          setLanguagePreference(parseLanguagePreference(language));
           remoteRef.current = allowed;
           setRemoteAllowed(allowed);
           setMobileWarning(warning);
@@ -90,7 +98,7 @@ export function useAppSettings({
         }
       })
       .catch(() => {
-        if (active) setError("本地资料未能打开，数据未清空");
+        if (active) setError(t("本地资料未能打开，数据未清空"));
       });
     return () => {
       active = false;
@@ -110,7 +118,7 @@ export function useAppSettings({
     if (signal?.aborted) return false;
     if (remoteRef.current) return true;
     if (revokePending) {
-      setError("请先在设置中完成撤销联网许可");
+      setError(t("请先在设置中完成撤销联网许可"));
       return false;
     }
     const epoch = permissionEpoch.current;
@@ -136,7 +144,7 @@ export function useAppSettings({
     try {
       await repo.setSetting("remoteAllowed", true);
     } catch {
-      setError("联网许可未保存，请重试");
+      setError(t("联网许可未保存，请重试"));
       return false;
     }
     if (epoch !== permissionEpoch.current || !mounted.current) return false;
@@ -150,7 +158,7 @@ export function useAppSettings({
     const network = await Network.getNetworkStateAsync();
     if (signal?.aborted) return false;
     if (isOffline(network))
-      throw new ImportIOError("当前没有可用网络，请连接后重试");
+      throw new ImportIOError(t("当前没有可用网络，请连接后重试"));
     // 与播放采用相同规则：VPN 或未知网络也可能按流量计费。
     if (
       mobileWarning &&
@@ -158,9 +166,11 @@ export function useAppSettings({
       mightUseMobileData(network)
     ) {
       const accepted = await confirm(
-        "可能使用移动数据？",
-        "下载节目单或播放直播会消耗流量。确认后，在连回 Wi-Fi 之前不再询问。",
-        "继续",
+        t("可能使用移动数据？"),
+        t(
+          "下载节目单或播放直播会消耗流量。确认后，在连回 Wi-Fi 之前不再询问。",
+        ),
+        t("继续"),
       );
       if (signal?.aborted) return false;
       if (accepted) setMobileAccepted(true);
@@ -197,7 +207,9 @@ export function useAppSettings({
       }
     } catch {
       if (mounted.current)
-        setError(enabled ? "台标开启未保存，请重试" : "台标关闭未保存，请重试");
+        setError(
+          enabled ? t("台标开启未保存，请重试") : t("台标关闭未保存，请重试"),
+        );
     } finally {
       artworkMutation.current = false;
       if (mounted.current) setArtworkSaving(false);
@@ -214,7 +226,7 @@ export function useAppSettings({
     setValue(value);
     void repo?.setSetting(key, value).catch(() => {
       setValue(!value);
-      setError("设置未保存，请重试");
+      setError(t("设置未保存，请重试"));
     });
   };
 
@@ -231,7 +243,7 @@ export function useAppSettings({
     } catch {
       if (mounted.current) {
         setBackgroundPlayback(!enabled);
-        setError("后台播放设置未保存，请重试");
+        setError(t("后台播放设置未保存，请重试"));
       }
     } finally {
       if (mounted.current) setBackgroundSaving(false);
@@ -257,6 +269,7 @@ export function useAppSettings({
 
   /** 执行“清空全部”后，将所有设置恢复为首次运行的默认值。 */
   const resetToDefaults = () => {
+    setLanguagePreference("system");
     setRevokePending(false);
     setMobileWarning(true);
     setBackgroundPlayback(true);

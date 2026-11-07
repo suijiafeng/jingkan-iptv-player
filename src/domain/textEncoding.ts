@@ -1,10 +1,11 @@
+import { t } from "../i18n/core";
 import { GBK_ROWS, GBK_TRAIL_COUNT } from "./gbkTable";
 
 export type PlaylistEncoding = "utf-8" | "gbk";
 
 export class TextEncodingError extends Error {
   constructor() {
-    super("无法识别文件编码，请另存为 UTF-8 后导入");
+    super(t("无法识别文件编码，请另存为 UTF-8 后导入"));
     this.name = "TextEncodingError";
   }
 }

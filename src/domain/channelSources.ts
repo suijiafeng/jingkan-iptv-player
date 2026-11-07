@@ -1,3 +1,4 @@
+import { t } from "../i18n/core";
 import type { Channel, ParsedChannel } from "./types";
 
 export interface DeclaredQuality {
@@ -20,7 +21,9 @@ const QUALITY: Record<string, DeclaredQuality> = {
 export function isQualityTag(tag: string): boolean {
   return (
     parseDeclaredQuality(tag) !== null ||
-    Object.values(QUALITY).some((quality) => quality.label === tag)
+    Object.values(QUALITY).some(
+      (quality) => quality.label === tag || t(quality.label) === tag,
+    )
   );
 }
 
@@ -90,7 +93,7 @@ export function compareChannelSources(
 export function qualityName(
   channel: Pick<Channel | ParsedChannel, "qualityLabel">,
 ): string {
-  return channel.qualityLabel ?? "未知清晰度";
+  return t(channel.qualityLabel ?? "未知清晰度");
 }
 
 /**

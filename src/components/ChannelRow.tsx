@@ -1,6 +1,9 @@
-import React, { memo, useMemo } from "react";
+import { useLanguage } from "../i18n/react";
+import { t } from "../i18n/core";
+import React, { memo, useRef } from "react";
 import {
   View,
+  Alert,
   Text,
   Pressable,
   StyleSheet,
@@ -63,19 +66,54 @@ export const ChannelRow = memo(function ChannelRow({
   /** 当前列表已按此分组筛选，说明文字中不再重复它。 */
   hiddenGroup?: string | null;
 }) {
-  const { title, tags } = useMemo(
-    () => channelTitle(channel.name),
-    [channel.name],
-  );
+  useLanguage();
+  const pressCanceled = useRef(false);
+  const pressOrigin = useRef({ x: 0, y: 0 });
+  const beginPress = (event: {
+    nativeEvent: { pageX: number; pageY: number };
+  }) => {
+    pressCanceled.current = false;
+    pressOrigin.current = {
+      x: event.nativeEvent.pageX,
+      y: event.nativeEvent.pageY,
+    };
+  };
+  const movePress = (event: {
+    nativeEvent: { pageX: number; pageY: number };
+  }) => {
+    if (
+      Math.hypot(
+        event.nativeEvent.pageX - pressOrigin.current.x,
+        event.nativeEvent.pageY - pressOrigin.current.y,
+      ) > 10
+    )
+      pressCanceled.current = true;
+  };
+  const { title, tags } = channelTitle(channel.name);
   const unreachable = channel.active && channel.checkStatus === "unreachable";
-  const spokenLabels = [...tags, ...(unreachable ? ["暂时无法连接"] : [])];
+  const spokenLabels = [...tags, ...(unreachable ? [t("暂时无法连接")] : [])];
   const { fontScale } = useWindowDimensions();
   const rowHeight = channelRowHeight(fontScale);
-  const editingRecent = !!onRemoveRecent;
-  const playbackDisabled = !channel.active || editingRecent;
+  const playbackDisabled = !channel.active;
   const caption = channel.active
     ? displayGroups(channel.groupName, hiddenGroup)
-    : "节目单里已没有这个频道";
+    : t("节目单里已没有这个频道");
+  const showRecentActions = () => {
+    if (!onRemoveRecent || recentBusy) return;
+    Alert.alert(
+      title,
+      undefined,
+      [
+        { text: t("取消"), style: "cancel" },
+        {
+          text: t("删除"),
+          style: "destructive",
+          onPress: () => onRemoveRecent(channel),
+        },
+      ],
+      { cancelable: true },
+    );
+  };
   return (
     <View
       style={[
@@ -86,13 +124,42 @@ export const ChannelRow = memo(function ChannelRow({
     >
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={
-          editingRecent
-            ? `${title}，观看记录`
-            : `${title}${current ? "，当前频道" : ""}${spokenLabels.length ? `，${spokenLabels.join("，")}` : ""}，${channel.active ? "播放" : "节目单里已没有这个频道"}`
+        accessibilityLabel={`${title}${current ? t("，当前频道") : ""}${spokenLabels.length ? `${t("，")}${spokenLabels.join(t("、"))}` : ""}${t("，")}${channel.active ? t("播放") : t("节目单里已没有这个频道")}`}
+        accessibilityActions={
+          onRemoveRecent && !recentBusy
+            ? [
+                {
+                  name: "delete",
+                  label: t("删除{value0}的观看记录", { value0: title }),
+                },
+              ]
+            : undefined
         }
+        onAccessibilityAction={({ nativeEvent }) => {
+          if (
+            nativeEvent.actionName === "delete" &&
+            onRemoveRecent &&
+            !recentBusy
+          )
+            showRecentActions();
+        }}
         accessibilityState={{ disabled: playbackDisabled, selected: current }}
-        onPress={() => onPlay(channel)}
+        onPressIn={beginPress}
+        onTouchMove={movePress}
+        onPointerMove={movePress}
+        onLongPress={
+          onRemoveRecent && !recentBusy
+            ? () => {
+                if (pressCanceled.current) return;
+                pressCanceled.current = true;
+                showRecentActions();
+              }
+            : undefined
+        }
+        delayLongPress={500}
+        onPress={() => {
+          if (!pressCanceled.current) onPlay(channel);
+        }}
         disabled={playbackDisabled}
         style={({ pressed }) => [
           rowStyles.main,
@@ -136,39 +203,30 @@ export const ChannelRow = memo(function ChannelRow({
           )}
         </View>
       </Pressable>
-      {onRemoveRecent && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`删除${title}的观看记录`}
-          accessibilityState={{ disabled: recentBusy }}
-          disabled={recentBusy}
-          onPress={() => onRemoveRecent(channel)}
-          style={({ pressed }) => [
-            rowStyles.removeRecent,
-            { opacity: recentBusy ? 0.4 : pressed ? 0.65 : 1 },
-          ]}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t(
+          channel.favorite ? "取消收藏{value0}" : "收藏{value0}",
+          { value0: title },
+        )}
+        accessibilityState={{ selected: channel.favorite }}
+        onPressIn={beginPress}
+        onTouchMove={movePress}
+        onPointerMove={movePress}
+        onPress={() => {
+          if (!pressCanceled.current) onFavorite(channel);
+        }}
+        style={rowStyles.star}
+      >
+        <Text
+          style={{
+            fontSize: 20,
+            color: channel.favorite ? colors.warn : colors.mutedFaint,
+          }}
         >
-          <Text style={rowStyles.removeRecentText}>删除</Text>
-        </Pressable>
-      )}
-      {!editingRecent && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${channel.favorite ? "取消收藏" : "收藏"}${title}`}
-          accessibilityState={{ selected: channel.favorite }}
-          onPress={() => onFavorite(channel)}
-          style={rowStyles.star}
-        >
-          <Text
-            style={{
-              fontSize: 20,
-              color: channel.favorite ? colors.warn : colors.mutedFaint,
-            }}
-          >
-            {channel.favorite ? "★" : "☆"}
-          </Text>
-        </Pressable>
-      )}
+          {channel.favorite ? "★" : "☆"}
+        </Text>
+      </Pressable>
     </View>
   );
 });
@@ -215,12 +273,4 @@ const rowStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  removeRecent: {
-    minWidth: sizes.touch,
-    minHeight: sizes.touch,
-    paddingHorizontal: 4,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  removeRecentText: { ...type.body, color: colors.bad },
 });

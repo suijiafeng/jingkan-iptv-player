@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import * as Network from "expo-network";
@@ -106,7 +107,7 @@ export function useAutoAvailabilityCheck(options: AutoCheckOptions) {
     run()
       .catch(() => {
         if (!abortController.signal.aborted)
-          latest.current.onError("连通测试未完成，可在来源管理中重试");
+          latest.current.onError(t("连通测试未完成，可在来源管理中重试"));
       })
       .finally(() => {
         if (controller.current === abortController) {

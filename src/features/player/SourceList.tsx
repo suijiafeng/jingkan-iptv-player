@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, type } from "../../theme";
@@ -33,7 +34,12 @@ export function SourceList({
             key={source.id}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            accessibilityLabel={`线路 ${index + 1}，${qualityName(source)}${manySources ? `，${source.sourceName}` : ""}${selected ? "，当前来源" : ""}`}
+            accessibilityLabel={t("线路 {value0}，{value1}{value2}{value3}", {
+              value0: index + 1,
+              value1: qualityName(source),
+              value2: manySources ? `, ${source.sourceName}` : "",
+              value3: selected ? t("，当前来源") : "",
+            })}
             style={({ pressed }) => [
               styles.sourceRow,
               selected && styles.sourceRowSelected,
@@ -45,7 +51,8 @@ export function SourceList({
               style={[styles.sourceText, selected && styles.accent]}
               numberOfLines={1}
             >
-              {selected ? "●" : "○"} 线路 {index + 1} · {qualityName(source)}
+              {selected ? "●" : "○"} {t("线路 {value0}", { value0: index + 1 })}{" "}
+              · {qualityName(source)}
               {manySources ? ` · ${source.sourceName}` : ""}
             </Text>
             {/* 地址隐藏可能含令牌的查询参数；长地址最多显示两行，保持列表紧凑。 */}
@@ -55,8 +62,9 @@ export function SourceList({
             {source.checkStatus === "unreachable" && (
               // 点击行会开始播放，本身就相当于一次新检测。
               <Text style={styles.sourceWarning}>
-                {daysAgo(source.checkedAt, now) || "上次"}测试未连通 ·
-                点选可再试
+                {t("{value0}检测未连通，点选可再试", {
+                  value0: daysAgo(source.checkedAt, now) || t("上次"),
+                })}
               </Text>
             )}
           </Pressable>

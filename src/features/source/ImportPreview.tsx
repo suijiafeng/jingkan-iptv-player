@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useMemo, useState } from "react";
 import {
   FlatList,
@@ -75,7 +76,7 @@ export function ImportPreviewBody({
             {header}
             {stats.http > 0 && (
               <Text style={previewStyles.warnText}>
-                {stats.http} 个频道未加密（HTTP）
+                {t("{value0} 个频道未加密（HTTP）", { value0: stats.http })}
               </Text>
             )}
             {unlabelled > 0 && (
@@ -83,13 +84,13 @@ export function ImportPreviewBody({
                 <View style={previewStyles.fillText}>
                   {/* 知情许可提示只放在标题行。 */}
                   <Text style={styles.body}>
-                    自动补全语言
-                    <Text style={styles.muted}> · 联网约 8 MB</Text>
+                    {t("自动补全语言")}
+                    <Text style={styles.muted}> {t(" · 联网约 8 MB")}</Text>
                   </Text>
                 </View>
                 <Switch
-                  accessibilityLabel="导入后自动补全语言"
-                  accessibilityHint="从 iptv-org 公开数据库下载约 8 MB"
+                  accessibilityLabel={t("导入后自动补全语言")}
+                  accessibilityHint={t("从 iptv-org 公开数据库下载约 8 MB")}
                   value={fillLanguages}
                   disabled={busy}
                   onValueChange={onFillLanguages}
@@ -104,14 +105,21 @@ export function ImportPreviewBody({
                 onPress={() => setSkippedOpen((open) => !open)}
                 style={previewStyles.skippedToggle}
               >
-                <Text style={styles.muted}>{skipped} 条未导入</Text>
-                <Text style={styles.muted}>{skippedOpen ? "收起" : "›"}</Text>
+                <Text style={styles.muted}>
+                  {t("{value0} 条未导入", { value0: skipped })}
+                </Text>
+                <Text style={styles.muted}>
+                  {skippedOpen ? t("收起") : "›"}
+                </Text>
               </Pressable>
             )}
             {skippedOpen &&
               Object.entries(preview.issueCounts).map(([reason, count]) => (
                 <Text key={reason} style={styles.muted}>
-                  {IMPORT_ISSUE_LABELS[reason as ImportIssueReason]}：{count}
+                  {t("{value0}：{value1}", {
+                    value0: t(IMPORT_ISSUE_LABELS[reason as ImportIssueReason]),
+                    value1: count,
+                  })}
                 </Text>
               ))}
           </View>
@@ -120,15 +128,17 @@ export function ImportPreviewBody({
       <View style={previewStyles.footer}>
         <Button
           style={previewStyles.footerButton}
-          label="返回修改"
+          label={t("返回修改")}
           secondary
           disabled={busy}
           onPress={onBack}
         />
         <Button
           style={previewStyles.footerButton}
-          label={busy ? "正在保存…" : "导入"}
-          accessibilityLabel={`导入 ${stats.valid} 个频道`}
+          label={busy ? t("正在保存…") : t("导入")}
+          accessibilityLabel={t("导入 {value0} 个频道", {
+            value0: stats.valid,
+          })}
           disabled={busy || !stats.valid}
           onPress={onSave}
         />
@@ -151,7 +161,7 @@ function PreviewRow({
           {channel.name}
         </Text>
         {channel.qualityLabel && (
-          <Text style={previewStyles.tag}>{channel.qualityLabel}</Text>
+          <Text style={previewStyles.tag}>{t(channel.qualityLabel)}</Text>
         )}
       </View>
       <Text style={styles.caption} numberOfLines={1}>

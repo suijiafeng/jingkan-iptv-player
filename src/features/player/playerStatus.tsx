@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useEffect, useState } from "react";
 import {
   AccessibilityInfo,
@@ -88,7 +89,7 @@ export function LoadingDots({ slow }: { slow: boolean }) {
       testID="loading-dots"
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel={slow ? "正在加载，比平时慢" : "正在加载"}
+      accessibilityLabel={slow ? t("正在加载，比平时慢") : t("正在加载")}
       style={statusStyles.dotsPill}
     >
       {DOT_OFFSETS.map((offset) => (
@@ -156,16 +157,18 @@ export function MobileDataPrompt({
 }) {
   return (
     <View style={statusStyles.prompt}>
-      <Text style={statusStyles.promptText}>播放将消耗流量，是否继续播放</Text>
+      <Text style={statusStyles.promptText}>
+        {t("播放将消耗流量，是否继续播放")}
+      </Text>
       <CenterChip
-        label="用流量播放"
+        label={t("用流量播放")}
         icon={<PlayIcon size={13} />}
         disabled={disabled}
         onPress={onContinue}
       />
       <Pressable
         accessibilityRole="checkbox"
-        accessibilityLabel="不再提醒"
+        accessibilityLabel={t("不再提醒")}
         accessibilityState={{ checked: stopReminding }}
         hitSlop={8}
         onPress={() => onStopRemindingChange(!stopReminding)}
@@ -177,7 +180,7 @@ export function MobileDataPrompt({
           {stopReminding && <View style={statusStyles.checkMark} />}
         </View>
         <Text style={statusStyles.checkText}>
-          不再提醒（可在设置里重新打开）
+          {t("不再提醒（可在设置里重新打开）")}
         </Text>
       </Pressable>
     </View>
@@ -224,9 +227,9 @@ export function playerNotice({
     phase === "ended" ||
     phase === "blocked"
   )
-    return descriptions[phase].title;
+    return t(descriptions[phase].title);
   if (phase === "paused") return pausedBody || null;
-  if (slow) return "网络较慢，正在加载";
+  if (slow) return t("网络较慢，正在加载");
   if (phase === "checking" || phase === "connecting") return connectingTitle;
   return null;
 }

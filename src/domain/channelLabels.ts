@@ -1,7 +1,16 @@
+import { getLocale, t } from "../i18n/core";
 import { parseDeclaredQuality } from "./channelSources";
 /** 分组经过翻译和去重后，用 ";" 连接保存。 */
 export const UNGROUPED = "未分组";
 export const GROUP_SEPARATOR = ";";
+
+/** 历史中文分组值是稳定标识；仅在展示时本地化，不改写资料。 */
+export function groupLabel(value: string): string {
+  return value === UNGROUPED ||
+    Object.values(GROUP_TRANSLATIONS).includes(value)
+    ? t(value)
+    : value;
+}
 
 // iptv-org 内容分类词表（https://github.com/iptv-org/database）。
 const GROUP_TRANSLATIONS: Record<string, string> = {
@@ -66,7 +75,8 @@ export function displayGroups(
 ): string {
   return splitGroups(groupName)
     .filter((group) => group !== hidden)
-    .join("、");
+    .map(groupLabel)
+    .join(getLocale() === "en" ? ", " : "、");
 }
 
 /**
@@ -113,12 +123,16 @@ export function channelTitle(name: string): { title: string; tags: string[] } {
   for (;;) {
     if ((match = title.match(/\s*\[([^\]\n]{1,40})\]$/))) {
       const tag = match[1].trim();
-      tags.unshift(TAG_TRANSLATIONS[tag.toLowerCase()] ?? tag);
+      tags.unshift(
+        TAG_TRANSLATIONS[tag.toLowerCase()]
+          ? t(TAG_TRANSLATIONS[tag.toLowerCase()])
+          : tag,
+      );
     } else if ((match = title.match(/\s*[(（]([^)）\n]{1,10})[)）]$/))) {
       // 只提取可识别的画质标记；"(Beijing)" 仍属于频道名。
       const quality = parseDeclaredQuality(match[1]);
       if (!quality) break;
-      tags.unshift(quality.label);
+      tags.unshift(t(quality.label));
     } else break;
     title = title.slice(0, title.length - match[0].length).trim();
   }

@@ -1,22 +1,7 @@
-const fs = require("node:fs");
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const { DatabaseSync } = require("node:sqlite");
-const typescript = require("typescript");
-
-// 直接执行项目源码；仅转换 TypeScript，不加载 React Native 原生模块。
-require.extensions[".ts"] = (loadedModule, filename) => {
-  const { outputText } = typescript.transpileModule(
-    fs.readFileSync(filename, "utf8"),
-    {
-      compilerOptions: {
-        module: typescript.ModuleKind.CommonJS,
-        target: typescript.ScriptTarget.ES2022,
-      },
-    },
-  );
-  loadedModule._compile(outputText, filename);
-};
+require("./register.cjs");
 const { Repository } = require("../src/data/channelRepository.ts");
 const { parseM3U } = require("../src/domain/m3u.ts");
 const { parseBackup } = require("../src/data/backup.ts");
@@ -63,7 +48,7 @@ async function createFixture(context, logoUrl = null) {
   });
   const channel = (await repository.listChannels())[0];
   await repository.toggleFavorite(channel.id);
-  return { repository, channel };
+  return { repository, channel, database };
 }
 
 for (const logoUrl of [
@@ -143,4 +128,61 @@ test("TXT 多地址分别保留查询令牌和移除无参数备注", async () =
     preview.channels.map((channel) => channel.streamUrl),
     ["https://example.com/a.m3u8?token=abc$def", "https://example.com/b.m3u8"],
   );
+});
+
+test("中英文切换与语言设置不改变备份中的频道和收藏", async (context) => {
+  const core = require("../src/i18n/core.ts");
+  context.after(() => core.setLanguagePreference("system"));
+  const { repository, channel } = await createFixture(context);
+  core.setLanguagePreference("zh-Hans");
+  const chinese = JSON.parse(await repository.exportBackup());
+  await repository.setSetting(core.LANGUAGE_SETTING, "en");
+  core.setLanguagePreference("en");
+  const english = JSON.parse(await repository.exportBackup());
+  assert.deepEqual(english.channels, chinese.channels);
+  assert.deepEqual(english.favorites, chinese.favorites);
+  assert.deepEqual(english.sources, chinese.sources);
+  assert.equal((await repository.listFavorites())[0].id, channel.id);
+  await repository.restoreBackup(JSON.stringify(chinese));
+  assert.equal((await repository.listFavorites())[0].id, channel.id);
+  assert.equal(
+    await repository.getSetting(core.LANGUAGE_SETTING, "system"),
+    "system",
+  );
+});
+
+test("删除最近记录仅移除目标频道历史，保留其他记录、频道和收藏", async (context) => {
+  const { repository, channel } = await createFixture(context);
+  const preview = await parseM3U(
+    '#EXTM3U\n#EXTINF:-1 tvg-id="Other.cn",Other\nhttps://example.com/other.m3u8',
+  );
+  await repository.importSource({
+    name: "Other",
+    kind: "url",
+    location: "https://example.com/other.m3u",
+    preview,
+  });
+  const other = (await repository.listChannels()).find(
+    (item) => item.id !== channel.id,
+  );
+  await repository.recordRecent(channel.id);
+  await repository.recordRecent(other.id);
+  await repository.removeRecent(channel.id);
+  assert.deepEqual(
+    (await repository.listRecent()).map((item) => item.id),
+    [other.id],
+  );
+  assert.equal((await repository.listFavorites())[0].id, channel.id);
+  assert.equal((await repository.listChannels()).length, 2);
+});
+
+test("删除最近记录失败时事务回滚，观看记录与收藏仍保留", async (context) => {
+  const { repository, channel, database } = await createFixture(context);
+  await repository.recordRecent(channel.id);
+  database.exec(
+    "CREATE TRIGGER fail_recent_delete BEFORE DELETE ON recent_groups BEGIN SELECT RAISE(ABORT, 'simulated write failure'); END;",
+  );
+  await assert.rejects(repository.removeRecent(channel.id));
+  assert.equal((await repository.listRecent())[0].id, channel.id);
+  assert.equal((await repository.listFavorites())[0].id, channel.id);
 });

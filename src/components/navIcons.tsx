@@ -9,32 +9,35 @@ interface NavIconProps {
   size?: number;
 }
 
-/** 铅笔图标，用于进入列表管理。 */
-export function EditIcon({ color, size = 22 }: NavIconProps) {
+/** 简洁的圆圈加号，用于节目来源入口。 */
+export function PlusCircleIcon({ color, size = 22 }: NavIconProps) {
   return (
     <View style={[styles.box, { width: size, height: size }]}>
-      <View style={{ transform: [{ rotate: "45deg" }], alignItems: "center" }}>
-        <View
-          style={{
-            width: 6,
-            height: size * 0.65,
-            borderWidth: 1.5,
-            borderColor: color,
-            borderTopLeftRadius: 2,
-            borderTopRightRadius: 2,
-          }}
-        />
-        <View
-          style={{
-            borderLeftWidth: 3,
-            borderRightWidth: 3,
-            borderTopWidth: 4,
-            borderLeftColor: "transparent",
-            borderRightColor: "transparent",
-            borderTopColor: color,
-          }}
-        />
-      </View>
+      <View
+        style={{
+          width: size - 2,
+          height: size - 2,
+          borderRadius: size / 2,
+          borderWidth: 1.5,
+          borderColor: color,
+        }}
+      />
+      <View
+        style={{
+          position: "absolute",
+          width: size * 0.42,
+          height: 1.5,
+          backgroundColor: color,
+        }}
+      />
+      <View
+        style={{
+          position: "absolute",
+          width: 1.5,
+          height: size * 0.42,
+          backgroundColor: color,
+        }}
+      />
     </View>
   );
 }

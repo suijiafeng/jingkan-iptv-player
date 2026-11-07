@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useEffect, useState, useSyncExternalStore } from "react";
 import {
   AccessibilityInfo,
@@ -171,7 +172,7 @@ export function SourceChip({
     >
       <Text style={styles.chipText} numberOfLines={1}>
         {/* 明确标签按钮将打开的内容：当前频道的来源列表。 */}
-        <Text style={styles.chipLead}>线路：</Text>
+        <Text style={styles.chipLead}>{t("线路：")}</Text>
         {position}/{count}
       </Text>
     </Pressable>
@@ -204,10 +205,10 @@ export function LiveBadge({ catchup = false }: { catchup?: boolean }) {
     <View
       style={styles.liveBadge}
       accessible
-      accessibilityLabel={catchup ? "正在看直播" : "直播，不可回看"}
+      accessibilityLabel={catchup ? t("正在看直播") : t("直播，不可回看")}
     >
       <View style={styles.liveDot} />
-      <Text style={styles.liveText}>直播</Text>
+      <Text style={styles.liveText}>{t("直播")}</Text>
     </View>
   );
 }
@@ -220,13 +221,13 @@ function BackToLive({ onPress }: { onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="回到直播"
+      accessibilityLabel={t("回到直播")}
       hitSlop={8}
       onPress={onPress}
       style={({ pressed }) => [styles.backToLive, pressed && styles.pressed]}
     >
       <View style={[styles.liveDot, styles.liveDotBehind]} />
-      <Text style={styles.backToLiveText}>回到直播</Text>
+      <Text style={styles.backToLiveText}>{t("回到直播")}</Text>
     </Pressable>
   );
 }
@@ -298,11 +299,17 @@ export function MediaStatus({
         onLayout={({ nativeEvent }) => setWidth(nativeEvent.layout.width)}
         accessible
         accessibilityRole="adjustable"
-        accessibilityLabel={info.isLive ? "回看进度" : "播放进度"}
+        accessibilityLabel={info.isLive ? t("回看进度") : t("播放进度")}
         accessibilityValue={{ text: label }}
         accessibilityActions={[
-          { name: "increment", label: `前进 ${SEEK_STEP_S} 秒` },
-          { name: "decrement", label: `后退 ${SEEK_STEP_S} 秒` },
+          {
+            name: "increment",
+            label: t("前进 {value0} 秒", { value0: SEEK_STEP_S }),
+          },
+          {
+            name: "decrement",
+            label: t("后退 {value0} 秒", { value0: SEEK_STEP_S }),
+          },
         ]}
         onAccessibilityAction={({ nativeEvent }) => {
           media.seekTo(

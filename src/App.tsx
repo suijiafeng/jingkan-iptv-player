@@ -1,3 +1,5 @@
+import { useLanguage } from "./i18n/react";
+import { t, subscribeLanguage } from "./i18n/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   AppState,
@@ -14,7 +16,7 @@ import {
   useRegionPreference,
 } from "./features/region/useRegionPreference";
 import { ErrorNotice } from "./components/ui";
-import { ToastHost } from "./components/Toast";
+import { hideToast, ToastHost } from "./components/Toast";
 import { ConsentHost } from "./features/common/ConsentDialog";
 import { styles as theme } from "./theme";
 import { useAutoAvailabilityCheck } from "./features/channel/useAutoAvailabilityCheck";
@@ -45,12 +47,21 @@ import { FirstRunGuide } from "./features/guide/FirstRunGuide";
  * features/home 下的各个 hook 中。
  */
 export default function App() {
+  useLanguage();
   const [error, setError] = useState(""),
     [tab, setTab] = useState<Tab>("all"),
     [manage, setManage] = useState(false),
     [rename, setRename] = useState<Source | null>(null),
     // 停靠播放器下方标签栏的高度。
     [tabsHeight, setTabsHeight] = useState(0);
+  useEffect(
+    () =>
+      subscribeLanguage(() => {
+        setError("");
+        hideToast();
+      }),
+    [],
+  );
   const settings = useAppSettings({ setError, setTab });
   const { repo, mounted } = settings;
   // 频道页和播放器选台面板共享同一份筛选状态。
@@ -97,7 +108,7 @@ export default function App() {
     list,
     playback,
   });
-  const { recentBusy, recentEditing, setRecentEditing } = actions;
+  const { recentBusy } = actions;
   // 添加和编辑来源时，用于联网及回传结果的接口。
   const sourceNetwork = {
     mounted,
@@ -125,7 +136,6 @@ export default function App() {
       // 表单覆盖在管理页上打开；保存列表后显示其频道。
       setManage(false);
       setTab("all");
-      setRecentEditing(false);
       filters.reset();
     },
     onReturnToManagement: () => setManage(true),
@@ -162,7 +172,6 @@ export default function App() {
     region,
     filters,
     setTab,
-    setRecentEditing,
   });
 
   // 离开应用会停止所有网络任务；播放器自行暂停。
@@ -200,10 +209,6 @@ export default function App() {
           setManage(false);
           return true;
         }
-        if (recentEditing) {
-          setRecentEditing(false);
-          return true;
-        }
         return false;
       },
     );
@@ -224,7 +229,7 @@ export default function App() {
         setError("");
         void actions
           .removeRecent(channel)
-          .catch(() => setError("观看记录未删除，请重试"));
+          .catch(() => setError(t("观看记录未删除，请重试")));
       },
     };
   });
@@ -242,7 +247,6 @@ export default function App() {
   );
 
   const changeTab = (key: Tab) => {
-    setRecentEditing(false);
     filters.switchTab(
       tab === "settings" ? null : tab,
       key === "settings" ? null : key,
@@ -279,27 +283,10 @@ export default function App() {
     facets: list.facets,
     facetSelection: { country, language, content: group },
     countryHint: countryBypassed
-      ? "已临时显示全部地区，选择地区可恢复"
+      ? t("已临时显示全部地区，选择地区可恢复")
       : regionBasis(region.preference, region.result, country),
     autoCheck,
-    recentBusy,
-    recentEditing,
-    recentCount: list.recent.length,
     onManageSources: openSources,
-    onToggleRecentEditing: () => {
-      if (recentBusy) return;
-      if (!recentEditing) {
-        list.scrollToTopOnNextLoad("recent");
-        filters.clearSearch();
-      }
-      setRecentEditing(!recentEditing);
-    },
-    onClearRecent: () => {
-      setError("");
-      void actions
-        .clearRecent()
-        .catch(() => setError("观看记录未清空，请重试"));
-    },
     onSearchChange: (text) => {
       restartList();
       filters.setSearch(text);
@@ -400,7 +387,6 @@ export default function App() {
               onAddUrl: () => importer.startForm("url"),
               onAddFile: () => importer.startForm("file"),
               onShowAll: () => {
-                setRecentEditing(false);
                 setTab("all");
                 filters.reset();
                 void region.selectManualCountry(null);
@@ -417,9 +403,7 @@ export default function App() {
             artworkEnabled={settings.artworkEnabled}
             onPlay={onRowPlay}
             onFavorite={onRowFavorite}
-            onRemoveRecent={
-              tab === "recent" && recentEditing ? onRowRemoveRecent : undefined
-            }
+            onRemoveRecent={tab === "recent" ? onRowRemoveRecent : undefined}
             recentBusy={recentBusy}
             reserveMiniBar={!!playing && playerMini}
           />

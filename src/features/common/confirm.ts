@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import { Alert } from "react-native";
 
 export const RISK =
@@ -6,15 +7,15 @@ export const RISK =
 export const confirm = (
   title: string,
   message: string,
-  action = "确认",
+  action = t("确认"),
 ): Promise<boolean> =>
   new Promise((resolve) =>
     Alert.alert(
-      title,
-      message,
+      t(title),
+      t(message),
       [
-        { text: "取消", style: "cancel", onPress: () => resolve(false) },
-        { text: action, onPress: () => resolve(true) },
+        { text: t("取消"), style: "cancel", onPress: () => resolve(false) },
+        { text: t(action), onPress: () => resolve(true) },
       ],
       { cancelable: true, onDismiss: () => resolve(false) },
     ),

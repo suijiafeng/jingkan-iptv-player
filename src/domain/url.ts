@@ -1,3 +1,4 @@
+import { t } from "../i18n/core";
 export type UrlErrorCode =
   | "invalid_url"
   | "unsafe_url"
@@ -8,12 +9,14 @@ export class UrlValidationError extends Error {
   constructor(public readonly code: UrlErrorCode) {
     super(
       {
-        invalid_url: "地址格式不正确。",
-        unsafe_url:
+        invalid_url: t("地址格式不正确。"),
+        unsafe_url: t(
           "出于安全考虑，不支持包含账号密码、本机、局域网或其他特殊用途的地址。",
-        unsupported_protocol: "只支持 HTTP 或 HTTPS 网络地址。",
-        relative_without_base:
+        ),
+        unsupported_protocol: t("只支持 HTTP 或 HTTPS 网络地址。"),
+        relative_without_base: t(
           "本地文件中的相对地址无法解析，请使用完整网络地址。",
+        ),
       }[code],
     );
     this.name = "UrlValidationError";
@@ -128,7 +131,7 @@ export function safeHostname(input: string): string {
   try {
     return new URL(input).hostname;
   } catch {
-    return "网络来源";
+    return t("网络来源");
   }
 }
 

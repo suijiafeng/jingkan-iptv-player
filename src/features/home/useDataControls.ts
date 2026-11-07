@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import type { Repository } from "../../data/repository";
 import type { Source } from "../../domain/types";
 import { showToast } from "../../components/Toast";
@@ -24,7 +25,6 @@ export function useDataControls({
   region,
   filters,
   setTab,
-  setRecentEditing,
 }: {
   repo: Repository | null;
   setError: (message: string) => void;
@@ -37,7 +37,6 @@ export function useDataControls({
   region: ReturnType<typeof useRegionPreference>;
   filters: ReturnType<typeof useChannelFilters>;
   setTab: (tab: Tab) => void;
-  setRecentEditing: (editing: boolean) => void;
 }) {
   /** 联网许可已撤销：停止播放和所有远程任务。 */
   const stopRemoteWork = () => {
@@ -54,9 +53,12 @@ export function useDataControls({
     if (
       !repo ||
       !(await confirm(
-        `删除“${source.name}”？`,
-        `将删除此来源及其 ${source.channelCount} 个频道条目。没有其他来源保留的频道，其收藏与最近播放记录也会删除。应用内无法撤销，你原来的节目单文件不受影响。`,
-        "删除",
+        t("删除“{value0}”？", { value0: source.name }),
+        t(
+          "将删除此来源及其 {value0} 个频道条目。没有其他来源保留的频道，其收藏与最近播放记录也会删除。应用内无法撤销，你原来的节目单文件不受影响。",
+          { value0: source.channelCount },
+        ),
+        t("删除"),
       ))
     )
       return;
@@ -71,13 +73,13 @@ export function useDataControls({
       } catch {
         if (settings.mounted.current) {
           playback.stopPlayback();
-          setError("来源已删除，播放已停止");
+          setError(t("来源已删除，播放已停止"));
         }
       }
       filters.forgetSource(source.id);
       list.changed();
     } catch {
-      setError("删除未完成，请重试");
+      setError(t("删除未完成，请重试"));
     }
   };
 
@@ -97,12 +99,12 @@ export function useDataControls({
           await playback.reconcilePlayingSources();
         } catch {
           playback.stopPlayback();
-          setError("来源已停用，播放已停止");
+          setError(t("来源已停用，播放已停止"));
         }
       }
       list.changed();
     } catch {
-      setError(enabled ? "来源未能启用，请重试" : "来源未能停用，请重试");
+      setError(enabled ? t("来源未能启用，请重试") : t("来源未能停用，请重试"));
     }
   };
 
@@ -111,21 +113,21 @@ export function useDataControls({
     if (
       !settings.revokePending &&
       !(await confirm(
-        "撤销联网许可？",
-        "将停止播放并取消导入。下次联网前会再次说明风险。",
-        "撤销",
+        t("撤销联网许可？"),
+        t("将停止播放并取消导入。下次联网前会再次说明风险。"),
+        t("撤销"),
       ))
     )
       return;
     setError("");
     const wasPlaying = !!playback.playing;
     stopRemoteWork();
-    if (wasPlaying) showToast("已撤销联网许可，播放已停止");
+    if (wasPlaying) showToast(t("已撤销联网许可，播放已停止"));
     try {
       await repo.setSetting("remoteAllowed", false);
       settings.setRevokePending(false);
     } catch {
-      setError("撤销未保存，请重试");
+      setError(t("撤销未保存，请重试"));
     }
   };
 
@@ -133,9 +135,11 @@ export function useDataControls({
     if (
       !repo ||
       !(await confirm(
-        "清除所有数据？",
-        "节目单、收藏、观看记录与设置都会删除，无法在应用内恢复。你原来的文件不受影响。",
-        "清除",
+        t("清除所有数据？"),
+        t(
+          "节目单、收藏、观看记录与设置都会删除，无法在应用内恢复。你原来的文件不受影响。",
+        ),
+        t("清除"),
       ))
     )
       return;
@@ -150,10 +154,9 @@ export function useDataControls({
       filters.setCountryBypass(null);
       list.forgetTabOffsets();
       setTab("all");
-      setRecentEditing(false);
       list.changed();
     } catch {
-      setError("清空未完成，请重试");
+      setError(t("清空未完成，请重试"));
     }
   };
 
@@ -169,7 +172,6 @@ export function useDataControls({
     filters.reset();
     filters.setCountryBypass(null);
     list.forgetTabOffsets();
-    setRecentEditing(false);
     settings.reloadSettings();
     list.changed();
   };

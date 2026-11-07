@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Repository } from "../../data/repository";
 import { isCountryCode } from "../../domain/channelFacets";
@@ -93,7 +94,7 @@ export function useRegionPreference(
         } catch {
           if (initialization.current !== initializationId) return;
           setReady(true);
-          onErrorRef.current("地区偏好读取未完成，暂显示全部");
+          onErrorRef.current(t("地区偏好读取未完成，暂显示全部"));
         }
       }
     })();
@@ -108,7 +109,7 @@ export function useRegionPreference(
       cancel();
       if (!ready || !repo) return;
       if (value !== null && value !== "" && !isCountryCode(value)) {
-        onErrorRef.current("该地区不可选，请重新选择");
+        onErrorRef.current(t("该地区不可选，请重新选择"));
         return;
       }
       const operation = generation.current;
@@ -133,7 +134,7 @@ export function useRegionPreference(
               ? resolveRegion(readDeviceEvidence())
               : { ...NO_REGION },
           );
-          onErrorRef.current("地区选择未保存，请重试");
+          onErrorRef.current(t("地区选择未保存，请重试"));
         }
       }
     },

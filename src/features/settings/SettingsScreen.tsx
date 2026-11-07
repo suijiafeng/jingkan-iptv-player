@@ -1,3 +1,5 @@
+import { LanguageSettings } from "./LanguageSettings";
+import { t } from "../../i18n/core";
 import React from "react";
 import { ScrollView, Switch } from "react-native";
 import { Button, Heading } from "../../components/ui";
@@ -50,41 +52,36 @@ export function SettingsScreen(props: Props) {
         props.reserveMiniBar && { paddingBottom: MINI_WINDOW_SPACE },
       ]}
     >
-      <Heading title="设置" />
-      <SettingSection label="节目来源">
+      <Heading title={t("设置")} />
+      <LanguageSettings repo={props.repo} />
+      <SettingSection label={t("节目来源")}>
         <SettingRow
-          title="管理节目来源"
+          title={t("管理节目来源")}
           icon={<SettingIcon name="sources" />}
           value={
             props.sourceCount === undefined
               ? undefined
-              : `${props.sourceCount} 份`
+              : t("{value0} 份", { value0: props.sourceCount })
           }
           trailing={<Chevron />}
           onPress={props.onManageSources}
         />
       </SettingSection>
-      <SettingSection label="联网与隐私">
+      <SettingSection label={t("联网与隐私")}>
         <SettingRow
-          title="节目来源联网"
+          title={t("节目来源联网")}
           icon={<SettingIcon name="network" />}
           status={
             props.revokePending
-              ? { label: "撤销未保存", tone: "warn" }
-              : props.remoteAllowed
-                ? { label: "已允许", tone: "accent" }
-                : { label: "未允许", tone: "muted" }
-          }
-          caption={
-            props.revokePending
-              ? "撤销尚未保存，保存前许可仍可能有效"
+              ? { label: t("撤销未保存"), tone: "warn" }
               : undefined
           }
-          warn
           trailing={
             <Switch
-              accessibilityLabel="节目来源联网"
-              accessibilityHint="开启时需阅读并同意联网说明；关闭时撤销联网许可"
+              accessibilityLabel={t("节目来源联网")}
+              accessibilityHint={t(
+                "开启时需阅读并同意联网说明；关闭时撤销联网许可",
+              )}
               value={props.remoteAllowed}
               disabled={props.revokePending}
               trackColor={{ true: colors.accent }}
@@ -96,22 +93,27 @@ export function SettingsScreen(props: Props) {
         />
         {props.revokePending && (
           <SettingRow
-            title="联网关闭尚未保存"
+            title={t("联网关闭尚未保存")}
             icon={<SettingIcon name="network" />}
             trailing={
-              <Button compact label="重试保存撤销" onPress={props.onRevoke} />
+              <Button
+                compact
+                label={t("重试保存撤销")}
+                onPress={props.onRevoke}
+              />
             }
           />
         )}
         <SettingRow
-          title="频道台标"
+          title={t("频道台标")}
           icon={<SettingIcon name="artwork" />}
-          // 只说明该开关目前不能使用的原因。
-          caption={props.remoteAllowed ? undefined : "需先允许节目来源联网"}
           dimmed={artworkDisabled}
           trailing={
             <Switch
-              accessibilityLabel="显示频道台标"
+              accessibilityLabel={t("显示频道台标")}
+              accessibilityHint={
+                props.remoteAllowed ? undefined : t("需先允许节目来源联网")
+              }
               value={props.artworkAllowed}
               disabled={artworkDisabled}
               trackColor={{ true: colors.accent }}
@@ -121,25 +123,24 @@ export function SettingsScreen(props: Props) {
         />
         {props.artworkRevokePending && (
           <SettingRow
-            title="台标关闭尚未保存"
+            title={t("台标关闭尚未保存")}
             icon={<SettingIcon name="artwork" />}
-            status={{ label: "待重试", tone: "warn" }}
             trailing={
               <Button
                 compact
-                label="重试保存"
-                accessibilityLabel="重试保存台标关闭"
+                label={t("重试保存")}
+                accessibilityLabel={t("重试保存台标关闭")}
                 onPress={props.onRetryArtworkRevoke}
               />
             }
           />
         )}
         <SettingRow
-          title="移动网络提醒"
+          title={t("移动网络提醒")}
           icon={<SettingIcon name="mobile" />}
           trailing={
             <Switch
-              accessibilityLabel="移动网络提醒"
+              accessibilityLabel={t("移动网络提醒")}
               value={props.mobileWarning}
               trackColor={{ true: colors.accent }}
               onValueChange={props.onMobileWarningChange}
@@ -147,14 +148,13 @@ export function SettingsScreen(props: Props) {
           }
         />
       </SettingSection>
-      <SettingSection label="播放">
+      <SettingSection label={t("播放")}>
         <SettingRow
-          title="后台播放"
-          caption="切换应用或锁屏后继续播放，会消耗网络流量"
+          title={t("后台播放")}
           icon={<SettingIcon name="background" />}
           trailing={
             <Switch
-              accessibilityLabel="后台播放"
+              accessibilityLabel={t("后台播放")}
               value={props.backgroundPlayback ?? true}
               disabled={props.backgroundSaving}
               trackColor={{ true: colors.accent }}
@@ -163,12 +163,11 @@ export function SettingsScreen(props: Props) {
           }
         />
         <SettingRow
-          title="应用内浮窗"
-          caption="返回频道列表时以小窗继续播放；系统画中画在播放器中开启"
+          title={t("应用内浮窗")}
           icon={<SettingIcon name="floating" />}
           trailing={
             <Switch
-              accessibilityLabel="应用内浮窗播放"
+              accessibilityLabel={t("应用内浮窗播放")}
               value={props.miniPlayer}
               trackColor={{ true: colors.accent }}
               onValueChange={props.onMiniPlayerChange}
@@ -177,13 +176,13 @@ export function SettingsScreen(props: Props) {
         />
       </SettingSection>
       {/* 本地资料与应用信息共用一张普通行组成的卡片；备份只占一行，页面末尾不再堆放一组大按钮。 */}
-      <SettingSection label="资料与应用">
+      <SettingSection label={t("资料与应用")}>
         {props.repo && props.onRestoreBackup && (
           <BackupControls repo={props.repo} onRestore={props.onRestoreBackup} />
         )}
         <About />
         <SettingRow
-          title="清除所有数据"
+          title={t("清除所有数据")}
           icon={<SettingIcon name="clear" color={colors.bad} />}
           danger
           onPress={props.onClearAll}

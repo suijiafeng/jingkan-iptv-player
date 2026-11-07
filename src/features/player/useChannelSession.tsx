@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, {
   useCallback,
   useEffect,
@@ -193,14 +194,14 @@ export function useChannelSession(props: SessionProps) {
   }, [retained, state.attemptId]);
   const primaryLabel =
     state.phase === "cellular"
-      ? "用流量播放"
+      ? t("用流量播放")
       : starting
-        ? "取消"
+        ? t("取消")
         : busy
-          ? "暂停"
+          ? t("暂停")
           : canRetry
-            ? "重试"
-            : "播放";
+            ? t("重试")
+            : t("播放");
   const primaryAction = () => {
     // 在可能计费的网络上，点击 ▶ 就是明确选择“继续”。
     if (state.phase === "cellular") {
@@ -277,12 +278,15 @@ export function useChannelSession(props: SessionProps) {
   const description =
     starting && props.failover.connectingTitle
       ? { ...descriptions[state.phase], title: props.failover.connectingTitle }
-      : descriptions[state.phase];
+      : {
+          title: t(descriptions[state.phase].title),
+          body: t(descriptions[state.phase].body),
+        };
   const pausedBody =
     state.pauseReason === "background"
-      ? "切到后台时暂停"
+      ? t("切到后台时暂停")
       : state.pauseReason === "interrupted"
-        ? "音频被其他应用占用，已暂停"
+        ? t("音频被其他应用占用，已暂停")
         : "";
   // 主按钮图形：暂停或停止时显示 ▶，播放时显示 ❚❚。
   // 位于画面中央；加载时此处显示圆点，而
@@ -340,13 +344,16 @@ export function useChannelSession(props: SessionProps) {
       {canRetry && (
         <View style={styles.failureActions}>
           <CenterChip
-            label="重试"
+            label={t("重试")}
             icon={<RefreshIcon size={15} />}
             disabled={primaryDisabled}
             onPress={primaryAction}
           />
           {props.sources.length > 1 && state.phase !== "offline" && (
-            <CenterChip label="切换线路" onPress={() => setSourcesOpen(true)} />
+            <CenterChip
+              label={t("切换线路")}
+              onPress={() => setSourcesOpen(true)}
+            />
           )}
         </View>
       )}
@@ -371,8 +378,15 @@ export function useChannelSession(props: SessionProps) {
       count={props.sources.length}
       accessibilityLabel={
         props.sources.length > 1
-          ? `线路：${qualityName(props.channel)} · ${props.channel.sourceName}，共 ${props.sources.length} 个，点击切换`
-          : `线路：${qualityName(props.channel)} · ${props.channel.sourceName}，点击查看地址`
+          ? t("线路：{value0} · {value1}，共 {value2} 个，点击切换", {
+              value0: qualityName(props.channel),
+              value1: props.channel.sourceName,
+              value2: props.sources.length,
+            })
+          : t("线路：{value0} · {value1}，点击查看地址", {
+              value0: qualityName(props.channel),
+              value1: props.channel.sourceName,
+            })
       }
       solid={!props.fullscreen}
       onPress={() => setSourcesOpen(!sourcesOpen)}
@@ -384,7 +398,7 @@ export function useChannelSession(props: SessionProps) {
       style={[styles.favoriteHit, !props.fullscreen && styles.favoriteSolid]}
       accessibilityRole="button"
       accessibilityLabel={
-        props.channel.favorite ? "取消收藏当前频道" : "收藏当前频道"
+        props.channel.favorite ? t("取消收藏当前频道") : t("收藏当前频道")
       }
       accessibilityState={{ selected: props.channel.favorite }}
       onPress={() => props.onFavorite(props.channel)}
@@ -397,16 +411,18 @@ export function useChannelSession(props: SessionProps) {
 
   const pictureInPictureButton = state.attemptId !== null && (
     <OverlayButton
-      label="画中画"
+      label={t("画中画")}
       icon={<PictureInPictureIcon />}
-      accessibilityLabel="进入画中画"
+      accessibilityLabel={t("进入画中画")}
       variant="quiet"
       onPress={() => {
         void media.startPictureInPicture().then((success) => {
           if (!success)
             Alert.alert(
-              "未能进入画中画",
-              "请确认系统允许静看使用画中画，并在视频开始播放后重试。若是用返回键退出后重新打开的，请先从最近任务中彻底关闭应用再试。",
+              t("未能进入画中画"),
+              t(
+                "请确认系统允许静看使用画中画，并在视频开始播放后重试。若是用返回键退出后重新打开的，请先从最近任务中彻底关闭应用再试。",
+              ),
             );
         });
       }}
@@ -415,7 +431,7 @@ export function useChannelSession(props: SessionProps) {
 
   const muteButton = (
     <OverlayButton
-      label={props.muted ? "取消静音" : "静音"}
+      label={props.muted ? t("取消静音") : t("静音")}
       icon={<VolumeIcon muted={props.muted} />}
       variant="quiet"
       selected={props.muted}
@@ -426,7 +442,7 @@ export function useChannelSession(props: SessionProps) {
   // 收听时显示屏幕图标，画面本身会说明正在听音频。
   const audioButton = (
     <OverlayButton
-      label={props.audioOnly ? "看视频" : "听音频"}
+      label={props.audioOnly ? t("看视频") : t("听音频")}
       icon={props.audioOnly ? <ScreenIcon /> : <HeadphonesIcon />}
       variant="quiet"
       onPress={props.onToggleAudioOnly}

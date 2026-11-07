@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -38,7 +39,7 @@ export function FirstRunGuide({
               pressed && guideStyles.pressed,
             ]}
           >
-            <Text style={guideStyles.textActionLabel}>稍后再说</Text>
+            <Text style={guideStyles.textActionLabel}>{t("稍后再说")}</Text>
           </Pressable>
         </View>
         <ScrollView
@@ -47,18 +48,24 @@ export function FirstRunGuide({
         >
           <View style={guideStyles.page}>
             <Text accessibilityRole="header" style={guideStyles.title}>
-              静看 TV
+              {t("静看 TV")}
             </Text>
-            <Text style={guideStyles.body}>播放你自己添加的节目单。</Text>
             <Text style={guideStyles.body}>
-              应用不提供节目来源。请添加可信且有权使用的节目单链接或 M3U/TXT
-              文件。
+              {t("播放你自己添加的节目单。")}
+            </Text>
+            <Text style={guideStyles.body}>
+              {t(
+                "应用不提供节目来源。请添加可信且有权使用的节目单链接或 M3U/TXT 文件。",
+              )}
             </Text>
           </View>
           <View style={guideStyles.footer}>
-            <Button label="添加节目单链接" onPress={() => onFinish("url")} />
             <Button
-              label="从文件导入"
+              label={t("添加节目单链接")}
+              onPress={() => onFinish("url")}
+            />
+            <Button
+              label={t("从文件导入")}
               secondary
               onPress={() => onFinish("file")}
             />

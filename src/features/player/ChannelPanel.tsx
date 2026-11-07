@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useEffect, useRef } from "react";
 import {
   FlatList,
@@ -121,13 +122,13 @@ export function ChannelPanel(props: ChannelPanelProps) {
       {props.fullscreen && (
         <View style={styles.heading}>
           <Text accessibilityRole="header" style={styles.headingTitle}>
-            频道列表
+            {t("频道列表")}
           </Text>
           <View style={styles.flex} />
           <Pressable
             style={styles.headingAction}
             accessibilityRole="button"
-            accessibilityLabel="关闭频道列表"
+            accessibilityLabel={t("关闭频道列表")}
             onPress={props.onClose}
           >
             <CloseIcon />
@@ -148,7 +149,7 @@ export function ChannelPanel(props: ChannelPanelProps) {
           <Notice title={props.error} error />
           <Button
             secondary
-            label="关闭选台提示"
+            label={t("关闭选台提示")}
             onPress={() => props.onDismissError?.()}
           />
         </View>
@@ -224,19 +225,21 @@ export function ChannelPanel(props: ChannelPanelProps) {
           sheet.loadError ? undefined : sheet.loading ? (
             <View style={styles.emptyLoading} accessibilityLiveRegion="polite">
               <LoadingTitle
-                title="正在载入频道"
+                title={t("正在载入频道")}
                 style={styles.emptyLoadingText}
               />
             </View>
           ) : (
             <Text style={styles.empty}>
               {filtered
-                ? `没有匹配频道，试试清除搜索${scope === "all" ? "或调整筛选" : ""}`
+                ? t("没有匹配频道，试试清除搜索{value0}", {
+                    value0: scope === "all" ? t("或调整筛选") : "",
+                  })
                 : scope === "recent"
-                  ? "还没有最近观看记录"
+                  ? t("还没有最近观看记录")
                   : scope === "favorites"
-                    ? "还没有收藏的可用频道"
-                    : "没有可用频道"}
+                    ? t("还没有收藏的可用频道")
+                    : t("没有可用频道")}
             </Text>
           )
         }

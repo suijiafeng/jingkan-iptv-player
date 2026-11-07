@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import type { Channel } from "../../domain/types";
 import { compareChannelSources } from "../../domain/channelSources";
 
@@ -113,4 +114,7 @@ export function advanceRound(
 
 /** 自动切换线路并连接时的状态文字，绝不显示地址。 */
 export const switchingTitle = (position: { index: number; total: number }) =>
-  `来源 ${position.index}/${position.total} 连接中`;
+  t("来源 {value0}/{value1} 连接中", {
+    value0: position.index,
+    value1: position.total,
+  });

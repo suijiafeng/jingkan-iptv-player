@@ -1,3 +1,4 @@
+import { compareLabels } from "../i18n/core";
 import { M3U_LIMITS, utf8ByteLength } from "../domain/m3u";
 import { synchronizeChecks, synchronizeStreamLanguages } from "./availability";
 import type {
@@ -100,7 +101,7 @@ const CHANNEL_BOUND_COLUMNS = [
 ];
 // 只创建一个排序器；带区域设置的 localeCompare 会在每次比较时创建新对象，
 // 这在 Hermes/Android 上曾使列出分组耗时约 100 ms。
-export const groupOrder = new Intl.Collator("zh-Hans-CN");
+export const groupOrder = { compare: compareLabels };
 const CLEAN_UNREFERENCED = [
   `DELETE FROM channels WHERE active = 0
     AND groupKey NOT IN (SELECT groupKey FROM favorite_groups)

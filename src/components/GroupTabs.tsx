@@ -1,3 +1,5 @@
+import { groupLabel } from "../domain/channelLabels";
+import { t } from "../i18n/core";
 import React, { useCallback, useEffect, useRef } from "react";
 import { ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { Button } from "./ui";
@@ -58,7 +60,7 @@ export function GroupTabs({
   const items = [
     {
       key: ALL_KEY,
-      label: "全部",
+      label: t("全部"),
       testID: `${testID}-all`,
       selected: selected === null,
       onPress: () => {
@@ -67,7 +69,7 @@ export function GroupTabs({
     },
     ...groups.map((name, index) => ({
       key: groupKey(name),
-      label: name === "全部" ? "全部（分组）" : name,
+      label: name === "全部" ? t("全部（分组）") : groupLabel(name),
       testID: `${testID}-item-${index}`,
       selected: selected === name,
       onPress: () => {

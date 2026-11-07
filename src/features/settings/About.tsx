@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,7 +11,7 @@ import { Chevron, SettingRow } from "./SettingRows";
 import { SettingIcon } from "./SettingIcon";
 
 export const versionLabel = () =>
-  `版本 ${Constants.expoConfig?.version ?? "未知"}`;
+  t("版本 {value0}", { value0: Constants.expoConfig?.version ?? t("未知") });
 
 /**
  * 将应用其它位置无法当场说明的事项放入折叠分组。
@@ -68,7 +69,7 @@ function Section({
     <View style={aboutStyles.section}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={title}
+        accessibilityLabel={t(title)}
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen((value) => !value)}
         style={({ pressed }) => [
@@ -76,7 +77,7 @@ function Section({
           pressed && { opacity: 0.7 },
         ]}
       >
-        <Text style={[styles.body, aboutStyles.sectionTitle]}>{title}</Text>
+        <Text style={[styles.body, aboutStyles.sectionTitle]}>{t(title)}</Text>
         <Text style={aboutStyles.arrow} accessible={false}>
           {open ? "▲" : "▼"}
         </Text>
@@ -84,7 +85,7 @@ function Section({
       {open &&
         paragraphs.map((paragraph) => (
           <Text key={paragraph} style={styles.muted}>
-            {paragraph}
+            {t(paragraph)}
           </Text>
         ))}
     </View>
@@ -96,7 +97,7 @@ export function About() {
   return (
     <>
       <SettingRow
-        title="关于静看 TV"
+        title={t("关于静看 TV")}
         icon={<SettingIcon name="about" />}
         value={Constants.expoConfig?.version}
         trailing={<Chevron />}
@@ -111,7 +112,7 @@ export function About() {
           style={styles.screen}
           edges={["top", "bottom", "left", "right"]}
         >
-          <BackBar title="静看 TV" onBack={() => setOpen(false)} />
+          <BackBar title={t("静看 TV")} onBack={() => setOpen(false)} />
           <ScrollView contentContainerStyle={styles.content}>
             <Text style={styles.muted}>{versionLabel()}</Text>
             <View>

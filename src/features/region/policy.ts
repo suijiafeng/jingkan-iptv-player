@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import { countryLabel, isCountryCode } from "../../domain/channelFacets";
 
 export interface CountryPreference {
@@ -163,8 +164,10 @@ export function regionBasis(
   result: RegionResult,
   shownCountry: string | null,
 ): string {
-  if (preference.mode === "manual") return "手动选择";
+  if (preference.mode === "manual") return t("手动选择");
   if (result.countryCode && shownCountry === null)
-    return `识别为${countryLabel(result.countryCode)}，节目单中无该地区频道`;
-  return result.message;
+    return t("识别为{value0}，节目单中无该地区频道", {
+      value0: countryLabel(result.countryCode),
+    });
+  return t(result.message);
 }

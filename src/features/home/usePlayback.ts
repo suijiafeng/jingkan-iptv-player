@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import { useRef, useState, type MutableRefObject } from "react";
 import type { Repository } from "../../data/repository";
 import { uniqueStreams } from "../../domain/channelSources";
@@ -84,7 +85,7 @@ export function usePlayback({
       if (!stillWanted()) return;
       const representative = fresh?.active ? fresh : null;
       if (!representative) {
-        setError("频道已不可用");
+        setError(t("频道已不可用"));
         return;
       }
       const alternatives = uniqueStreams(
@@ -106,7 +107,7 @@ export function usePlayback({
             setPlayQueue(complete.filter((queued) => queued.active));
         });
     } catch {
-      if (stillWanted()) setError("频道读取未完成，请重试");
+      if (stillWanted()) setError(t("频道读取未完成，请重试"));
     }
   };
 

@@ -1,3 +1,4 @@
+import { t } from "../i18n/core";
 import React from "react";
 import {
   Pressable,
@@ -135,7 +136,9 @@ export function ErrorNotice({
   return (
     <>
       <Notice title={message} error />
-      {onDismiss && <Button label="关闭提示" secondary onPress={onDismiss} />}
+      {onDismiss && (
+        <Button label={t("关闭提示")} secondary onPress={onDismiss} />
+      )}
     </>
   );
 }
@@ -147,7 +150,7 @@ export function ErrorNotice({
 export function BackBar({
   onBack,
   title,
-  accessibilityLabel = "返回",
+  accessibilityLabel = t("返回"),
 }: {
   onBack: () => void;
   title?: string;

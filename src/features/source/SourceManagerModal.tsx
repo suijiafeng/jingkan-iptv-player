@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { type ReactNode } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -43,15 +44,15 @@ export function SourceManagerModal(props: ManagerProps) {
       onDismiss={props.onDismiss}
     >
       <SafeAreaView style={styles.screen}>
-        <BackBar title="节目来源" onBack={props.onClose} />
+        <BackBar title={t("节目来源")} onBack={props.onClose} />
         <ScrollView
           contentContainerStyle={[styles.content, managerStyles.content]}
         >
           <ErrorNotice message={props.error} onDismiss={props.onDismissError} />
           {/* 在表单内选择链接或文件，不要重复选择两次。 */}
-          <SettingSection label="添加">
+          <SettingSection label={t("添加")}>
             <SettingRow
-              title="添加节目来源"
+              title={t("添加节目来源")}
               trailing={<Chevron />}
               onPress={() => props.onAdd("url")}
             />
@@ -61,7 +62,7 @@ export function SourceManagerModal(props: ManagerProps) {
               <View style={managerStyles.emptyMark} accessible={false}>
                 <Text style={managerStyles.emptyMarkText}>＋</Text>
               </View>
-              <Text style={styles.heading}>还没有节目来源</Text>
+              <Text style={styles.heading}>{t("还没有节目来源")}</Text>
             </View>
           ) : (
             <View style={managerStyles.list}>

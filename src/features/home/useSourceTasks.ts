@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import {
   useCallback,
   useEffect,
@@ -111,8 +112,8 @@ export function useSourceTasks({
       if (current())
         setError(
           failure instanceof Error && failure.message
-            ? `频道已导入，语言未补全：${failure.message}`
-            : "频道已导入，语言暂未补全",
+            ? t("频道已导入，语言未补全：{value0}", { value0: failure.message })
+            : t("频道已导入，语言暂未补全"),
         );
     } finally {
       if (languageController.current === abort) {
@@ -194,7 +195,7 @@ export function useSourceTasks({
             ? failure.message
             : failure instanceof ImportIOError
               ? failure.message
-              : "测试未完成，可重新测试",
+              : t("测试未完成，可重新测试"),
         );
     } finally {
       if (checkController.current === abort) {

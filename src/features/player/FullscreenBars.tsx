@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { colors, type } from "../../theme";
@@ -46,9 +47,9 @@ export function FullscreenBars({
         }
       >
         <OverlayButton
-          label="退出全屏"
+          label={t("退出全屏")}
           icon={<ChevronLeftIcon size={20} />}
-          accessibilityLabel="退出全屏"
+          accessibilityLabel={t("退出全屏")}
           variant="quiet"
           onPress={props.onToggleFullscreen}
         />
@@ -82,16 +83,16 @@ export function FullscreenBars({
             {/* 音量放在右侧控件组的最前面。 */}
             {view.muteButton}
             <OverlayButton
-              label="退出横屏"
+              label={t("退出横屏")}
               icon={<ExitFullscreenIcon size={20} />}
-              accessibilityLabel="退出横屏"
+              accessibilityLabel={t("退出横屏")}
               variant="quiet"
               onPress={props.onToggleFullscreen}
             />
             <OverlayButton
-              label="频道列表"
+              label={t("频道列表")}
               icon={<MenuIcon />}
-              accessibilityLabel="频道列表"
+              accessibilityLabel={t("频道列表")}
               variant="quiet"
               onPress={props.onOpenSheet}
             />

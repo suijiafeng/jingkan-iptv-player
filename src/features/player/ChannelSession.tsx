@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -147,7 +148,7 @@ export function ChannelSession(props: SessionProps) {
           >
             <Text style={sessionStyles.audioSymbol}>♫</Text>
             {!props.mini && (
-              <Text style={sessionStyles.audioCaption}>正在听音频</Text>
+              <Text style={sessionStyles.audioCaption}>{t("正在听音频")}</Text>
             )}
           </View>
         )}
@@ -162,15 +163,15 @@ export function ChannelSession(props: SessionProps) {
             accessibilityRole="button"
             accessibilityLabel={
               props.fullscreen
-                ? `${title}，轻触显示操作`
+                ? t("{value0}，轻触显示操作", { value0: title })
                 : controlsVisible
-                  ? "隐藏播放操作"
-                  : "显示播放操作"
+                  ? t("隐藏播放操作")
+                  : t("显示播放操作")
             }
             accessibilityActions={[
               {
                 name: "activate",
-                label: controlsVisible ? "隐藏播放操作" : "显示播放操作",
+                label: controlsVisible ? t("隐藏播放操作") : t("显示播放操作"),
               },
             ]}
             onAccessibilityAction={({ nativeEvent }) => {
@@ -242,7 +243,7 @@ export function ChannelSession(props: SessionProps) {
           <Pressable
             style={StyleSheet.absoluteFill}
             accessibilityRole="button"
-            accessibilityLabel={`展开播放器，${title}`}
+            accessibilityLabel={t("展开播放器，{value0}", { value0: title })}
             onPress={props.onExpand}
             // 窗口不常驻标题；长按后才显示频道名称。
             onLongPress={() => setMiniTitleShown(true)}
@@ -270,10 +271,10 @@ export function ChannelSession(props: SessionProps) {
               {view.muteButton}
               {!props.audioOnly && (
                 <OverlayButton
-                  label="横屏全屏"
+                  label={t("横屏全屏")}
                   icon={<FullscreenIcon size={20} />}
                   variant="quiet"
-                  accessibilityLabel="横屏全屏"
+                  accessibilityLabel={t("横屏全屏")}
                   onPress={props.onToggleFullscreen}
                 />
               )}
@@ -283,11 +284,11 @@ export function ChannelSession(props: SessionProps) {
                   点击其中的 ✕ 才停止。暂停时没有继续观看的内容，
                   因此返回会直接停止。 */}
               <OverlayButton
-                label="返回频道列表"
+                label={t("返回频道列表")}
                 icon={<ChevronLeftIcon size={20} />}
                 variant="quiet"
                 accessibilityLabel={
-                  docks ? "返回频道列表，继续小窗播放" : "关闭播放器"
+                  docks ? t("返回频道列表，继续小窗播放") : t("关闭播放器")
                 }
                 onPress={(docks && props.onMinimize) || props.onClose}
               />
@@ -321,7 +322,7 @@ export function ChannelSession(props: SessionProps) {
               !props.backgroundAllowed &&
               props.onEnableBackgroundPlayback && (
                 <OverlayButton
-                  label="锁屏继续听"
+                  label={t("锁屏继续听")}
                   onPress={props.onRequestBackgroundPlayback}
                 />
               )}
@@ -330,7 +331,7 @@ export function ChannelSession(props: SessionProps) {
           </View>
           {props.orientationError && (
             <Text accessibilityRole="alert" style={sessionStyles.warning}>
-              设备未能切换屏幕方向，可以继续播放或退出全屏。
+              {t("设备未能切换屏幕方向，可以继续播放或退出全屏。")}
             </Text>
           )}
         </View>

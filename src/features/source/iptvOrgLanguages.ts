@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import { fetch as expoFetch } from "expo/fetch";
 import { readBoundedStream } from "../../data/importIO";
 import { linkedDeadline } from "../../lib/abort";
@@ -58,7 +59,9 @@ export async function lookupIptvOrgLanguages(
     });
     if (!response.ok || !response.body)
       throw new LanguageLookupError(
-        `语言数据库暂时无法访问（错误码 ${response.status}），请稍后再试`,
+        t("语言数据库暂时无法访问（错误码 {value0}），请稍后再试", {
+          value0: response.status,
+        }),
       );
     const text = await readBoundedStream(
       response.body,
@@ -70,10 +73,10 @@ export async function lookupIptvOrgLanguages(
     if (error instanceof LanguageLookupError) throw error;
     throw new LanguageLookupError(
       signal.aborted
-        ? "已停止补全语言"
+        ? t("已停止补全语言")
         : deadline.timedOut
-          ? "语言数据库下载超时，请检查网络后重试"
-          : "语言数据库读取未完成，请检查网络后重试",
+          ? t("语言数据库下载超时，请检查网络后重试")
+          : t("语言数据库读取未完成，请检查网络后重试"),
     );
   } finally {
     deadline.close();

@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
@@ -40,9 +41,11 @@ export function BackupControls({
     run(async () => {
       if (
         !(await confirm(
-          "导出本机备份？",
-          "备份包含节目来源、频道、收藏及部分偏好，不包含最近播放记录和联网、台标许可。文件未加密，可能含完整地址与访问令牌，请妥善保管。",
-          "选择保存目录",
+          t("导出本机备份？"),
+          t(
+            "备份包含节目来源、频道、收藏及部分偏好，不包含最近播放记录和联网、台标许可。文件未加密，可能含完整地址与访问令牌，请妥善保管。",
+          ),
+          t("选择保存目录"),
         ))
       )
         return;
@@ -79,16 +82,22 @@ export function BackupControls({
         file = new File(asset.uri);
       try {
         if (!file.exists || file.size > MAX_BACKUP_BYTES)
-          throw new BackupError("文件无法打开或超过 32 MB");
+          throw new BackupError(t("文件无法打开或超过 32 MB"));
         const text = new TextDecoder("utf-8", { fatal: true }).decode(
           await file.bytes(),
         );
         const backup = parseBackup(text);
         if (
           !(await confirm(
-            "用备份替换本机资料？",
-            `将恢复 ${backup.sources.length} 份节目来源和 ${backup.favorites.length} 个收藏，并替换当前来源、频道、收藏和设置。当前最近播放记录会被清除，备份中不含观看记录。建议先导出本机备份。恢复后需重新允许联网和台标，地区筛选将重置。`,
-            "替换并恢复",
+            t("用备份替换本机资料？"),
+            t(
+              "将恢复 {value0} 份节目来源和 {value1} 个收藏，并替换当前来源、频道、收藏和设置。当前最近播放记录会被清除，备份中不含观看记录。建议先导出本机备份。恢复后需重新允许联网和台标，地区筛选将重置。",
+              {
+                value0: backup.sources.length,
+                value1: backup.favorites.length,
+              },
+            ),
+            t("替换并恢复"),
           ))
         )
           return;
@@ -104,20 +113,20 @@ export function BackupControls({
     });
   return (
     <SettingRow
-      title="备份"
+      title={t("备份")}
       icon={<SettingIcon name="backup" />}
-      caption={busy ? "正在处理备份…" : message || undefined}
+      caption={busy ? t("正在处理备份…") : t(message) || undefined}
       trailing={
         <View style={backupStyles.actions}>
           <RowAction
-            label="导出"
-            accessibilityLabel="导出备份"
+            label={t("导出")}
+            accessibilityLabel={t("导出备份")}
             disabled={busy}
             onPress={() => void exportFile()}
           />
           <RowAction
-            label="恢复"
-            accessibilityLabel="从备份恢复"
+            label={t("恢复")}
+            accessibilityLabel={t("从备份恢复")}
             disabled={busy}
             onPress={() => void restoreFile()}
           />

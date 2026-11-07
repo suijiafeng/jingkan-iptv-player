@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import {
   useCallback,
   useEffect,
@@ -119,9 +120,9 @@ export function useSourceImport({
       form &&
       (form.name || form.url || form.content || busy) &&
       !(await confirm(
-        "放弃这次导入？",
-        "尚未保存的输入与预览会被丢弃，已有频道不受影响。",
-        "放弃",
+        t("放弃这次导入？"),
+        t("尚未保存的输入与预览会被丢弃，已有频道不受影响。"),
+        t("放弃"),
       ))
     )
       return;
@@ -161,7 +162,7 @@ export function useSourceImport({
       }
     } catch {
       if (task === generation.current)
-        setFormError(`文件无法打开或超过 ${MAX_MIB} MB`);
+        setFormError(t("文件无法打开或超过 {value0} MB", { value0: MAX_MIB }));
     } finally {
       if (task === generation.current) {
         setBusy(false);
@@ -192,7 +193,7 @@ export function useSourceImport({
         );
         text = downloaded.text;
         baseUrl = downloaded.url;
-      } else if (!text) throw new ImportIOError("请先选择文件");
+      } else if (!text) throw new ImportIOError(t("请先选择文件"));
       const parsed = await parseM3U(text, { baseUrl, signal: abort.signal });
       if (task !== generation.current || abort.signal.aborted) return;
       setForm((current) =>
@@ -203,7 +204,7 @@ export function useSourceImport({
         setFormError(
           failure instanceof Error
             ? failure.message
-            : "节目单解析未完成，请检查内容后重试",
+            : t("节目单解析未完成，请检查内容后重试"),
         );
         if (snapshot.refresh && !abort.signal.aborted)
           void repo
@@ -246,7 +247,7 @@ export function useSourceImport({
         try {
           await reconcilePlayingSources();
         } catch {
-          if (mounted.current) setError("已保存，请重新打开频道");
+          if (mounted.current) setError(t("已保存，请重新打开频道"));
         }
       } else {
         const name =
@@ -276,7 +277,7 @@ export function useSourceImport({
       // Android 不提供 onDismiss，保存后的跳转直接执行。
       if (Platform.OS !== "ios") onFormDismiss();
     } catch {
-      setFormError("保存失败，原数据未变");
+      setFormError(t("保存失败，原数据未变"));
     } finally {
       saving.current = false;
       setBusy(false);
@@ -304,7 +305,7 @@ export function useSourceImport({
       });
       setFormError("");
     } catch {
-      setError("该来源正在刷新或已删除，请稍后重试");
+      setError(t("该来源正在刷新或已删除，请稍后重试"));
       if (openedFromManagement) {
         fromManagement.current = false;
         onReturnToManagement();

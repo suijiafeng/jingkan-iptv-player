@@ -1,7 +1,7 @@
+import { t } from "../../i18n/core";
 import { useRef, useState, type MutableRefObject } from "react";
 import type { Repository } from "../../data/repository";
 import type { Channel } from "../../domain/types";
-import { confirm } from "../common/confirm";
 import type { ChannelListData } from "./useChannelListData";
 import type { Playback } from "./usePlayback";
 
@@ -22,8 +22,7 @@ export function useChannelActions({
   list: ChannelListData;
   playback: Playback;
 }) {
-  const [recentBusy, setRecentBusy] = useState(false),
-    [recentEditing, setRecentEditing] = useState(false);
+  const [recentBusy, setRecentBusy] = useState(false);
   const recentMutation = useRef(false);
 
   const favorite = async (target: Channel) => {
@@ -50,10 +49,10 @@ export function useChannelActions({
             if (mounted.current) list.setSources(sources);
           })
           .catch(() => {
-            if (mounted.current) setError("已收藏，数量稍后更新");
+            if (mounted.current) setError(t("已收藏，数量稍后更新"));
           });
     } catch {
-      setError("收藏未保存，请重试");
+      setError(t("收藏未保存，请重试"));
     }
   };
 
@@ -90,23 +89,6 @@ export function useChannelActions({
       if (mounted.current) forgetRecent(channel.id);
     });
 
-  const clearRecent = () =>
-    mutateRecent(async () => {
-      if (
-        !(await confirm(
-          "清空最近观看？",
-          "只删除观看记录，收藏与频道保留。",
-          "清空",
-        ))
-      )
-        return;
-      await repo!.clearRecent();
-      if (mounted.current) {
-        forgetRecent();
-        setRecentEditing(false);
-      }
-    });
-
   /** 实际播放成功，比单独的 HTTP 可用性探测更有说服力。 */
   const recordAvailability = async (target: Channel, ok: boolean) => {
     if (!repo) return;
@@ -129,7 +111,7 @@ export function useChannelActions({
       list.setChannels((items) => items.map(patch));
       list.setRecent((items) => items.map(patch));
     } catch {
-      if (mounted.current) setError("测试结果未保存，频道不受影响");
+      if (mounted.current) setError(t("测试结果未保存，频道不受影响"));
     }
   };
 
@@ -144,18 +126,15 @@ export function useChannelActions({
         if (list.tabRef.current === "recent") list.changed();
         else list.setRecent(await repo.listChannels({ mode: "recent" }));
       })
-      .catch(() => setError("本次观看未计入最近观看"));
+      .catch(() => setError(t("本次观看未计入最近观看")));
   };
 
   return {
     favorite,
     removeRecent,
-    clearRecent,
     recordStarted,
     recordAvailability,
     recentBusy,
-    recentEditing,
-    setRecentEditing,
   };
 }
 

@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
@@ -29,7 +30,7 @@ export function FacetToggle({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="按国家/地区或语言筛选"
+      accessibilityLabel={t("按国家/地区或语言筛选")}
       accessibilityState={{ expanded: open, selected: active }}
       onPress={onPress}
       style={({ pressed }) => [
@@ -66,7 +67,10 @@ export function ActiveFacetChips({
           <Pressable
             key={kind}
             accessibilityRole="button"
-            accessibilityLabel={`清除${LABELS[kind]}筛选：${label}`}
+            accessibilityLabel={t("清除{value0}筛选：{value1}", {
+              value0: t(LABELS[kind]),
+              value1: label,
+            })}
             onPress={() => onChange({ ...selection, [kind]: null }, kind)}
             style={({ pressed }) => [
               chipStyles.chip,

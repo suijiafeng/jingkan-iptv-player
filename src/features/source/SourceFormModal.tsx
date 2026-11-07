@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React from "react";
 import {
   ActivityIndicator,
@@ -59,10 +60,10 @@ export function SourceFormModal({
           <BackBar
             title={
               form.preview
-                ? `${form.preview.stats.valid} 个频道`
+                ? t("{value0} 个频道", { value0: form.preview.stats.valid })
                 : form.refresh
-                  ? "刷新节目单"
-                  : "添加节目单"
+                  ? t("刷新节目单")
+                  : t("添加节目单")
             }
             onBack={onBack}
           />
@@ -97,14 +98,14 @@ export function SourceFormModal({
                         <Button
                           style={{ flex: 1 }}
                           secondary={form.kind !== "url"}
-                          label="链接"
+                          label={t("链接")}
                           disabled={busy}
                           onPress={() => onUpdate({ kind: "url" })}
                         />
                         <Button
                           style={{ flex: 1 }}
                           secondary={form.kind !== "file"}
-                          label="文件"
+                          label={t("文件")}
                           disabled={busy}
                           // 直接打开文件选择器；下方的方框用于
                           // 仅用于更换已经选择的文件。
@@ -117,7 +118,7 @@ export function SourceFormModal({
                     )}
                     {form.kind === "url" ? (
                       <TextInput
-                        accessibilityLabel="节目单链接"
+                        accessibilityLabel={t("节目单链接")}
                         autoCapitalize="none"
                         autoCorrect={false}
                         keyboardType="url"
@@ -135,8 +136,10 @@ export function SourceFormModal({
                         accessibilityRole="button"
                         accessibilityLabel={
                           form.fileName
-                            ? `更换文件，当前 ${form.fileName}`
-                            : "选择节目单文件"
+                            ? t("更换文件，当前 {value0}", {
+                                value0: form.fileName,
+                              })
+                            : t("选择节目单文件")
                         }
                         disabled={busy}
                         onPress={onChooseFile}
@@ -146,25 +149,25 @@ export function SourceFormModal({
                         ]}
                       >
                         <Text style={styles.heading} numberOfLines={1}>
-                          {form.fileName || "选择文件"}
+                          {form.fileName || t("选择文件")}
                         </Text>
                         <Text style={styles.muted}>
-                          {form.fileName ? "点按更换" : "M3U / TXT"}
+                          {form.fileName ? t("点按更换") : "M3U / TXT"}
                         </Text>
                       </Pressable>
                     )}
                     <TextInput
-                      accessibilityLabel="来源名称"
+                      accessibilityLabel={t("来源名称")}
                       editable={!busy && !form.refresh}
                       style={styles.input}
                       value={form.name}
                       maxLength={100}
-                      placeholder="名称（可选）"
+                      placeholder={t("名称（可选）")}
                       placeholderTextColor={colors.muted}
                       onChangeText={(name) => onUpdate({ name })}
                     />
                     <Button
-                      label={busy ? "正在读取…" : "预览"}
+                      label={busy ? t("正在读取…") : t("预览")}
                       disabled={busy}
                       onPress={onPreview}
                     />

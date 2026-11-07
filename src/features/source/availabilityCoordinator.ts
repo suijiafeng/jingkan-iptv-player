@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import type { StoredCheck } from "../../data/availability";
 import { untilAborted } from "../../lib/abort";
 import type { Repository } from "../../data/repository";
@@ -13,7 +14,7 @@ export type CheckStore = Pick<
 >;
 export class AvailabilitySaveError extends Error {
   constructor() {
-    super("测试结果未保存，可重新测试");
+    super(t("测试结果未保存，可重新测试"));
   }
 }
 interface Options {

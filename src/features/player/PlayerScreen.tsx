@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, {
   useCallback,
   useEffect,
@@ -57,14 +58,16 @@ export function PlayerScreen(props: PlayerScreenProps) {
   const [audioOnly, setAudioOnly] = useState(false);
   const requestBackgroundPlayback = () => {
     Alert.alert(
-      "锁屏继续收听",
-      "开启后台播放后，切换应用或锁屏仍会播放，并提供系统媒体控制。会持续联网并耗电；听音频时仍可能下载视频画面，流量不一定减少。",
+      t("锁屏继续收听"),
+      t(
+        "开启后台播放后，切换应用或锁屏仍会播放，并提供系统媒体控制。会持续联网并耗电；听音频时仍可能下载视频画面，流量不一定减少。",
+      ),
       [
-        { text: "仅前台收听", style: "cancel" },
+        { text: t("仅前台收听"), style: "cancel" },
         ...(props.onEnableBackgroundPlayback
           ? [
               {
-                text: "开启后台播放",
+                text: t("开启后台播放"),
                 onPress: props.onEnableBackgroundPlayback,
               },
             ]
@@ -250,14 +253,16 @@ export function PlayerScreen(props: PlayerScreenProps) {
             <View style={screenStyles.sheetHeading}>
               <View style={screenStyles.flex}>
                 <Text accessibilityRole="header" style={theme.heading}>
-                  选择线路
+                  {t("选择线路")}
                 </Text>
               </View>
-              <Text style={theme.caption}>共 {props.sources.length} 条</Text>
+              <Text style={theme.caption}>
+                {t("共 {value0} 条线路", { value0: props.sources.length })}
+              </Text>
               <Pressable
                 style={screenStyles.sheetAction}
                 accessibilityRole="button"
-                accessibilityLabel="关闭线路"
+                accessibilityLabel={t("关闭线路")}
                 onPress={() => setSourcesOpen(false)}
               >
                 <CloseIcon />

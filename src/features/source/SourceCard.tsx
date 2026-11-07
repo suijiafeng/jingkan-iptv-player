@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useState } from "react";
 import {
   Pressable,
@@ -48,7 +49,7 @@ export function SourceCard({
   // 按列表的显示方式统计频道；只有当某些
   // 其中部分地址无法连接。
   const meta = [
-    `${source.channelCount} 个频道`,
+    t("{value0} 个频道", { value0: source.channelCount }),
     updatedAgo(source.lastSuccessAt, now),
   ]
     .filter(Boolean)
@@ -57,9 +58,11 @@ export function SourceCard({
   // 切换开关绝不改变卡片高度。
   const attention = [
     // 检测按地址执行，不按频道执行。
-    checked && unreachable > 0 ? `${unreachable} 个地址暂时无法连接` : "",
-    summary?.stopped ? "测试已停止" : "",
-    source.lastErrorCategory ? "上次刷新未完成，旧频道已保留" : "",
+    checked && unreachable > 0
+      ? t("{value0} 个地址暂时无法连接", { value0: unreachable })
+      : "",
+    summary?.stopped ? t("测试已停止") : "",
+    source.lastErrorCategory ? t("上次刷新未完成，旧频道已保留") : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -99,7 +102,7 @@ export function SourceCard({
         <View
           accessible
           accessibilityRole="progressbar"
-          accessibilityLabel={`正在检测 ${source.name}`}
+          accessibilityLabel={t("正在检测 {value0}", { value0: source.name })}
           accessibilityValue={
             check.total === null
               ? undefined
@@ -109,8 +112,11 @@ export function SourceCard({
         >
           <Text style={styles.caption}>
             {check.total === null
-              ? "正在读取待测试频道…"
-              : `正在检测 ${check.done}/${check.total}`}
+              ? t("正在读取待测试频道…")
+              : t("正在检测 {value0}/{value1}", {
+                  value0: check.done,
+                  value1: check.total,
+                })}
           </Text>
           <View style={cardStyles.progressTrack}>
             <View
@@ -133,14 +139,14 @@ export function SourceCard({
       <View style={cardStyles.footer}>
         {running ? (
           <FooterAction
-            label="停止测试"
-            accessibilityLabel={`停止测试 ${source.name}`}
+            label={t("停止测试")}
+            accessibilityLabel={t("停止测试 {value0}", { value0: source.name })}
             onPress={props.onStopCheck}
           />
         ) : (
           <FooterAction
-            label="检测"
-            accessibilityLabel={`${checked ? "重新检测" : "检测"} ${source.name}`}
+            label={t("检测")}
+            accessibilityLabel={`${checked ? t("重新检测") : t("检测")} ${source.name}`}
             disabled={
               !source.enabled || saving || !!check || !source.channelCount
             }
@@ -150,14 +156,14 @@ export function SourceCard({
           />
         )}
         <FooterAction
-          label="编辑"
-          accessibilityLabel={`编辑 ${source.name}`}
+          label={t("编辑")}
+          accessibilityLabel={t("编辑 {value0}", { value0: source.name })}
           disabled={saving}
           onPress={() => props.onRename(source)}
         />
         <FooterAction
-          label="删除"
-          accessibilityLabel={`删除 ${source.name}`}
+          label={t("删除")}
+          accessibilityLabel={t("删除 {value0}", { value0: source.name })}
           danger
           disabled={saving}
           onPress={() => props.onRemove(source)}
@@ -166,8 +172,8 @@ export function SourceCard({
             使用卡片的完整宽度。 */}
         <Switch
           style={cardStyles.switch}
-          accessibilityLabel={`${source.enabled ? "停用" : "启用"} ${source.name}`}
-          accessibilityHint={saving ? "正在保存" : undefined}
+          accessibilityLabel={`${source.enabled ? t("停用") : t("启用")} ${source.name}`}
+          accessibilityHint={saving ? t("正在保存") : undefined}
           value={source.enabled}
           disabled={saving || running}
           trackColor={{ true: colors.accent }}
@@ -193,13 +199,6 @@ function FooterAction({
   danger?: boolean;
   onPress: () => void;
 }) {
-  const { fontScale } = useWindowDimensions();
-  // 这些标签使用中日韩字符：每个字预留一字宽，再给小图标
-  // 留白，否则 Android 字体回退或取整可能让最后一个字换行
-  // 在部分设备上会超出 Yoga 测量得到的文字宽度。
-  const minWidth = Math.ceil(
-    (type.chip.fontSize * label.length + 4) * Math.max(1, fontScale) + 24,
-  );
   return (
     <Pressable
       accessibilityRole="button"
@@ -209,7 +208,6 @@ function FooterAction({
       onPress={onPress}
       style={({ pressed }) => [
         cardStyles.footerAction,
-        { minWidth },
         disabled && cardStyles.dimmed,
         pressed && cardStyles.pressed,
       ]}
@@ -227,7 +225,7 @@ function FooterAction({
 /** 显示“今天更新”“昨天更新”“3 天前更新”；时间未知时不显示。 */
 export function updatedAgo(timestamp: number, now: number) {
   const ago = daysAgo(timestamp, now);
-  return ago ? `${ago}更新` : "";
+  return ago ? t("{value0}更新", { value0: ago }) : "";
 }
 
 const cardStyles = StyleSheet.create({
@@ -277,7 +275,8 @@ const cardStyles = StyleSheet.create({
   },
   footerAction: {
     minHeight: sizes.touch,
-    flexShrink: 0,
+    flexShrink: 1,
+    minWidth: sizes.touch,
     maxWidth: "100%",
     paddingHorizontal: 12,
     paddingVertical: 4,

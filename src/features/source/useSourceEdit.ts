@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import * as DocumentPicker from "expo-document-picker";
 import type { Repository } from "../../data/repository";
@@ -82,16 +83,16 @@ export function useSourceEdit({
       if (refreshing.current) repo.cancelRefresh(source.id);
       refreshing.current = false;
       setBusy(false);
-      if (dirty) setError("读取已停止，修改仍保留；可重新保存");
+      if (dirty) setError(t("读取已停止，修改仍保留；可重新保存"));
     }
     if (dirty) {
       confirmPending.current = true;
       try {
         if (
           !(await confirm(
-            "放弃这次修改？",
-            "尚未保存的输入会被丢弃，正在读取的任务会停止。",
-            "放弃修改",
+            t("放弃这次修改？"),
+            t("尚未保存的输入会被丢弃，正在读取的任务会停止。"),
+            t("放弃修改"),
           ))
         )
           return;
@@ -135,7 +136,8 @@ export function useSourceEdit({
         setError("");
       }
     } catch {
-      if (current()) setError(`文件无法打开或超过 ${MAX_MIB} MB`);
+      if (current())
+        setError(t("文件无法打开或超过 {value0} MB", { value0: MAX_MIB }));
     } finally {
       if (controller.current === abort) controller.current = null;
       if (current()) setBusy(false);
@@ -146,13 +148,13 @@ export function useSourceEdit({
     if (controller.current || confirmPending.current) return;
     const newName = name.trim();
     if (!newName) {
-      setError("请填写名称");
+      setError(t("请填写名称"));
       return;
     }
     const newUrl = url.trim();
     const relink = source.kind === "url" && newUrl !== source.location;
     if (relink && !newUrl) {
-      setError("请填写链接");
+      setError(t("请填写链接"));
       return;
     }
     const abort = new AbortController();
@@ -207,8 +209,8 @@ export function useSourceEdit({
           if (current())
             setError(
               relink || file
-                ? "节目单已更新，名称未保存，请重试"
-                : "名称未保存，请重试",
+                ? t("节目单已更新，名称未保存，请重试")
+                : t("名称未保存，请重试"),
             );
           return;
         }
@@ -221,8 +223,8 @@ export function useSourceEdit({
         failure instanceof ImportIOError || failure instanceof M3UParseError
           ? failure.message
           : relink || file
-            ? "节目单未能更新，原频道不变"
-            : "保存未完成，请重试",
+            ? t("节目单未能更新，原频道不变")
+            : t("保存未完成，请重试"),
       );
     } finally {
       // 用户开始另一次保存后，已取消的读取仍可能才返回。

@@ -1,5 +1,5 @@
 import type { Channel, ChannelQuery } from "../domain/types";
-import { splitGroups, UNGROUPED } from "../domain/channelLabels";
+import { groupLabel, splitGroups, UNGROUPED } from "../domain/channelLabels";
 import {
   normalizeCountries,
   normalizeLanguages,
@@ -96,7 +96,7 @@ export async function queryGroups(
   const groups = new Set(rows.flatMap((row) => splitGroups(row.groupName)));
   const ungrouped = groups.delete(UNGROUPED);
   const sorted = [...groups].sort((left, right) =>
-    groupOrder.compare(left, right),
+    groupOrder.compare(groupLabel(left), groupLabel(right)),
   );
   return ungrouped ? [...sorted, UNGROUPED] : sorted;
 }

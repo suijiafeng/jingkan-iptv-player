@@ -1,3 +1,5 @@
+import { useLanguage } from "../../i18n/react";
+import { t } from "../../i18n/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -52,6 +54,7 @@ export function useChannelListData({
   countryKey: string;
   countryBypassed: boolean;
 }) {
+  const { locale } = useLanguage();
   const [loadedRequest, setLoadedRequest] = useState<{
       tab: Tab;
       sourceId: string;
@@ -116,6 +119,7 @@ export function useChannelListData({
       countryBypassed,
       query,
       revision,
+      locale,
     }),
     [
       repo,
@@ -127,6 +131,7 @@ export function useChannelListData({
       countryBypassed,
       query,
       revision,
+      locale,
     ],
   );
   const listLoading = loadedRequest !== loadRequest;
@@ -243,9 +248,9 @@ export function useChannelListData({
       .catch(() => {
         if (current()) {
           if (publishedRows !== null)
-            setListTailError("其余频道未能读取，已显示的频道仍可使用");
+            setListTailError(t("其余频道未能读取，已显示的频道仍可使用"));
           else {
-            setListError("读取失败，资料仍在本机");
+            setListError(t("读取失败，资料仍在本机"));
             setLoadedRequest(loadRequest);
           }
         }

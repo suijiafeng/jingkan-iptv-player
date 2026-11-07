@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useEffect, useRef, useState } from "react";
 import { AppState, StyleSheet } from "react-native";
 import {
@@ -49,7 +50,7 @@ export function NativeAttempt({
   controller,
   media,
   backgroundAllowed = false,
-  title = "静看",
+  title = t("静看"),
   muted = false,
   volume = 1,
   audioOnly = false,

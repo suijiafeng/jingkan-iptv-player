@@ -1,3 +1,4 @@
+import { t } from "../i18n/core";
 /** 仓库所需的 SQLite 接口，便于在 Node 中运行测试。 */
 export type SqlValue = string | number | null;
 export interface SqlExecutor {
@@ -27,12 +28,12 @@ export class RepositoryError extends Error {
   ) {
     super(
       {
-        source_missing: "来源已删除。",
-        stale_refresh: "本次刷新已被新的刷新取代，请重新刷新。",
-        empty_import: "没有有效频道，原数据保持不变。",
-        invalid_input: "导入内容不完整，请重新导入。",
-        newer_schema: "本地数据由更新版本创建，请更新应用。",
-        channel_missing: "频道已不可用。",
+        source_missing: t("来源已删除。"),
+        stale_refresh: t("本次刷新已被新的刷新取代，请重新刷新。"),
+        empty_import: t("没有有效频道，原数据保持不变。"),
+        invalid_input: t("导入内容不完整，请重新导入。"),
+        newer_schema: t("本地数据由更新版本创建，请更新应用。"),
+        channel_missing: t("频道已不可用。"),
       }[code],
     );
     this.name = "RepositoryError";

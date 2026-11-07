@@ -21,9 +21,8 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
-        "UIBackgroundModes": [
-          "audio"
-        ]
+        "UIBackgroundModes": ["audio"],
+        "CFBundleLocalizations": ["en", "zh-Hans"]
       }
     },
     "android": {
@@ -91,6 +90,10 @@
     },
     "updates": {
       "enabled": false
+    },
+    "locales": {
+      "en": "./locales/en.json",
+      "zh-Hans": "./locales/zh-Hans.json"
     }
   }
 }

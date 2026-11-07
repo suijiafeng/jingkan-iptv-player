@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React, { useEffect, useState } from "react";
 import {
   BackHandler,
@@ -12,8 +13,7 @@ import {
 import { Button, Heading, Notice } from "../../components/ui";
 import { ActiveFacetChips, FacetToggle, activeMenuFacets } from "./FacetChips";
 import { FacetFilters } from "../../components/FacetFilters";
-import { SettingIcon } from "../settings/SettingIcon";
-import { EditIcon } from "../../components/navIcons";
+import { PlusCircleIcon } from "../../components/navIcons";
 import type {
   ChannelFacetOptions,
   ChannelFacetSelection,
@@ -39,94 +39,43 @@ export interface HeaderProps {
   onSourceChange: (sourceId: string) => void;
   onFacetChange: (selection: ChannelFacetSelection, kind?: FacetKind) => void;
   countryHint?: string;
-  onClearRecent: () => void;
-  recentBusy: boolean;
-  recentEditing: boolean;
-  onToggleRecentEditing: () => void;
-  recentCount: number;
   /** 可从频道页直接进入，无需绕到设置页。 */
   onManageSources?: () => void;
 }
 
-/** 标题行包括标题、副标题和最近观看操作，随列表滚走；下面的筛选栏固定在顶部。 */
+/** 标题行包括标题和节目来源入口，随列表滚走；下面的筛选栏固定在顶部。 */
 export function ChannelListTitle(props: HeaderProps) {
   const { tab } = props;
-  const clearRecentDisabled = props.recentBusy || props.recentCount === 0;
-  const toggleRecentDisabled =
-    props.recentBusy || (!props.recentEditing && props.recentCount === 0);
   return (
     <View style={partStyles.topRow}>
       <View style={{ flex: 1 }}>
         <Heading
-          title={tab === "all" ? "频道" : tab === "favorites" ? "收藏" : "最近"}
+          title={
+            tab === "all"
+              ? t("频道")
+              : tab === "favorites"
+                ? t("收藏")
+                : t("最近")
+          }
         />
       </View>
       {tab === "all" && props.onManageSources && (
         <View style={partStyles.headerActions}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="管理节目来源"
+            accessibilityLabel={t("管理节目来源")}
             onPress={props.onManageSources}
             style={({ pressed }) => [
               partStyles.headerAction,
               pressed && { opacity: 0.7 },
             ]}
           >
-            <SettingIcon name="sources" color={colors.accent} />
-          </Pressable>
-        </View>
-      )}
-      {tab === "recent" && (
-        <View style={partStyles.headerActions}>
-          {props.recentEditing && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="清空最近观看"
-              accessibilityState={{ disabled: clearRecentDisabled }}
-              disabled={clearRecentDisabled}
-              onPress={props.onClearRecent}
-              style={({ pressed }) => [
-                partStyles.headerAction,
-                {
-                  opacity: clearRecentDisabled ? 0.4 : pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <Text style={partStyles.dangerText}>清空</Text>
-            </Pressable>
-          )}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              props.recentEditing ? "完成历史管理" : "管理观看记录"
-            }
-            accessibilityState={{ disabled: toggleRecentDisabled }}
-            disabled={toggleRecentDisabled}
-            onPress={props.onToggleRecentEditing}
-            style={({ pressed }) => [
-              partStyles.headerAction,
-              {
-                opacity: toggleRecentDisabled ? 0.4 : pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            {props.recentEditing ? (
-              <Text style={partStyles.actionText}>完成</Text>
-            ) : (
-              <EditIcon color={colors.accent} />
-            )}
+            <PlusCircleIcon color={colors.accent} />
           </Pressable>
         </View>
       )}
     </View>
   );
-}
-
-/** 当前状态下，固定筛选栏是否有内容可显示。 */
-export function hasFilterBar(
-  props: Pick<HeaderProps, "tab" | "recentEditing">,
-) {
-  return !(props.tab === "recent" && props.recentEditing);
 }
 
 /** 搜索、来源选择、内容维度和范围标签始终固定在顶部，长列表滚动后也无需返回顶部才能筛选。 */
@@ -164,7 +113,6 @@ export function ChannelFilterBar(
   const selectedSource = props.sources.find(
     (source) => source.id === props.sourceId,
   );
-  if (!hasFilterBar(props)) return null;
   return (
     <View
       style={[partStyles.filterBar, props.compact && partStyles.compactBar]}
@@ -174,9 +122,9 @@ export function ChannelFilterBar(
       >
         <View style={[partStyles.searchRow, { flex: 1 }]}>
           <TextInput
-            accessibilityLabel="搜索频道名称"
+            accessibilityLabel={t("搜索频道名称")}
             style={partStyles.searchInput}
-            placeholder="搜索"
+            placeholder={t("搜索")}
             placeholderTextColor={colors.muted}
             value={props.search}
             onChangeText={props.onSearchChange}
@@ -187,7 +135,7 @@ export function ChannelFilterBar(
           {!!props.search && (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="清除搜索"
+              accessibilityLabel={t("清除搜索")}
               onPress={props.onClearSearch}
               style={partStyles.clearSearch}
             >
@@ -207,7 +155,7 @@ export function ChannelFilterBar(
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={
-                      sourcesOpen ? "收起来源筛选" : "展开来源筛选"
+                      sourcesOpen ? t("收起来源筛选") : t("展开来源筛选")
                     }
                     accessibilityState={{ expanded: sourcesOpen }}
                     onPress={() => setSourcesOpen((value) => !value)}
@@ -219,15 +167,17 @@ export function ChannelFilterBar(
                   >
                     <Text numberOfLines={1} style={partStyles.sourceText}>
                       {props.sourceId
-                        ? selectedSource?.name || "来源"
-                        : `来源 ${sourcesOpen ? "▴" : "▾"}`}
+                        ? selectedSource?.name || t("来源")
+                        : t("来源 {value0}", {
+                            value0: sourcesOpen ? "▴" : "▾",
+                          })}
                     </Text>
                   </Pressable>
                   {/* 标签本身已显示范围，旁边的 × 用于清除它。 */}
                   {!!props.sourceId && (
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel="清除来源筛选"
+                      accessibilityLabel={t("清除来源筛选")}
                       onPress={() => props.onSourceChange("")}
                       style={({ pressed }) => [
                         partStyles.sourceClear,
@@ -251,14 +201,14 @@ export function ChannelFilterBar(
       </View>
       {tab === "all" && sourcesOpen && props.sources.length > 1 && (
         <View style={{ gap: 6 }}>
-          <Text style={styles.muted}>选择节目来源</Text>
+          <Text style={styles.muted}>{t("选择节目来源")}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 8 }}
           >
             <Button
-              label="所有来源"
+              label={t("所有来源")}
               secondary={!!props.sourceId}
               selected={!props.sourceId}
               onPress={() => {
@@ -302,7 +252,7 @@ export function ChannelFilterBar(
         <View
           accessible
           accessibilityRole="progressbar"
-          accessibilityLabel="正在检测"
+          accessibilityLabel={t("正在检测")}
           accessibilityValue={{
             min: 0,
             max: props.autoCheck.total,
@@ -357,7 +307,7 @@ export function ChannelListEmpty(props: EmptyProps) {
       <View style={partStyles.loadingState}>
         <ChannelListSkeleton />
         <Text style={styles.muted} accessibilityLiveRegion="polite">
-          正在读取频道…
+          {t("正在读取频道…")}
         </Text>
       </View>
     );
@@ -365,7 +315,7 @@ export function ChannelListEmpty(props: EmptyProps) {
     return (
       <View style={{ gap: 12 }}>
         <Notice title={props.error} error />
-        <Button label="重新读取频道" onPress={props.onRetry} />
+        <Button label={t("重新读取频道")} onPress={props.onRetry} />
       </View>
     );
   return (
@@ -373,36 +323,36 @@ export function ChannelListEmpty(props: EmptyProps) {
       <Notice
         title={
           !props.hasSources
-            ? "从一份节目单开始"
+            ? t("从一份节目单开始")
             : props.filtered
-              ? "没有找到频道"
+              ? t("没有找到频道")
               : props.tab === "favorites"
-                ? "还没有收藏"
+                ? t("还没有收藏")
                 : props.tab === "recent"
-                  ? "还没有观看记录"
-                  : "没有可用频道"
+                  ? t("还没有观看记录")
+                  : t("没有可用频道")
         }
         // 下方按钮已经说明操作，只有星标需要补充文字。
         body={
           props.hasSources && !props.filtered && props.tab === "favorites"
-            ? "点频道旁的星标收藏"
+            ? t("点频道旁的星标收藏")
             : undefined
         }
       />
       {!props.hasSources ? (
         <>
-          <Button label="添加节目单" onPress={props.onAddUrl} />
-          <Button label="从文件导入" secondary onPress={props.onAddFile} />
+          <Button label={t("添加节目单")} onPress={props.onAddUrl} />
+          <Button label={t("从文件导入")} secondary onPress={props.onAddFile} />
         </>
       ) : props.filtered ? (
         <Button
-          label={props.tab === "all" ? "清除搜索与筛选" : "清除搜索条件"}
+          label={props.tab === "all" ? t("清除搜索与筛选") : t("清除搜索条件")}
           onPress={props.onResetFilters}
         />
       ) : props.tab === "all" ? (
-        <Button label="管理节目来源" onPress={props.onManageSources} />
+        <Button label={t("管理节目来源")} onPress={props.onManageSources} />
       ) : (
-        <Button label="查看全部频道" onPress={props.onShowAll} />
+        <Button label={t("查看全部频道")} onPress={props.onShowAll} />
       )}
     </View>
   );
@@ -411,7 +361,7 @@ export function ChannelListEmpty(props: EmptyProps) {
 function ChannelListSkeleton() {
   return (
     <View
-      accessibilityLabel="正在加载频道列表"
+      accessibilityLabel={t("正在加载频道列表")}
       accessibilityRole="progressbar"
       style={partStyles.skeletonList}
     >

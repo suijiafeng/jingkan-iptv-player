@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Button } from "../../components/ui";
@@ -27,11 +28,11 @@ export function ChannelLoadNotice({
             !!error && noticeStyles.error,
           ]}
         >
-          {error || "正在读取其余频道…"}
+          {error || t("正在读取其余频道…")}
         </Text>
       </View>
       {!!error && onRetry && (
-        <Button secondary label="重新读取频道" onPress={onRetry} />
+        <Button secondary label={t("重新读取频道")} onPress={onRetry} />
       )}
     </View>
   );

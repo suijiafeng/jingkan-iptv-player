@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import { useEffect, useRef, useState } from "react";
 import type { GestureResponderEvent, LayoutChangeEvent } from "react-native";
 import * as Brightness from "expo-brightness";
@@ -26,7 +27,7 @@ export const levelAfterDrag = (
   );
 
 export const adjustLabel = (kind: AdjustKind, level: number) =>
-  `${kind === "brightness" ? "亮度" : "音量"} ${Math.round(level * 100)}%`;
+  `${kind === "brightness" ? t("亮度") : t("音量")} ${Math.round(level * 100)}%`;
 
 // 首次在全屏修改亮度前的屏幕亮度，退出时恢复。
 let savedBrightness: number | null = null;

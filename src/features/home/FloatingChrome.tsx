@@ -1,3 +1,4 @@
+import { t } from "../../i18n/core";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { CloseIcon } from "../player/playerIcons";
@@ -40,7 +41,7 @@ export function FloatingChrome({
       <Pressable
         style={[styles.closeKey, outer]}
         accessibilityRole="button"
-        accessibilityLabel="停止播放"
+        accessibilityLabel={t("停止播放")}
         onPress={onClose}
       >
         {({ pressed }) => (
