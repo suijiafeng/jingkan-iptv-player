@@ -386,6 +386,7 @@ export default function App() {
             listTailError={list.listTailError}
             headerProps={listHeaderProps}
             rows={rows}
+            currentChannel={playing}
             emptyActions={{
               hasSources: sources.length > 0,
               filtered:

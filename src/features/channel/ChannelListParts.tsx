@@ -56,9 +56,7 @@ export function ChannelListTitle(props: HeaderProps) {
     <View style={partStyles.topRow}>
       <View style={{ flex: 1 }}>
         <Heading
-          title={
-            tab === "all" ? "频道" : tab === "favorites" ? "收藏" : "最近"
-          }
+          title={tab === "all" ? "频道" : tab === "favorites" ? "收藏" : "最近"}
         />
       </View>
       {tab === "all" && props.onManageSources && (
@@ -189,52 +187,62 @@ export function ChannelFilterBar(
               onPress={props.onClearSearch}
               style={partStyles.clearSearch}
             >
-              <Text style={partStyles.clearText}>清除搜索</Text>
+              <Text accessible={false} style={partStyles.clearText}>
+                ×
+              </Text>
             </Pressable>
           )}
         </View>
-        {/* 已过期的范围（来源已经停用）仍保留其关闭按钮。 */}
-        {tab === "all" && (props.sources.length > 1 || !!props.sourceId) && (
-          <View style={partStyles.sourceGroup}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={sourcesOpen ? "收起来源筛选" : "展开来源筛选"}
-              accessibilityState={{ expanded: sourcesOpen }}
-              onPress={() => setSourcesOpen((value) => !value)}
-              style={({ pressed }) => [
-                partStyles.sourceToggle,
-                !!props.sourceId && partStyles.sourceToggleOn,
-                pressed && { opacity: 0.7 },
-              ]}
-            >
-              <Text numberOfLines={1} style={partStyles.sourceText}>
-                {props.sourceId
-                  ? selectedSource?.name || "来源"
-                  : `来源 ${sourcesOpen ? "▴" : "▾"}`}
-              </Text>
-            </Pressable>
-            {/* 标签本身已显示范围，旁边的 × 用于清除它。 */}
-            {!!props.sourceId && (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="清除来源筛选"
-                onPress={() => props.onSourceChange("")}
-                style={({ pressed }) => [
-                  partStyles.sourceClear,
-                  pressed && { opacity: 0.7 },
-                ]}
-              >
-                <Text style={partStyles.sourceText}>×</Text>
-              </Pressable>
+        {((tab === "all" && (props.sources.length > 1 || !!props.sourceId)) ||
+          facetMenus) && (
+          <View style={partStyles.filterActions}>
+            {/* 已过期的范围（来源已经停用）仍保留其关闭按钮。 */}
+            {tab === "all" &&
+              (props.sources.length > 1 || !!props.sourceId) && (
+                <View style={partStyles.sourceGroup}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      sourcesOpen ? "收起来源筛选" : "展开来源筛选"
+                    }
+                    accessibilityState={{ expanded: sourcesOpen }}
+                    onPress={() => setSourcesOpen((value) => !value)}
+                    style={({ pressed }) => [
+                      partStyles.sourceToggle,
+                      !!props.sourceId && partStyles.sourceToggleOn,
+                      pressed && { opacity: 0.7 },
+                    ]}
+                  >
+                    <Text numberOfLines={1} style={partStyles.sourceText}>
+                      {props.sourceId
+                        ? selectedSource?.name || "来源"
+                        : `来源 ${sourcesOpen ? "▴" : "▾"}`}
+                    </Text>
+                  </Pressable>
+                  {/* 标签本身已显示范围，旁边的 × 用于清除它。 */}
+                  {!!props.sourceId && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="清除来源筛选"
+                      onPress={() => props.onSourceChange("")}
+                      style={({ pressed }) => [
+                        partStyles.sourceClear,
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <Text style={partStyles.sourceText}>×</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+            {facetMenus && (
+              <FacetToggle
+                open={facetsOpen}
+                active={activeMenuFacets(props.facetSelection).length > 0}
+                onPress={() => setFacetsOpen((open) => !open)}
+              />
             )}
           </View>
-        )}
-        {facetMenus && (
-          <FacetToggle
-            open={facetsOpen}
-            active={activeMenuFacets(props.facetSelection).length > 0}
-            onPress={() => setFacetsOpen((open) => !open)}
-          />
         )}
       </View>
       {tab === "all" && sourcesOpen && props.sources.length > 1 && (
@@ -450,7 +458,13 @@ const partStyles = StyleSheet.create({
   filterBar: { gap: 10, paddingVertical: 8, backgroundColor: colors.bg },
   compactBar: { gap: 8, paddingVertical: 0, backgroundColor: "transparent" },
   hidden: { display: "none" },
-  searchLine: { flexDirection: "row", alignItems: "center", gap: 8 },
+  searchLine: { gap: 10 },
+  filterActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
   topRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   sourceToggle: {
     minWidth: sizes.field,

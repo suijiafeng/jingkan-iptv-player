@@ -1,4 +1,4 @@
-import React, { useState, type RefObject } from "react";
+import React, { useMemo, useState, type RefObject } from "react";
 import {
   Animated,
   FlatList,
@@ -30,6 +30,7 @@ import {
 } from "./channelListItems";
 import { MINI_WINDOW_SPACE } from "./useFloatingWindow";
 import { ChannelLoadNotice } from "../channel/ChannelLoadNotice";
+import { sameChannel } from "../player/playerShared";
 
 /** 顶部覆盖层与第一条列表行之间的间距。 */
 const LIST_TOP_GAP = 12;
@@ -65,6 +66,7 @@ export function ChannelListPage({
   listTailError,
   headerProps,
   rows,
+  currentChannel = null,
   emptyActions,
   artworkEnabled,
   onPlay,
@@ -86,6 +88,7 @@ export function ChannelListPage({
   listTailError: string;
   headerProps: HeaderProps;
   rows: Channel[];
+  currentChannel?: Channel | null;
   emptyActions: ChannelListEmptyActions;
   artworkEnabled: boolean;
   onPlay: (channel: Channel) => void;
@@ -100,6 +103,10 @@ export function ChannelListPage({
   const [headerHeight, setHeaderHeight] = useState(0),
     [titleSpace, setTitleSpace] = useState(0);
   const listData: ChannelListItem[] = rows.length ? rows : [EMPTY_ROW];
+  const rowState = useMemo(
+    () => ({ headerProps, currentChannel }),
+    [headerProps, currentChannel],
+  );
   const listTop = headerHeight + LIST_TOP_GAP;
   const hiddenGroup = filteredGroup(
     headerProps.tab,
@@ -117,7 +124,7 @@ export function ChannelListPage({
         testID="channel-list"
         ref={listRef}
         data={listData}
-        extraData={headerProps}
+        extraData={rowState}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         onScroll={onListScroll}
@@ -175,6 +182,9 @@ export function ChannelListPage({
           ) : (
             <ChannelRow
               channel={item as Channel}
+              current={
+                !!currentChannel && sameChannel(item as Channel, currentChannel)
+              }
               artworkEnabled={artworkEnabled}
               onPlay={onPlay}
               onFavorite={onFavorite}

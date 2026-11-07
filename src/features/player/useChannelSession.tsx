@@ -12,6 +12,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Network from "expo-network";
@@ -312,27 +313,44 @@ export function useChannelSession(props: SessionProps) {
       )}
     </Pressable>
   );
-  // 故障、慢启动、移动数据等提示交给全局提示条；
-  // 画面本身只显示加载圆点或唯一的操作按钮。
+  // 故障原因随当前状态常驻；慢启动及切源提示仍使用提示条。
   const slow = useSlowStart(waiting, state.attemptId);
+  const persistentNotice = canRetry || state.phase === "blocked";
   usePlayerNotices(
-    playerNotice({
-      phase: state.phase,
-      connectingTitle: props.failover.connectingTitle,
-      pausedBody,
-      slow,
-    }),
+    persistentNotice
+      ? null
+      : playerNotice({
+          phase: state.phase,
+          connectingTitle: props.failover.connectingTitle,
+          pausedBody,
+          slow,
+        }),
     state.attemptId,
   );
   const centerStatus = waiting ? (
     <LoadingDots slow={slow} />
-  ) : canRetry ? (
-    <CenterChip
-      label="重试"
-      icon={<RefreshIcon size={15} />}
-      disabled={primaryDisabled}
-      onPress={primaryAction}
-    />
+  ) : persistentNotice ? (
+    <View style={styles.failureNotice}>
+      <Text accessibilityRole="alert" style={styles.failureTitle}>
+        {description.title}
+      </Text>
+      {!!description.body && (
+        <Text style={styles.failureBody}>{description.body}</Text>
+      )}
+      {canRetry && (
+        <View style={styles.failureActions}>
+          <CenterChip
+            label="重试"
+            icon={<RefreshIcon size={15} />}
+            disabled={primaryDisabled}
+            onPress={primaryAction}
+          />
+          {props.sources.length > 1 && state.phase !== "offline" && (
+            <CenterChip label="切换线路" onPress={() => setSourcesOpen(true)} />
+          )}
+        </View>
+      )}
+    </View>
   ) : state.phase === "cellular" ? (
     // 需要等待回答的问题保留在画面上，不作为短暂提示。
     <MobileDataPrompt
@@ -341,7 +359,7 @@ export function useChannelSession(props: SessionProps) {
       disabled={primaryDisabled}
       onContinue={primaryAction}
     />
-  ) : state.phase === "blocked" ? null : (
+  ) : (
     playPauseButton
   );
   // 显示正在播放频道的第几个地址（2/3）；点击按钮打开
@@ -456,6 +474,30 @@ export function useChannelSession(props: SessionProps) {
 export type SessionView = ReturnType<typeof useChannelSession>;
 
 const styles = StyleSheet.create({
+  failureNotice: {
+    maxWidth: "100%",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+  },
+  failureTitle: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: colors.text,
+    textAlign: "center",
+  },
+  failureBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.muted,
+    textAlign: "center",
+  },
+  failureActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 10,
+  },
   centerButton: {
     width: 64,
     height: 64,

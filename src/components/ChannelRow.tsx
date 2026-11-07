@@ -77,13 +77,19 @@ export const ChannelRow = memo(function ChannelRow({
     ? displayGroups(channel.groupName, hiddenGroup)
     : "节目单里已没有这个频道";
   return (
-    <View style={[rowStyles.row, { height: rowHeight }]}>
+    <View
+      style={[
+        rowStyles.row,
+        current && rowStyles.currentRow,
+        { height: rowHeight },
+      ]}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={
           editingRecent
             ? `${title}，观看记录`
-            : `${title}${spokenLabels.length ? `，${spokenLabels.join("，")}` : ""}，${channel.active ? "播放" : "节目单里已没有这个频道"}`
+            : `${title}${current ? "，当前频道" : ""}${spokenLabels.length ? `，${spokenLabels.join("，")}` : ""}，${channel.active ? "播放" : "节目单里已没有这个频道"}`
         }
         accessibilityState={{ disabled: playbackDisabled, selected: current }}
         onPress={() => onPlay(channel)}
@@ -176,6 +182,13 @@ const rowStyles = StyleSheet.create({
     overflow: "hidden",
   },
   text: { flex: 1, gap: 2 },
+  currentRow: {
+    backgroundColor: colors.accentSoft,
+    borderRadius: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
+    paddingLeft: 9,
+  },
   titleLine: { flexDirection: "row", alignItems: "center", gap: 6 },
   title: { ...type.rowTitle, color: colors.text, flexShrink: 1 },
   currentTitle: { color: colors.accent, fontWeight: "600" },
