@@ -9,6 +9,36 @@ interface NavIconProps {
   size?: number;
 }
 
+/** 铅笔图标，用于进入列表管理。 */
+export function EditIcon({ color, size = 22 }: NavIconProps) {
+  return (
+    <View style={[styles.box, { width: size, height: size }]}>
+      <View style={{ transform: [{ rotate: "45deg" }], alignItems: "center" }}>
+        <View
+          style={{
+            width: 6,
+            height: size * 0.65,
+            borderWidth: 1.5,
+            borderColor: color,
+            borderTopLeftRadius: 2,
+            borderTopRightRadius: 2,
+          }}
+        />
+        <View
+          style={{
+            borderLeftWidth: 3,
+            borderRightWidth: 3,
+            borderTopWidth: 4,
+            borderLeftColor: "transparent",
+            borderRightColor: "transparent",
+            borderTopColor: color,
+          }}
+        />
+      </View>
+    </View>
+  );
+}
+
 /** 频道图标：带短支架的屏幕。 */
 export function TvIcon({ color, size = 22 }: NavIconProps) {
   return (

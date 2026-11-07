@@ -12,6 +12,8 @@ import {
 import { Button, Heading, Notice } from "../../components/ui";
 import { ActiveFacetChips, FacetToggle, activeMenuFacets } from "./FacetChips";
 import { FacetFilters } from "../../components/FacetFilters";
+import { SettingIcon } from "../settings/SettingIcon";
+import { EditIcon } from "../../components/navIcons";
 import type {
   ChannelFacetOptions,
   ChannelFacetSelection,
@@ -70,7 +72,7 @@ export function ChannelListTitle(props: HeaderProps) {
               pressed && { opacity: 0.7 },
             ]}
           >
-            <Text style={partStyles.actionText}>节目来源</Text>
+            <SettingIcon name="sources" color={colors.accent} />
           </Pressable>
         </View>
       )}
@@ -108,9 +110,11 @@ export function ChannelListTitle(props: HeaderProps) {
               },
             ]}
           >
-            <Text style={partStyles.actionText}>
-              {props.recentEditing ? "完成" : "管理"}
-            </Text>
+            {props.recentEditing ? (
+              <Text style={partStyles.actionText}>完成</Text>
+            ) : (
+              <EditIcon color={colors.accent} />
+            )}
           </Pressable>
         </View>
       )}
@@ -458,15 +462,17 @@ const partStyles = StyleSheet.create({
   filterBar: { gap: 10, paddingVertical: 8, backgroundColor: colors.bg },
   compactBar: { gap: 8, paddingVertical: 0, backgroundColor: "transparent" },
   hidden: { display: "none" },
-  searchLine: { gap: 10 },
+  searchLine: { flexDirection: "row", alignItems: "center", gap: 8 },
   filterActions: {
     flexDirection: "row",
-    flexWrap: "wrap",
     alignItems: "center",
+    flexShrink: 1,
+    maxWidth: "60%",
     gap: 8,
   },
   topRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   sourceToggle: {
+    flexShrink: 1,
     minWidth: sizes.field,
     minHeight: sizes.field,
     maxWidth: 144,
@@ -480,7 +486,7 @@ const partStyles = StyleSheet.create({
     borderBottomRightRadius: 0,
     backgroundColor: colors.accentSoft,
   },
-  sourceGroup: { flexDirection: "row" },
+  sourceGroup: { flexDirection: "row", flexShrink: 1 },
   sourceClear: {
     minWidth: sizes.field,
     minHeight: sizes.field,
@@ -510,6 +516,7 @@ const partStyles = StyleSheet.create({
   actionText: { ...type.body, color: colors.accent },
   dangerText: { ...type.body, color: colors.bad },
   searchRow: {
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.raised,
