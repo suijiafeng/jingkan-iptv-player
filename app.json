@@ -2,7 +2,7 @@
   "expo": {
     "name": "静看 TV",
     "slug": "jingkan-iptv",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "icon": "./assets/icon.png",
     "backgroundColor": "#0b1115",
     "scheme": "jingkan",
@@ -10,10 +10,9 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
-      "bundleIdentifier": "com.jingkan.personal",
+      "bundleIdentifier": "com.jingkan.iptv",
       "buildNumber": "5",
       "supportsTablet": true,
-      "appleTeamId": "V49UK4S3UP",
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -21,13 +20,18 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
-        "UIBackgroundModes": ["audio"],
-        "CFBundleLocalizations": ["en", "zh-Hans"]
+        "UIBackgroundModes": [
+          "audio"
+        ],
+        "CFBundleLocalizations": [
+          "en",
+          "zh-Hans"
+        ]
       }
     },
     "android": {
       "package": "com.jingkan.personal",
-      "versionCode": 6,
+      "versionCode": 7,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "monochromeImage": "./assets/adaptive-icon.png",

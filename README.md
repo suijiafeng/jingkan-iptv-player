@@ -92,10 +92,14 @@ npm run android
 在 macOS 上执行，按提示选择模拟器：
 
 ```bash
+EXPO_IOS_TEAM_ID="<Your Team ID>" \
+EXPO_IOS_BUNDLE_IDENTIFIER="com.yourname.jingkan" \
 npx expo run:ios
 ```
 
-首次运行会生成对应平台的原生工程并构建应用。`android/` 和 `ios/` 为生成目录，原生配置通过 `app.json` 与 `plugins/` 维护。
+若要在真实设备上安装，需在 Apple Developer 账号中创建相应的 iOS 开发配置，并确保 `Team ID` 与 `Bundle Identifier` 与你的开发证书/描述文件匹配。`app.config.js` 会优先读取环境变量，避免把个人 Team ID 或 Bundle ID 提交进仓库。
+
+首次运行会生成对应平台的原生工程并构建应用。`android/` 和 `ios/` 为生成目录，原生配置通过 `app.json`、`app.config.js` 与 `plugins/` 维护。
 
 后续需要单独启动 Metro 开发服务时：
 
@@ -109,7 +113,8 @@ npm start
 | --- | --- |
 | `npm start` | 启动 Expo / Metro 开发服务 |
 | `npm run android` | 构建并运行 Android 应用 |
-| `npx expo run:ios` | 构建并运行 iOS 应用 |
+| `npm run ios` | 构建并运行 iOS Debug 应用，需要 Metro 开发服务 |
+| `npm run ios:device` | 构建并安装 iOS Release 真机应用，内置脚本，可脱离电脑运行 |
 | `npm run typecheck` | TypeScript 类型检查 |
 | `npm run lint` | ESLint 静态检查 |
 | `npm run check` | 依次运行类型检查和静态检查 |
@@ -186,16 +191,24 @@ npm run release:build
 
 ### iOS 真机
 
+日常安装使用 Release 包，JavaScript 与资源会打包进应用，启动不依赖电脑上的 Metro 服务。
+
 1. 在 Xcode 中登录自己的 Apple 账号，连接并解锁 iPhone，完成设备信任及开发者模式设置。
-2. 将 `app.json` 中的 `ios.appleTeamId` 改为自己的 Team ID；也可移除此字段，再在 Xcode 中选择团队。需要独立的应用标识时，同时调整 `ios.bundleIdentifier`。
+2. 先设置自己的签名信息：`EXPO_IOS_TEAM_ID` 为 Apple Team ID，`EXPO_IOS_BUNDLE_IDENTIFIER` 为唯一的 iOS Bundle Identifier。也可在 Xcode 中选择团队并手动调整签名配置；不要把别人的 Team ID 或个人 Bundle ID 提交进仓库。
 3. 同步原生配置并运行：
 
 ```bash
+EXPO_IOS_TEAM_ID="<Your Team ID>" \
+EXPO_IOS_BUNDLE_IDENTIFIER="com.yourname.jingkan" \
 npx expo prebuild --platform ios
-npx expo run:ios --device
+EXPO_IOS_TEAM_ID="<Your Team ID>" \
+EXPO_IOS_BUNDLE_IDENTIFIER="com.yourname.jingkan" \
+npm run ios:device
 ```
 
-也可以在 Xcode 中打开生成的 `ios/TV.xcworkspace`，选择签名团队和目标设备后运行。仓库中的 `release:*` 脚本仅用于 Android，iOS 签名与分发通过 Xcode 处理。
+也可以在 Xcode 中打开生成的 `ios/TV.xcworkspace`，选择签名团队和目标设备，将 Scheme 的 Run → Build Configuration 设为 Release 后运行。仓库中的 `release:*` 脚本仅用于 Android，iOS 签名与分发通过 Xcode 处理。
+
+需要热更新调试时，使用 `npm run ios -- --device`。Debug 包不内置 JavaScript，需保持 `npm start` 运行，确保 iPhone 与电脑处于可互通的局域网，并允许应用访问本地网络。出现 `No script URL provided` 时，先检查 Metro 是否运行及手机能否访问电脑的 8081 端口；需要脱离电脑运行时，重新安装 Release 包。
 
 ## 本地资料与隐私
 
