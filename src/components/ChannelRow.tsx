@@ -243,9 +243,6 @@ const rowStyles = StyleSheet.create({
   currentRow: {
     backgroundColor: colors.accentSoft,
     borderRadius: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-    paddingLeft: 9,
   },
   titleLine: { flexDirection: "row", alignItems: "center", gap: 6 },
   title: { ...type.rowTitle, color: colors.text, flexShrink: 1 },
