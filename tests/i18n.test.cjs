@@ -242,3 +242,27 @@ test("Expo 原生语言资源可解析为双平台应用名称", async () => {
     assert.equal(localesMap["zh-Hans"][key], "静看 TV");
   }
 });
+
+test("筛选状态包含内容与未标注条件，全部清除后不显示活动标记", () => {
+  const { hasActiveFacets } = require("../src/domain/channelFacets.ts");
+  assert.equal(
+    hasActiveFacets({ country: null, language: null, content: null }),
+    false,
+  );
+  assert.equal(
+    hasActiveFacets({ country: "CN", language: null, content: null }),
+    true,
+  );
+  assert.equal(
+    hasActiveFacets({ country: null, language: "", content: null }),
+    true,
+  );
+  assert.equal(
+    hasActiveFacets({ country: null, language: null, content: "新闻" }),
+    true,
+  );
+  assert.equal(
+    hasActiveFacets({ country: null, language: null, content: "" }),
+    true,
+  );
+});

@@ -1,5 +1,6 @@
 /** 中文源文案作为翻译键；动态句子使用占位符。 */
 export const en = {
+  "筛选，已启用条件": "Filters, active",
   "取消收藏{value0}": "Remove {value0} from favorites",
   "收藏{value0}": "Add {value0} to favorites",
   "观看记录未删除，请重试": "Could not remove history. Please try again.",

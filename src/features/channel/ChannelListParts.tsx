@@ -11,9 +11,10 @@ import {
   View,
 } from "react-native";
 import { Button, Heading, Notice } from "../../components/ui";
-import { ActiveFacetChips, FacetToggle, activeMenuFacets } from "./FacetChips";
+import { FacetToggle } from "./FacetChips";
 import { FacetFilters } from "../../components/FacetFilters";
 import { PlusCircleIcon } from "../../components/navIcons";
+import { hasActiveFacets } from "../../domain/channelFacets";
 import type {
   ChannelFacetOptions,
   ChannelFacetSelection,
@@ -92,10 +93,16 @@ export function ChannelFilterBar(
   },
 ) {
   const { tab, idPrefix = "channel" } = props;
-  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [sourceMenuKey, setSourceMenuKey] = useState<string | null>(null);
+  const sourceKey = JSON.stringify(props.sources.map((source) => source.id));
+  const sourcesOpen = props.sources.length > 1 && sourceMenuKey === sourceKey;
   // 国家/地区和语言菜单默认折叠到一个图标后，用户需要时再展开。
   const [facetsOpen, setFacetsOpen] = useState(false);
   const facetMenus = tab === "all" && !props.foldTriggers;
+  const showSourceSelect = tab === "all" && props.sources.length > 1;
+  const filterActive =
+    hasActiveFacets(props.facetSelection) ||
+    (showSourceSelect && !!props.sourceId);
   // 展开的筛选行算一级页面，返回键应先将其收起。
   const rowOpen = sourcesOpen || facetsOpen;
   useEffect(() => {
@@ -103,7 +110,7 @@ export function ChannelFilterBar(
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
-        setSourcesOpen(false);
+        setSourceMenuKey(null);
         setFacetsOpen(false);
         return true;
       },
@@ -145,63 +152,67 @@ export function ChannelFilterBar(
             </Pressable>
           )}
         </View>
-        {((tab === "all" && (props.sources.length > 1 || !!props.sourceId)) ||
-          facetMenus) && (
+        {(showSourceSelect || facetMenus) && (
           <View style={partStyles.filterActions}>
-            {/* 已过期的范围（来源已经停用）仍保留其关闭按钮。 */}
-            {tab === "all" &&
-              (props.sources.length > 1 || !!props.sourceId) && (
-                <View style={partStyles.sourceGroup}>
+            {showSourceSelect && (
+              <View style={partStyles.sourceGroup}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    sourcesOpen ? t("收起来源筛选") : t("展开来源筛选")
+                  }
+                  accessibilityState={{ expanded: sourcesOpen }}
+                  onPress={() => {
+                    setSourceMenuKey((value) =>
+                      value === sourceKey ? null : sourceKey,
+                    );
+                    setFacetsOpen(false);
+                  }}
+                  style={({ pressed }) => [
+                    partStyles.sourceToggle,
+                    !!props.sourceId && partStyles.sourceToggleOn,
+                    pressed && { opacity: 0.7 },
+                  ]}
+                >
+                  <Text numberOfLines={1} style={partStyles.sourceText}>
+                    {props.sourceId
+                      ? selectedSource?.name || t("来源")
+                      : t("来源 {value0}", {
+                          value0: sourcesOpen ? "▴" : "▾",
+                        })}
+                  </Text>
+                </Pressable>
+                {/* 标签本身已显示范围，旁边的 × 用于清除它。 */}
+                {!!props.sourceId && (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={
-                      sourcesOpen ? t("收起来源筛选") : t("展开来源筛选")
-                    }
-                    accessibilityState={{ expanded: sourcesOpen }}
-                    onPress={() => setSourcesOpen((value) => !value)}
+                    accessibilityLabel={t("清除来源筛选")}
+                    onPress={() => props.onSourceChange("")}
                     style={({ pressed }) => [
-                      partStyles.sourceToggle,
-                      !!props.sourceId && partStyles.sourceToggleOn,
+                      partStyles.sourceClear,
                       pressed && { opacity: 0.7 },
                     ]}
                   >
-                    <Text numberOfLines={1} style={partStyles.sourceText}>
-                      {props.sourceId
-                        ? selectedSource?.name || t("来源")
-                        : t("来源 {value0}", {
-                            value0: sourcesOpen ? "▴" : "▾",
-                          })}
-                    </Text>
+                    <Text style={partStyles.sourceText}>×</Text>
                   </Pressable>
-                  {/* 标签本身已显示范围，旁边的 × 用于清除它。 */}
-                  {!!props.sourceId && (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={t("清除来源筛选")}
-                      onPress={() => props.onSourceChange("")}
-                      style={({ pressed }) => [
-                        partStyles.sourceClear,
-                        pressed && { opacity: 0.7 },
-                      ]}
-                    >
-                      <Text style={partStyles.sourceText}>×</Text>
-                    </Pressable>
-                  )}
-                </View>
-              )}
+                )}
+              </View>
+            )}
             {facetMenus && (
               <FacetToggle
                 open={facetsOpen}
-                active={activeMenuFacets(props.facetSelection).length > 0}
-                onPress={() => setFacetsOpen((open) => !open)}
+                active={filterActive}
+                onPress={() => {
+                  setFacetsOpen((open) => !open);
+                  setSourceMenuKey(null);
+                }}
               />
             )}
           </View>
         )}
       </View>
-      {tab === "all" && sourcesOpen && props.sources.length > 1 && (
+      {showSourceSelect && sourcesOpen && (
         <View style={{ gap: 6 }}>
-          <Text style={styles.muted}>{t("选择节目来源")}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -213,7 +224,7 @@ export function ChannelFilterBar(
               selected={!props.sourceId}
               onPress={() => {
                 props.onSourceChange("");
-                setSourcesOpen(false);
+                setSourceMenuKey(null);
               }}
             />
             {props.sources.map((source) => (
@@ -224,18 +235,12 @@ export function ChannelFilterBar(
                 selected={props.sourceId === source.id}
                 onPress={() => {
                   props.onSourceChange(source.id);
-                  setSourcesOpen(false);
+                  setSourceMenuKey(null);
                 }}
               />
             ))}
           </ScrollView>
         </View>
-      )}
-      {facetMenus && !facetsOpen && (
-        <ActiveFacetChips
-          selection={props.facetSelection}
-          onChange={props.onFacetChange}
-        />
       )}
       {tab === "all" && (
         <FacetFilters

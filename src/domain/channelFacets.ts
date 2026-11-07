@@ -11,6 +11,15 @@ export interface ChannelFacetSelection {
   language: string | null;
   content: string | null;
 }
+/** 空字符串代表“未标注”条件，仍属于有效筛选。 */
+export function hasActiveFacets(selection: ChannelFacetSelection): boolean {
+  return (
+    selection.country !== null ||
+    selection.language !== null ||
+    selection.content !== null
+  );
+}
+
 export interface ChannelFacetOptions {
   countries: string[];
   languages: string[];

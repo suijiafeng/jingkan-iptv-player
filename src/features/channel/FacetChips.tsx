@@ -1,20 +1,7 @@
 import { t } from "../../i18n/core";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  facetLabel,
-  type ChannelFacetSelection,
-  type FacetKind,
-} from "../../domain/channelFacets";
-import { colors, sizes, type } from "../../theme";
-
-const MENU_KINDS = ["country", "language"] as const;
-const LABELS = { country: "国家/地区", language: "语言" };
-
-/** 当前正在缩小列表范围的国家和语言维度。 */
-export function activeMenuFacets(selection: ChannelFacetSelection) {
-  return MENU_KINDS.filter((kind) => selection[kind] !== null);
-}
+import { Pressable, StyleSheet, View } from "react-native";
+import { colors, sizes } from "../../theme";
 
 /** 在搜索行末放一个图标，替代常驻的“国家/地区 全部 ▾ 语言 全部 ▾”一整行；只有用户需要时才展开菜单。 */
 export function FacetToggle({
@@ -23,19 +10,21 @@ export function FacetToggle({
   onPress,
 }: {
   open: boolean;
-  /** 已设置国家/地区或语言时，图标显示强调色。 */
+  /** 有条件生效时，仅用小圆点提示。 */
   active: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={t("按国家/地区或语言筛选")}
+      accessibilityLabel={
+        active ? t("筛选，已启用条件") : t("按国家/地区或语言筛选")
+      }
       accessibilityState={{ expanded: open, selected: active }}
       onPress={onPress}
       style={({ pressed }) => [
         chipStyles.toggle,
-        (open || active) && chipStyles.toggleOn,
+        open && chipStyles.toggleOn,
         pressed && { opacity: 0.7 },
       ]}
     >
@@ -45,45 +34,14 @@ export function FacetToggle({
         <View style={[chipStyles.bar, { width: 11 }]} />
         <View style={[chipStyles.bar, { width: 6 }]} />
       </View>
+      {active && (
+        <View
+          accessible={false}
+          testID="active-filter-indicator"
+          style={chipStyles.activeDot}
+        />
+      )}
     </Pressable>
-  );
-}
-
-/** 菜单折叠时，已设置的维度分别显示为小标签，例如“中国 ×”，使列表缩短的原因始终可见，也可直接清除。 */
-export function ActiveFacetChips({
-  selection,
-  onChange,
-}: {
-  selection: ChannelFacetSelection;
-  onChange: (selection: ChannelFacetSelection, kind?: FacetKind) => void;
-}) {
-  const active = activeMenuFacets(selection);
-  if (!active.length) return null;
-  return (
-    <View style={chipStyles.row}>
-      {active.map((kind) => {
-        const label = facetLabel(kind, selection[kind]);
-        return (
-          <Pressable
-            key={kind}
-            accessibilityRole="button"
-            accessibilityLabel={t("清除{value0}筛选：{value1}", {
-              value0: t(LABELS[kind]),
-              value1: label,
-            })}
-            onPress={() => onChange({ ...selection, [kind]: null }, kind)}
-            style={({ pressed }) => [
-              chipStyles.chip,
-              pressed && { opacity: 0.7 },
-            ]}
-          >
-            <Text numberOfLines={1} style={chipStyles.chipText}>
-              {label} ×
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
   );
 }
 
@@ -99,14 +57,13 @@ const chipStyles = StyleSheet.create({
   toggleOn: { backgroundColor: colors.accentSoft },
   glyph: { gap: 3, alignItems: "center" },
   bar: { height: 2, borderRadius: 1, backgroundColor: colors.accent },
-  row: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  chip: {
-    minHeight: sizes.chip,
-    maxWidth: 200,
-    paddingHorizontal: 12,
-    borderRadius: sizes.chip / 2,
-    justifyContent: "center",
-    backgroundColor: colors.accentSoft,
+  activeDot: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: colors.accent,
   },
-  chipText: { ...type.chip, color: colors.accent },
 });
