@@ -150,6 +150,7 @@ export function SettingsScreen(props: Props) {
       <SettingSection label="播放">
         <SettingRow
           title="后台播放"
+          caption="切换应用或锁屏后继续播放，会消耗网络流量"
           icon={<SettingIcon name="background" />}
           trailing={
             <Switch
@@ -162,11 +163,12 @@ export function SettingsScreen(props: Props) {
           }
         />
         <SettingRow
-          title="浮窗播放"
+          title="应用内浮窗"
+          caption="返回频道列表时以小窗继续播放；系统画中画在播放器中开启"
           icon={<SettingIcon name="floating" />}
           trailing={
             <Switch
-              accessibilityLabel="浮窗播放"
+              accessibilityLabel="应用内浮窗播放"
               value={props.miniPlayer}
               trackColor={{ true: colors.accent }}
               onValueChange={props.onMiniPlayerChange}

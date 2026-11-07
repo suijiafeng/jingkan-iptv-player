@@ -50,6 +50,10 @@ export function FirstRunGuide({
               静看 TV
             </Text>
             <Text style={guideStyles.body}>播放你自己添加的节目单。</Text>
+            <Text style={guideStyles.body}>
+              应用不提供节目来源。请添加可信且有权使用的节目单链接或 M3U/TXT
+              文件。
+            </Text>
           </View>
           <View style={guideStyles.footer}>
             <Button label="添加节目单链接" onPress={() => onFinish("url")} />

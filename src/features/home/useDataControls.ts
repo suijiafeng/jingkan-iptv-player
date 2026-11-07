@@ -55,7 +55,7 @@ export function useDataControls({
       !repo ||
       !(await confirm(
         `删除“${source.name}”？`,
-        `会移除 ${source.channelCount} 个频道及 ${source.favoriteCount} 个收藏与相关观看记录。应用内无法撤销。`,
+        `将删除此来源及其 ${source.channelCount} 个频道条目。没有其他来源保留的频道，其收藏与最近播放记录也会删除。应用内无法撤销，你原来的节目单文件不受影响。`,
         "删除",
       ))
     )

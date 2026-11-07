@@ -7,9 +7,9 @@ export const networkConsentRequest = (
   /** 设备可能正在使用移动数据，并且用户要求提醒。 */
   cellular: boolean,
 ): ConsentRequest<"allow" | "deny"> => ({
-  title: "允许联网读取节目来源？",
+  title: "允许节目来源联网？",
   points: [
-    "来源服务器会看到你的 IP",
+    "联网导入、播放和检测时，服务器会收到你的 IP 与请求",
     "未加密（HTTP）内容可能被查看或篡改",
     ...(cellular ? ["当前可能在用移动数据，会消耗流量"] : []),
     "随时可在设置里撤销",
