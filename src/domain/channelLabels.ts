@@ -74,7 +74,7 @@ export function displayGroups(
   hidden: string | null = null,
 ): string {
   return splitGroups(groupName)
-    .filter((group) => group !== hidden)
+    .filter((group) => group !== hidden && !NO_GROUP.has(group.toLowerCase()))
     .map(groupLabel)
     .join(getLocale() === "en" ? ", " : "、");
 }
@@ -137,5 +137,9 @@ export function channelTitle(name: string): { title: string; tags: string[] } {
     title = title.slice(0, title.length - match[0].length).trim();
   }
   // 如果名称完全由方括号内容构成，它就是频道名称，不视作标记。
-  return title ? { title, tags } : { title: name.trim(), tags: [] };
+  const usefulTags = tags.filter(
+    (tag) =>
+      !["未知清晰度", "Unknown quality", "未分组", "Ungrouped"].includes(tag),
+  );
+  return title ? { title, tags: usefulTags } : { title: name.trim(), tags: [] };
 }

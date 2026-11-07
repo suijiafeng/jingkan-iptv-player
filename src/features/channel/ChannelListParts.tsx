@@ -13,7 +13,6 @@ import {
 import { Button, Heading, Notice } from "../../components/ui";
 import { FacetToggle } from "./FacetChips";
 import { FacetFilters } from "../../components/FacetFilters";
-import { PlusCircleIcon } from "../../components/navIcons";
 import { hasActiveFacets } from "../../domain/channelFacets";
 import type {
   ChannelFacetOptions,
@@ -40,11 +39,10 @@ export interface HeaderProps {
   onSourceChange: (sourceId: string) => void;
   onFacetChange: (selection: ChannelFacetSelection, kind?: FacetKind) => void;
   countryHint?: string;
-  /** 可从频道页直接进入，无需绕到设置页。 */
   onManageSources?: () => void;
 }
 
-/** 标题行包括标题和节目来源入口，随列表滚走；下面的筛选栏固定在顶部。 */
+/** 标题随列表滚走，下面的筛选栏固定在顶部。 */
 export function ChannelListTitle(props: HeaderProps) {
   const { tab } = props;
   return (
@@ -60,21 +58,6 @@ export function ChannelListTitle(props: HeaderProps) {
           }
         />
       </View>
-      {tab === "all" && props.onManageSources && (
-        <View style={partStyles.headerActions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("管理节目来源")}
-            onPress={props.onManageSources}
-            style={({ pressed }) => [
-              partStyles.headerAction,
-              pressed && { opacity: 0.7 },
-            ]}
-          >
-            <PlusCircleIcon color={colors.accent} />
-          </Pressable>
-        </View>
-      )}
     </View>
   );
 }
@@ -452,23 +435,6 @@ const partStyles = StyleSheet.create({
     backgroundColor: colors.accentSoft,
   },
   sourceText: { ...type.body, color: colors.accent },
-  // 48pt 触控区域伸出 32pt 标题行，而不撑大标题行，因此
-  // 切换标签时，最近与频道、收藏、设置的标题保持在同一位置。
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    // 标题区：标题行加 4pt 下边距。
-    marginVertical: -(sizes.touch - (type.title.lineHeight + 4)) / 2,
-  },
-  headerAction: {
-    minHeight: sizes.touch,
-    minWidth: sizes.touch,
-    paddingHorizontal: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionText: { ...type.body, color: colors.accent },
   dangerText: { ...type.body, color: colors.bad },
   searchRow: {
     minWidth: 0,

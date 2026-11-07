@@ -11,7 +11,6 @@ import {
 } from "react-native";
 import { Channel } from "../domain/types";
 import { channelTitle, displayGroups } from "../domain/channelLabels";
-import { isQualityTag } from "../domain/channelSources";
 import { colors, sizes, styles, type } from "../theme";
 import { ChannelLogo } from "./ChannelLogo";
 
@@ -21,7 +20,7 @@ export const CHANNEL_ROW_GAP = 4;
 /**
  * 所有行高度一致，列表可通过 getItemLayout 直接计算位置，
  * 无须先渲染和测量。否则快速滑动会超过测量进度，出现空白。
- * 内容包括上下各 8dp 留白、一行标题（旁边放标签）、2dp 间隔及一行说明；
+ * 内容包括上下各 8dp 留白、一行频道名、2dp 间隔及一行可选说明；
  * 文本行随字体缩放增高。
  */
 export function channelRowHeight(fontScale: number): number {
@@ -96,7 +95,9 @@ export const ChannelRow = memo(function ChannelRow({
   const rowHeight = channelRowHeight(fontScale);
   const playbackDisabled = !channel.active;
   const caption = channel.active
-    ? displayGroups(channel.groupName, hiddenGroup)
+    ? [displayGroups(channel.groupName, hiddenGroup), ...spokenLabels]
+        .filter(Boolean)
+        .join(t("、"))
     : t("节目单里已没有这个频道");
   const showRecentActions = () => {
     if (!onRemoveRecent || recentBusy) return;
@@ -174,26 +175,12 @@ export const ChannelRow = memo(function ChannelRow({
           size={sizes.logo}
         />
         <View style={rowStyles.text}>
-          {/* 单行布局：标记位于标题旁，让所有行保持
-              相同高度；参见 channelRowHeight。 */}
-          <View style={rowStyles.titleLine}>
-            <Text
-              numberOfLines={1}
-              style={[rowStyles.title, current && rowStyles.currentTitle]}
-            >
-              {title}
-            </Text>
-            {spokenLabels.map((label) => (
-              <Text
-                key={label}
-                numberOfLines={1}
-                // 清晰度属于频道信息，而“地区限制”等标记属于使用提醒。
-                style={[rowStyles.tag, isQualityTag(label) && rowStyles.quiet]}
-              >
-                {label}
-              </Text>
-            ))}
-          </View>
+          <Text
+            numberOfLines={1}
+            style={[rowStyles.title, current && rowStyles.currentTitle]}
+          >
+            {title}
+          </Text>
           {/* 不显示来源名称：这一行代表逻辑频道，
               实际播放的来源会在开始播放时选择。 */}
           {!!caption && (
@@ -244,7 +231,6 @@ const rowStyles = StyleSheet.create({
     backgroundColor: colors.accentSoft,
     borderRadius: 10,
   },
-  titleLine: { flexDirection: "row", alignItems: "center", gap: 6 },
   title: { ...type.rowTitle, color: colors.text, flexShrink: 1 },
   currentTitle: { color: colors.accent, fontWeight: "600" },
   main: {
@@ -254,15 +240,6 @@ const rowStyles = StyleSheet.create({
     gap: 10,
     paddingVertical: 8,
   },
-  tag: {
-    ...type.muted,
-    color: colors.warn,
-    backgroundColor: colors.raised,
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    overflow: "hidden",
-  },
-  quiet: { color: colors.muted },
   unreachable: { opacity: 0.5 },
   star: {
     minWidth: sizes.touch,

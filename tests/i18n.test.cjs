@@ -266,3 +266,19 @@ test("筛选状态包含内容与未标注条件，全部清除后不显示活�
     true,
   );
 });
+
+test("频道说明省略占位分类与当前分类，保留其他分类和有效画质", () => {
+  for (const locale of ["zh-Hans", "en"]) {
+    core.setLanguagePreference(locale);
+    assert.equal(displayGroups("未分组"), "");
+    assert.equal(displayGroups("新闻", "新闻"), "");
+    assert.equal(
+      displayGroups("未分组;新闻;体育", "新闻"),
+      locale === "en" ? "Sports" : "体育",
+    );
+    assert.deepEqual(channelTitle("Demo [未知清晰度]").tags, []);
+    assert.deepEqual(channelTitle("Demo [Unknown quality]").tags, []);
+    assert.equal(channelTitle("Demo (1080p)").title, "Demo");
+    assert.deepEqual(channelTitle("Demo (1080p)").tags, ["1080p"]);
+  }
+});
